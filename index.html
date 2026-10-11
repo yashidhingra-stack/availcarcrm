@@ -271,6 +271,28 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 .badge-btn{border:0;background:#f2c14e;color:#4a3500;border-radius:6px;padding:2px 8px;font-size:12px;margin-left:8px}
 .st-active{color:#2b7de9}.st-inactive{color:var(--bad)}
 .total{font-size:18px;white-space:nowrap;margin-right:2px}
+.rep{color:var(--bad);margin-left:12px;font-weight:600}
+.perm-wrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;align-items:start}
+.perm-roles{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px}
+.perm-roles button{border:0;background:none;text-align:left;padding:14px 16px;border-radius:8px;color:var(--ink)}
+.perm-roles button:hover{background:var(--surface)}
+.perm-roles button[aria-selected="true"]{background:var(--surface);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.perm-panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding-bottom:64px}
+.perm-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 18px;border-bottom:1px solid var(--line)}
+.perm-row .land{display:flex;gap:8px;align-items:center;color:var(--ink);white-space:nowrap}
+.perm-row .land.off{color:var(--muted);opacity:.7}
+.perm-acts{padding:2px 18px 14px;border-bottom:1px solid var(--line)}
+.perm-acts h4{margin:10px 0 6px;font-size:15px}
+.acts-grid{display:flex;flex-wrap:wrap;gap:0 18px}
+.perm-submit{position:fixed;right:24px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+@media (max-width:900px){.perm-wrap{grid-template-columns:minmax(0,1fr)}.perm-roles{flex-direction:row;overflow-x:auto}.perm-roles button{white-space:nowrap}}
+.sumbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px}
+.sum-card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:2px}
+.sum-card:hover{border-color:var(--muted)}
+.sum-card.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.sum-card b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.sum-label{color:var(--muted);font-size:13px;display:flex;align-items:center}
+.sum-files{color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -359,9 +381,9 @@ var products=["Used Car Purchase","Used Car Refinance","New Car Loan","Car Top-u
 var pcolor=["#2b7de9","#3aa76d","#f2a900","#e4572e","#7c5cc4"];
 var stages=["Audience","Login","Hold","Disbursed","Rejected"];
 var stageName={Audience:"Audience",Login:"Login business",Hold:"Hold",Disbursed:"Disbursement business",Rejected:"Reject business"};
-var STATUS=[["Open","Audience"],["Follow Up","Audience"],["Call not picked","Audience"],["Wrong No","Audience"],["Call later","Audience"],["Call Invalid","Audience"],["Not Interested","Audience"],["Interested","Audience"],["Documents Collected","Audience"],["Login Pending","Login"],["Login","Login"],["Approval Pending","Login"],["Approved","Login"],["Finally Hold","Hold"],["Partially Hold","Hold"],["Approved But Hold","Hold"],["Disbursed","Disbursed"],["Reject","Rejected"]];
+var STATUS=[["Open","Audience"],["Follow Up","Audience"],["Call not picked","Audience"],["Wrong No","Audience"],["Call later","Audience"],["Call Invalid","Audience"],["Not Interested","Audience"],["Interested","Audience"],["Documents Collected","Audience"],["Login Pending","Login"],["Login","Login"],["Approval Pending","Login"],["Approved","Login"],["Finally Hold","Hold"],["Partially Hold","Hold"],["Approved But Hold","Hold"],["Postponed","Hold"],["Disburse","Disbursed"],["Disbursement Pending","Disbursed"],["Reject","Rejected"]];
 var statusStage={}; STATUS.forEach(function(x){statusStage[x[0]]=x[1];});
-var SC={"Open":"#e8c33a","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#e4572e","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Disbursed":"#0f9d94","Reject":"#7c5cc4"};
+var SC={"Open":"#e8c33a","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#7c5cc4","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Postponed":"#e08a1e","Disburse":"#2f8f5b","Pending":"#e8c33a","Received":"#2f8f5b","Overdue":"#c43d3d","Disbursement Pending":"#e8c33a","Reject":"#c43d3d"};
 var lenders=["AU Small Finance Bank","HDFC Bank","Cholamandalam Finance","SK Finance","Hero Fincorp","Mahindra Finance"];
 var dealers=["Direct - Direct","Ravi Empire Motor","Freelancer","Sirjan Motors","Royal Cars"];
 var models=["Swift","Dzire","Scorpio-N","Bolero","XUV-500","Compass","Creta","i20","Baleno","Innova"];
@@ -372,25 +394,48 @@ function pad(n){return String(n).padStart(2,"0");}
 var leads=[];
 var MAKE={"Swift":"Maruti","Dzire":"Maruti","Baleno":"Maruti","Scorpio-N":"Mahindra","Bolero":"Mahindra","XUV-500":"Mahindra","Compass":"Jeep","Creta":"Hyundai","i20":"Hyundai","Innova":"Toyota"};
 var AUDPOOL=["Open","Open","Open","Follow Up","Follow Up","Follow Up","Call not picked","Wrong No","Call later","Call Invalid","Not Interested","Interested","Documents Collected"];
-var loginCnt=0, audCnt=0, WIN="2026-09-12";
-for(var i=0;loginCnt<207;i++){
+var loginCnt=0, audCnt=0, disbCnt=0, WIN="2026-09-12", LOGINPOOL=["Login Pending","Login","Approval Pending","Approved"];
+for(var i=0;loginCnt<931;i++){
   var r=R(), d=new Date(TODAY); d.setDate(d.getDate()-Math.floor(R()*R()*42));
   var dt=ymd(d), inWin=dt>=WIN;
-  var pool=r<.25?AUDPOOL:r<.55?["Login Pending","Login","Approval Pending","Approved"]:r<.67?["Finally Hold","Partially Hold","Approved But Hold"]:r<.87?["Disbursed"]:["Reject"];
+  var pool=r<.25?AUDPOOL:r<.55?["Login Pending","Login","Approval Pending","Approved"]:r<.67?["Finally Hold","Finally Hold","Partially Hold","Approved But Hold","Postponed"]:r<.87?["Disburse","Disbursement Pending","Disbursement Pending"]:["Reject"];
   var stt=pick(pool);
-  if(inWin&&statusStage[stt]==="Audience"&&audCnt>=25)stt=pick(["Login Pending","Login","Approval Pending","Approved"]);
-  var logged=statusStage[stt]!=="Audience", has=logged?R()>.15:R()>.5, model=has?pick(models):"";
+  if(inWin){var sg0=statusStage[stt];if((sg0==="Audience"&&audCnt>=83)||(sg0==="Disbursed"&&disbCnt>=43))stt=pick(LOGINPOOL);}
+  var sgS=statusStage[stt], logged=sgS!=="Audience", has=sgS==="Disbursed"?true:(logged?R()>.15:R()>.5), model=has?pick(models):"";
   leads.push({id:1001+i,name:pick(fn)+" "+pick(ln),phone:String(Math.floor(7000000000+R()*2999999999)),owner:pick(owners),product:pick(products),
     amount:Math.round(3+R()*33)*50000,status:stt,stage:statusStage[stt],source:pick(sources),date:dt,
     ts:dt+" "+pad(Math.floor(9+R()*10))+":"+pad(Math.floor(R()*60))+":"+pad(Math.floor(R()*60)),
     vehicle:model,reg:has?"PB"+pad(Math.floor(1+R()*98))+pick(["AM","CQ","AX","BH","DK"])+Math.floor(1000+R()*8999):"",
-    lender:logged&&has?pick(lenders):"",dealer:logged&&has?pick(dealers):"",pdd:stt==="Disbursed"?pick(["Pending","Received","Overdue"]):"—",note:"",
+    lender:logged&&has?pick(lenders):"",dealer:logged&&has?pick(dealers):"",pdd:statusStage[stt]==="Disbursed"?pick(["Pending","Received","Overdue"]):"—",note:"",
     audId:String(1790000000000+Math.floor(R()*1800000000))});
   var nl=leads[leads.length-1];
-  if(inWin){if(nl.stage==="Audience")audCnt++;if(nl.stage==="Login"||nl.stage==="Hold"||nl.stage==="Rejected")loginCnt++;}
+  if(inWin){if(nl.stage==="Disbursed")disbCnt++;if(nl.stage==="Audience")audCnt++;if(nl.stage==="Login"||nl.stage==="Hold"||nl.stage==="Rejected")loginCnt++;}
 }
+function makeLead(id,dt,stt,pHas){
+  var has=R()<pHas, model=has?pick(models):"";
+  return {id:id,name:pick(fn)+" "+pick(ln),phone:String(Math.floor(7000000000+R()*2999999999)),owner:pick(owners),product:pick(products),amount:Math.round(3+R()*33)*50000,status:stt,stage:statusStage[stt],source:pick(sources),date:dt,
+    ts:dt+" "+pad(Math.floor(9+R()*10))+":"+pad(Math.floor(R()*60))+":"+pad(Math.floor(R()*60)),vehicle:model,reg:has?"PB"+pad(Math.floor(1+R()*98))+pick(["AM","CQ","AX","BH","DK"])+Math.floor(1000+R()*8999):"",
+    lender:has&&R()>.1?pick(lenders):"",dealer:has?pick(dealers):"",pdd:"—",note:"",audId:String(1790000000000+Math.floor(R()*1800000000))};
+}
+(function(){
+  var HOLD_TOTAL=3296, REJ_TOTAL=799, hid=1001+leads.length;
+  var h=leads.filter(function(l){return l.stage==="Hold";}).length, rj=leads.filter(function(l){return l.stage==="Rejected";}).length;
+  var HP=["Finally Hold","Finally Hold","Finally Hold","Finally Hold","Finally Hold","Postponed","Postponed","Partially Hold","Approved But Hold"];
+  function hist(stt,pp){var d=new Date(TODAY);d.setDate(d.getDate()-(43+Math.floor(R()*520)));return makeLead(hid++,ymd(d),stt,pp||.7);}
+  for(var a=h;a<HOLD_TOTAL;a++)leads.push(hist(pick(HP)));
+  for(var b=rj;b<REJ_TOTAL;b++)leads.push(hist("Reject"));
+  var PDD_TOTAL=1867, dh=leads.filter(function(l){return l.status==="Disburse";}).length;
+  for(var c=dh;c<PDD_TOTAL;c++){var dl=hist("Disburse",1);dl.pdd=pick(["Pending","Received","Overdue"]);if(!dl.lender)dl.lender=pick(lenders);leads.push(dl);}
+  var DATA_TOTAL=22233, B=DATA_TOTAL-leads.length;
+  for(var z=0;z<B;z++){
+    var d2=new Date(TODAY);d2.setDate(d2.getDate()-(600+Math.floor(R()*700)));var dt2=ymd(d2),st2=R()<.7?pick(AUDPOOL):pick(LOGINPOOL);
+    leads.push({id:hid++,name:pick(fn)+" "+pick(ln),phone:String(Math.floor(7000000000+R()*2999999999)),owner:pick(owners),product:"",amount:0,status:st2,stage:statusStage[st2],source:pick(sources),date:dt2,ts:dt2+" 12:00:00",vehicle:"",reg:"",lender:"",dealer:"",pdd:"—",note:"",audId:String(1790000000000+Math.floor(R()*1800000000))});
+  }
+  for(var q=0,nq=Math.floor(leads.length*.05);q<nq;q++){leads[Math.floor(R()*leads.length)].phone=leads[Math.floor(R()*leads.length)].phone;}
+})();
 leads.sort(function(a,b){return a.ts<b.ts?1:-1;});
 var nextId=1001+leads.length;
+var ALLFROM=leads.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));
 
 var campaigns=[
   {name:"Festive used car loan offer",channel:"WhatsApp",segment:"Used Car Purchase",when:"2026-10-14",status:"Scheduled"},
@@ -515,7 +560,7 @@ function drawCharts(){
 }
 
 /* ---------- leads ---------- */
-function resetList(){state.q="";state.sel=[];state.f={product:"",lender:"",dealer:"",owner:"",min:"",max:"",veh:""};state.page=1;}
+function resetList(){state.permDraft={};state.sort=pageKey()==="data"?{k:"ts",d:1}:{k:"ts",d:-1};state.q="";state.sel=[];state.f={product:"",lender:"",dealer:"",owner:"",min:"",max:"",veh:""};state.page=1;}
 function pageKey(){return state.route.split("/")[1];}
 function pageStages(key){
   if(key==="Login")return ["Login","Hold","Rejected"];
@@ -523,22 +568,31 @@ function pageStages(key){
   if(key==="pdd")return ["Disbursed"];
   return stages.slice();
 }
-function statusOptions(key){var st=pageStages(key);return STATUS.filter(function(x){return st.indexOf(x[1])>-1;}).map(function(x){return x[0];});}
+function statusOptions(key){
+  if(key==="pdd")return ["Pending","Received","Overdue"];var st=pageStages(key);return STATUS.filter(function(x){return st.indexOf(x[1])>-1;}).map(function(x){return x[0];});}
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
-var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id"};
-var PAGECOLS={Audience:["sno","ts","name","phone","product","make","reg","amount","owner","status","audId"],def:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","status"]};
-function pageCols(key){return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,COLDEF[id]];});}
+var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",month:"Month of Disbursement",pdd:"PDD Status"};
+var HR=["sno","ts","name","phone","product","make","vehicle","reg","amount","lender","status","dealer","owner"];
+var ALLTIME={Hold:1,Rejected:1,pdd:1,data:1}, NOFILTER={Hold:1,Rejected:1,pdd:1,data:1};
+state.lrangeBy={};
+function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,to:ymd(TODAY)}:state.lrange);}
+function setRange(key,r){state.lrangeBy[key]=r;}
+var HIDDEN={def:["owner"],Disbursed:["ts"],Hold:["dealer","owner"],Rejected:["dealer","owner"],pdd:["pdd"],data:["ts","status","owner"]};
+var PAGELABEL={pdd:{ts:"Disbursed Date"}};
+var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner"],Audience:["sno","ts","name","phone","product","make","reg","amount","owner","status","audId"],def:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","status"]};
+function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];});}
 function colState(key){
   var k=PAGECOLS[key]?key:"def"; state.colsBy=state.colsBy||{};
-  if(!state.colsBy[k]){var o={};PAGECOLS[k].forEach(function(id){o[id]=!(k==="def"&&id==="owner");});state.colsBy[k]=o;}
+  if(!state.colsBy[k]){var o={};PAGECOLS[k].forEach(function(id){o[id]=(HIDDEN[k]||[]).indexOf(id)<0;});state.colsBy[k]=o;}
   return state.colsBy[k];
 }
-function leadRows(key){
-  var st=pageStages(key), q=state.q.trim().toLowerCase(), f=state.f, lr=state.lrange, sf=state.sf;
+function leadRows(key,noSel){
+  var st=pageStages(key), q=state.q.trim().toLowerCase(), f=state.f, lr=getRange(key), sf=state.sf;
   var rows=leads.filter(function(l){
     if(st.indexOf(l.stage)<0)return false;
     if(l.date<lr.from||l.date>lr.to)return false;
-    if(state.sel.length&&state.sel.indexOf(l.status)<0)return false;
+    if(key==="pdd"&&l.status!=="Disburse")return false;
+    if(!noSel&&state.sel.length&&state.sel.indexOf(key==="pdd"?l.pdd:l.status)<0)return false;
     if(f.product&&l.product!==f.product)return false;
     if(f.lender&&l.lender!==f.lender)return false;
     if(f.dealer&&l.dealer!==f.dealer)return false;
@@ -561,13 +615,16 @@ function leadRows(key){
   rows.sort(function(a,b){var x=a[s.k],y=b[s.k];return (x>y?1:x<y?-1:0)*s.d;});
   return rows;
 }
+var PH={};
+function phoneCounts(){var m={};leads.forEach(function(l){if(l.phone)m[l.phone]=(m[l.phone]||0)+1;});return m;}
 function cell(l,k,i){
-  if(k==="sno")return i+1;
+  if(k==="sno")return (i+1)+(PH[l.phone]>1?' <span class="rep" role="img" aria-label="Repeat lead" title="Repeat lead: this mobile number appears more than once">R</span>':"");
+  if(k==="month")return l.stage==="Disbursed"?MON[+l.date.slice(5,7)-1]+" "+l.date.slice(0,4):"";
   if(k==="ts")return l.ts.slice(0,10)+"<br>"+l.ts.slice(11);
   if(k==="phone")return esc(l.phone)+(/^\d{10}$/.test(l.phone)?' <a class="wa" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="Message on WhatsApp">'+ic("chat")+'</a>':"");
   if(k==="make")return esc(MAKE[l.vehicle]||"");
   if(k==="audId")return esc(l.audId||"");
-  if(k==="amount")return money(l.amount);
+  if(k==="amount")return l.amount?money(l.amount):"";
   if(k==="status")return dotted(l.status)+esc(l.status);
   return esc(l[k]||"");
 }
@@ -589,33 +646,46 @@ function renderLeads(){
     opts.map(function(s){return '<label class="chk"><input type="checkbox" data-status="'+s+'"'+(state.sel.indexOf(s)>-1?" checked":"")+'>'+dotted(s)+s+'</label>';}).join("")+'</div></div></div>';
   h+='<div class="searchbox pw"><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
-  h+='<div class="pw"><button class="btn" data-pop="filterby" aria-haspopup="true" aria-expanded="false"><span id="fbLabel">Filter by</span> '+caret+'</button><div class="pop" id="pop-filterby" hidden>'+
+  if(!NOFILTER[key])h+='<div class="pw"><button class="btn" data-pop="filterby" aria-haspopup="true" aria-expanded="false"><span id="fbLabel">Filter by</span> '+caret+'</button><div class="pop" id="pop-filterby" hidden>'+
     [["product","Product"],["lender","Lender"],["dealer","Dealer"],["owner","Lead owner"],["min","Loan amount"],["veh","Vehicle or number"]].map(function(x){return '<button class="menu-item" data-fby="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div></div>';
   h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden><button class="menu-item" data-addlead>Add lead</button><button class="menu-item" data-importcsv>Import from CSV</button></div></div><input type="file" id="csvIn" accept=".csv,text/csv" hidden>';
-  h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r" id="pop-range" hidden><div class="field"><label for="lrFrom">From</label><input type="date" id="lrFrom" value="'+state.lrange.from+'"></div><div class="field"><label for="lrTo">To</label><input type="date" id="lrTo" value="'+state.lrange.to+'"></div><div class="row"><button class="btn" data-preset="7">7 days</button><button class="btn" data-preset="30">30 days</button><button class="btn" data-preset="90">90 days</button></div></div></div>';
+  h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r" id="pop-range" hidden><div class="field"><label for="lrFrom">From</label><input type="date" id="lrFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="lrTo">To</label><input type="date" id="lrTo" value="'+getRange(key).to+'"></div><div class="row"><button class="btn" data-preset="7">7 days</button><button class="btn" data-preset="30">30 days</button><button class="btn" data-preset="90">90 days</button></div></div></div>';
   h+='<div class="pw"><button class="btn sq" data-pop="cols" aria-label="Choose columns" aria-haspopup="true" aria-expanded="false">'+ic("cols")+'</button><div class="pop r" id="pop-cols" hidden><div class="pop-top"><strong>Columns</strong></div><div class="pop-list">'+
     pageCols(key).map(function(c){return '<label class="chk"><input type="checkbox" data-col="'+c[0]+'"'+(colState(key)[c[0]]?" checked":"")+'>'+c[1]+'</label>';}).join("")+'</div></div></div>';
   h+='</div></div>';
-  h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'">Filter '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
+  if(key==="Disbursed")h+='<div class="sumbar" id="sumbar"></div>';
+  if(!NOFILTER[key])h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'">Filter '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
     selectField("product","Product",products)+selectField("lender","Lender",lenders)+selectField("dealer","Dealer",dealers)+selectField("owner","Lead owner",owners)+
     '<div class="field"><label for="f_min">Loan amount from (₹)</label><input type="number" id="f_min" data-f="min" min="0" step="50000" value="'+esc(state.f.min)+'"></div>'+
     '<div class="field"><label for="f_max">Loan amount to (₹)</label><input type="number" id="f_max" data-f="max" min="0" step="50000" value="'+esc(state.f.max)+'"></div>'+
     '<div class="field"><label for="f_veh">Vehicle or number</label><input id="f_veh" data-f="veh" value="'+esc(state.f.veh)+'"></div>'+
     '<div class="field"><button class="btn" data-clearf>Clear filters</button></div></div></section>';
-  h+='<p class="note" id="note"></p><div id="tbl"></div>';
+  h+=(NOFILTER[key]?'':'<p class="note" id="note"></p>')+'<div id="tbl" style="margin-top:12px"></div>';
   v.innerHTML=h;
   renderTable();
 }
+function renderSummary(key){
+  var box=document.getElementById("sumbar"); if(!box||key!=="Disbursed")return;
+  var base=leadRows(key,true);
+  function amt(a){return a.reduce(function(x,l){return x+l.amount;},0);}
+  var cards=[["all","Total disbursement",base],["Disbursement Pending","Disbursement Pending",base.filter(function(l){return l.status==="Disbursement Pending";})],["Disburse","Disburse",base.filter(function(l){return l.status==="Disburse";})]];
+  box.innerHTML=cards.map(function(c){
+    var on=c[0]==="all"?state.sel.length===0:(state.sel.length===1&&state.sel[0]===c[0]);
+    return '<button class="sum-card'+(on?" on":"")+'" data-sum="'+c[0]+'" aria-pressed="'+on+'"><span class="sum-label">'+(c[0]==="all"?"":dotted(c[0]))+c[1]+'</span><b>'+money(amt(c[2]))+'</b><span class="sum-files">'+c[2].length+' file'+(c[2].length===1?"":"s")+'</span></button>';
+  }).join("");
+}
 function renderTable(){
   var box=document.getElementById("tbl"); if(!box)return;
-  var key=pageKey(), rows=leadRows(key), size=state.size, pages=Math.max(1,Math.ceil(rows.length/size));
+  PH=phoneCounts();
+  var key=pageKey(); renderSummary(key);
+  var rows=leadRows(key), size=state.size, pages=Math.max(1,Math.ceil(rows.length/size));
   if(state.page>pages)state.page=pages; if(state.page<1)state.page=1;
   var start=(state.page-1)*size, shown=rows.slice(start,start+size);
   var cs=colState(key), vis=pageCols(key).filter(function(c){return cs[c[0]];});
   var nf=Object.keys(state.f).filter(function(k){return state.f[k]!=="";}).length;
   document.getElementById("selLabel").textContent=state.sel.length?state.sel.length+" selected":"Select status";
-  document.getElementById("fbLabel").textContent=nf?"Filter by ("+nf+")":"Filter by";
-  document.getElementById("note").textContent="** Showing records from "+fmtDate(state.lrange.from)+" to "+fmtDate(state.lrange.to)+". The last 30 days are shown by default; use the calendar to change this.";
+  var fbl=document.getElementById("fbLabel");if(fbl)fbl.textContent=nf?"Filter by ("+nf+")":"Filter by";
+  var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+". The last 30 days are shown by default; use the calendar to change this.";
   var sortable={ts:1,name:1,status:1,owner:1};
   var head='<tr>'+vis.map(function(c){
     var k=c[0]; if(!sortable[k])return '<th>'+c[1]+'</th>';
@@ -665,7 +735,8 @@ function openDelete(id){
 }
 function newLead(o){
   var key=pageKey(), st=statusOptions(key)[0]||"Open", n=new Date();
-  var l={id:nextId++,name:o.name,phone:o.phone||"",owner:o.owner||owners[0],product:o.product||products[0],amount:o.amount||0,status:st,stage:statusStage[st],source:"Walk-in",date:ymd(TODAY),ts:ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds()),vehicle:o.vehicle||"",reg:"",lender:o.lender||"",dealer:o.dealer||"",pdd:st==="Disbursed"?"Pending":"—",note:"",audId:String(Date.now())};
+  if(!statusStage[st])st=key==="pdd"?"Disburse":"Open";
+  var l={id:nextId++,name:o.name,phone:o.phone||"",owner:o.owner||owners[0],product:o.product||products[0],amount:o.amount||0,status:st,stage:statusStage[st],source:"Walk-in",date:ymd(TODAY),ts:ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds()),vehicle:o.vehicle||"",reg:"",lender:o.lender||"",dealer:o.dealer||"",pdd:statusStage[st]==="Disbursed"?"Pending":"—",note:"",audId:String(Date.now())};
   leads.unshift(l); return l;
 }
 function importCSV(file){
@@ -720,7 +791,7 @@ function renderLead(){
     '<button class="btn" data-del="'+l.id+'">Delete</button></div></div>';
   h+='<div class="lead-grid"><div class="col">';
   h+='<section class="card"><h3 class="card-title">Lead details</h3><div class="fgrid">'+
-    fld("name","Name",l.name)+fld("phone","Mobile",l.phone)+fsel("product","Product",products,l.product)+fld("amount","Loan amount (₹)",l.amount,"number")+fsel("owner","Lead owner",owners,l.owner)+fsel("source","Source",sources,l.source)+
+    fld("name","Name",l.name)+fld("phone","Mobile",l.phone)+fsel("product","Product",products,l.product,true)+fld("amount","Loan amount (₹)",l.amount,"number")+fsel("owner","Lead owner",owners,l.owner)+fsel("source","Source",sources,l.source)+
     '<div class="sec-label">Vehicle and finance</div>'+
     fld("vehicle","Vehicle",l.vehicle)+fld("reg","Vehicle number",l.reg)+fsel("lender","Lender",lenders,l.lender,true)+fsel("dealer","Dealer",dealers,l.dealer,true)+
     (l.stage==="Disbursed"?fsel("pdd","PDD status",["Pending","Received","Overdue"],l.pdd):"")+
@@ -899,13 +970,23 @@ var userNext=15;
 var users=[["Harjot Singh",3,1],["Puneet Kundra",4,1],["Anil Gill",4,1],["Anu Kaushal",2,2],["Nitin Narula",2,2],["Kiranpreet Kaur",4,1],["Ashish Rana",3,2],["Rohit Bhalla",4,1],["Sapna Jindal",3,2],["Keshav Sood",3,1],["Kapil Mehra",4,2],["Nisha Verma",4,2],["Rahul Mahant",4,1],["Meena Arora",1,1]].map(function(x,i){
   var pending=x[0]==="Nisha Verma";
   return {id:i+1,name:x[0],email:x[0].toLowerCase().replace(/[^a-z]+/g,".")+"@example.com",roleId:x[1],shift:x[2],active:!pending,verified:!pending};});
-var MODULES=["Dashboard","Leads","Data","Catalogue","Announcement","Campaign","Segments","Report","Project integration","User management","Configuration","Settings"];
-state.utab="roles";state.uf={role:"",status:""};state.uq="";state.userEdit=null;state.roleEdit=null;state.shiftEdit=null;state.perm={};
+var MODULES=NAV.map(function(n){return n.label;});
+var NOLAND=["Leads","Data","Announcement","Campaign","Project integration","Settings","Invoice & Quotations"];
+var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
+var PERM={
+ "Dashboard":[["Actions",DASH_ACTS]],
+ "Leads":[["Pages",["Audience","Login Business","Hold","Disbursement Business","Reject Business","Channel List","PDD Status","Data"]],["Actions",["View lead","Add lead","Import leads","Delete lead"]]],
+ "Data":[["Pages",["Leads report","Analysis","Download data"]]],
+ "Project integration":[["Pages",["Forms","Marketplace","Social Media","API","Bulk","Custom","Telephony","IVR","Generic"]]],
+ "Settings":[["Pages",["General","Category"]]]};
+state.utab="roles";state.uf={role:"",status:""};state.uq="";state.userEdit=null;state.roleEdit=null;state.shiftEdit=null;state.perm={};state.permRole=1;state.permDraft={};
 function defPerm(id){
-  var set={1:MODULES.slice(),2:["Dashboard","Leads","Data","Catalogue","Announcement","Campaign","Segments","Report"],3:["Dashboard","Leads","Data","Campaign","Segments","Report"],4:["Dashboard","Leads"]}[id]||["Dashboard","Leads"], o={};
-  MODULES.forEach(function(m){o[m]=set.indexOf(m)>-1;}); return o;
+  var set={1:["Dashboard"],2:["Dashboard","Leads","Data","Catalogue","Announcement","Campaign","Segments","Report"],3:["Dashboard","Leads","Data","Campaign","Segments","Report"],4:["Dashboard","Leads"]}[id]||["Dashboard","Leads"], o={m:{},i:{},land:"Dashboard"};
+  MODULES.forEach(function(m){var on=set.indexOf(m)>-1;o.m[m]=on;(PERM[m]||[]).forEach(function(sec){sec[1].forEach(function(it){o.i[m+"::"+it]=on;});});});
+  return o;
 }
 roles.forEach(function(r){state.perm[r.id]=defPerm(r.id);});
+function permCur(){var id=state.permRole;if(!state.permDraft[id])state.permDraft[id]=JSON.parse(JSON.stringify(state.perm[id]));return state.permDraft[id];}
 function roleById(id){return roles.filter(function(r){return r.id===id;})[0];}
 function shiftById(id){return shifts.filter(function(x){return x.id===id;})[0];}
 function roleLevel(r){var n=1,x=r;while(x&&x.rt&&n<30){x=roleById(x.rt);n++;}return n;}
@@ -937,8 +1018,17 @@ function usersTab(){
      return '<tr><td>'+(i+1)+'</td><td class="l">'+esc(u.name)+(u.verified?"":' <button class="badge-btn" data-resend="'+u.id+'">Resend verification link</button>')+'</td><td>'+esc(u.email)+'</td><td>'+(r?esc(r.name):"")+'</td><td>'+(r?roleLevel(r):"")+'</td><td><span class="'+(u.active?"st-active":"st-inactive")+'">'+(u.active?"Active":"Inactive")+'</span></td><td><button class="icon-btn seg-edit" data-uedit="'+u.id+'" aria-label="Edit '+esc(u.name)+'">'+ic("pencil")+'</button></td></tr>';}).join("")+'</tbody></table></div></div>';
 }
 function permTab(){
-  return '<p class="note">Tick the screens each role can open. This prototype records your choices but does not block anyone yet.</p><div class="tcard"><div class="tscroll"><table class="center striped"><thead><tr><th class="l">Screen</th>'+roles.map(function(r){return '<th>'+esc(r.name)+'</th>';}).join("")+'</tr></thead><tbody>'+
-   MODULES.map(function(m){return '<tr><td class="l">'+m+'</td>'+roles.map(function(r){return '<td><input type="checkbox" data-perm="'+r.id+':'+m+'"'+(state.perm[r.id][m]?" checked":"")+' aria-label="'+esc(r.name)+' can open '+m+'"></td>';}).join("")+'</tr>';}).join("")+'</tbody></table></div></div>';
+  if(!roleById(state.permRole))state.permRole=roles[0].id;
+  var id=state.permRole, p=state.permDraft[id]||state.perm[id];
+  var left='<div class="perm-roles" role="tablist" aria-label="Roles">'+roles.map(function(r){return '<button role="tab" aria-selected="'+(r.id===id)+'" data-prole="'+r.id+'">'+esc(r.name)+'</button>';}).join("")+'</div>';
+  var rows=MODULES.map(function(m){
+    var on=!!p.m[m], canLand=NOLAND.indexOf(m)<0;
+    var h='<div class="perm-row"><label class="chk"><input type="checkbox" data-pm="'+esc(m)+'"'+(on?" checked":"")+'>'+esc(m)+'</label>'+
+      (canLand?'<label class="land'+(on?"":" off")+'">Landing page <input type="checkbox" data-pl="'+esc(m)+'"'+(p.land===m?" checked":"")+(on?"":" disabled")+'></label>':"")+'</div>';
+    if(on&&PERM[m])h+='<div class="perm-acts">'+PERM[m].map(function(sec){return '<h4>'+sec[0]+'</h4><div class="acts-grid">'+sec[1].map(function(it){var k=m+"::"+it;return '<label class="chk"><input type="checkbox" data-pi="'+esc(k)+'"'+(p.i[k]?" checked":"")+'>'+esc(it)+'</label>';}).join("")+'</div>';}).join("")+'</div>';
+    return h;
+  }).join("");
+  return '<div class="perm-wrap">'+left+'<div class="perm-panel">'+rows+'</div></div><button class="btn primary perm-submit" id="permSubmit">Submit</button>';
 }
 function shiftsTab(){
   return '<div class="tcard"><div class="tscroll"><table class="center striped"><thead><tr><th>S.No.</th><th>Shift name</th><th>Start</th><th>End</th><th>Working days</th><th>Users</th><th>Action</th></tr></thead><tbody>'+
@@ -1202,7 +1292,7 @@ document.addEventListener("click",function(e){
   if(d.sel){state.sel=d.sel==="all"?statusOptions(pageKey()).slice():[];var cbs=document.querySelectorAll("[data-status]"),j;for(j=0;j<cbs.length;j++)cbs[j].checked=state.sel.indexOf(cbs[j].dataset.status)>-1;state.page=1;renderTable();return;}
   if(d.sort){var so=state.sort;state.sort=so.k===d.sort?{k:d.sort,d:-so.d}:{k:d.sort,d:d.sort==="ts"?-1:1};renderTable();return;}
   if(d.pg){state.page+=d.pg==="next"?1:-1;renderTable();return;}
-  if(d.preset){var fr=new Date(TODAY);fr.setDate(fr.getDate()-(+d.preset-1));state.lrange={from:ymd(fr),to:ymd(TODAY)};document.getElementById("lrFrom").value=state.lrange.from;document.getElementById("lrTo").value=state.lrange.to;state.page=1;renderTable();return;}
+  if(d.preset){var fr=new Date(TODAY);fr.setDate(fr.getDate()-(+d.preset-1));var rg2={from:ymd(fr),to:ymd(TODAY)};setRange(pageKey(),rg2);document.getElementById("lrFrom").value=rg2.from;document.getElementById("lrTo").value=rg2.to;state.page=1;renderTable();return;}
   if(d.view){openLead(+d.view);return;}
   if(d.del){openDelete(+d.del);return;}
   if(d.confirmdel){var id=+d.confirmdel;leads=leads.filter(function(x){return x.id!==id;});closeAll();if(state.route.indexOf("lead/")===0){state.route=state.listRoute||"leads/Login";render();}else renderTable();toast("Lead deleted");return;}
@@ -1219,6 +1309,12 @@ document.addEventListener("click",function(e){
   if(t.id==="saveSeg"){saveSeg();return;}
   if(t.id==="uAdd"){if(state.utab==="roles")openRole();else if(state.utab==="users")openAddUser();else if(state.utab==="shifts")openShift();return;}
   if(d.utab){state.utab=d.utab;renderUsers();return;}
+  if(d.sum){
+    state.sel=d.sum==="all"?[]:[d.sum];
+    var sc=document.querySelectorAll("[data-status]"),q2;for(q2=0;q2<sc.length;q2++)sc[q2].checked=state.sel.indexOf(sc[q2].dataset.status)>-1;
+    state.page=1;renderTable();return;}
+  if(d.prole){state.permRole=+d.prole;renderUBody();return;}
+  if(t.id==="permSubmit"){Object.keys(state.permDraft).forEach(function(k){state.perm[k]=state.permDraft[k];});state.permDraft={};toast("Permissions saved");return;}
   if(d.uedit){openAddUser(+d.uedit);return;}
   if(d.resend){toast("Marked as resent. No email is sent in this prototype.");return;}
   if(t.id==="ufClear"){state.uf={role:"",status:""};document.getElementById("ufRole").value="";document.getElementById("ufStatus").value="";renderUBody();return;}
@@ -1287,7 +1383,7 @@ document.addEventListener("change",function(e){
     if(f1&&t1&&f1<=t1){state.range={from:f1,to:t1};drawCharts();}else toast("Pick a start date before the end date");return;}
   if(t.id==="lrFrom"||t.id==="lrTo"){
     var f2=document.getElementById("lrFrom").value,t2=document.getElementById("lrTo").value;
-    if(f2&&t2&&f2<=t2){state.lrange={from:f2,to:t2};state.page=1;renderTable();}else toast("Pick a start date before the end date");return;}
+    if(f2&&t2&&f2<=t2){setRange(pageKey(),{from:f2,to:t2});state.page=1;renderTable();}else toast("Pick a start date before the end date");return;}
   if(d.status!==undefined){var ix=state.sel.indexOf(d.status);if(t.checked&&ix<0)state.sel.push(d.status);if(!t.checked&&ix>-1)state.sel.splice(ix,1);state.page=1;renderTable();return;}
   if(d.col){colState(pageKey())[d.col]=t.checked;renderTable();return;}
   if(d.sf){state.sf[d.sf]=t.checked;renderTable();return;}
@@ -1299,7 +1395,13 @@ document.addEventListener("change",function(e){
   if(t.id==="ufStatus"){state.uf.status=t.value;renderUBody();return;}
   if(d.urole!==undefined){changeUserRole(+d.urole,+t.value);return;}
   if(d.ushift!==undefined){users[+d.ushift].shift=t.value?+t.value:null;toast("Shift updated");return;}
-  if(d.perm!==undefined){var pp=d.perm.split(":");state.perm[pp[0]][pp[1]]=t.checked;toast("Permission updated");return;}
+  if(d.pm!==undefined){
+    var pd=permCur();pd.m[d.pm]=t.checked;
+    (PERM[d.pm]||[]).forEach(function(sec){sec[1].forEach(function(it){pd.i[d.pm+"::"+it]=t.checked;});});
+    if(!t.checked&&pd.land===d.pm)pd.land="";
+    renderUBody();var fe=document.querySelector('[data-pm="'+d.pm+'"]');if(fe)fe.focus();return;}
+  if(d.pl!==undefined){var pl=permCur();pl.land=t.checked?d.pl:(pl.land===d.pl?"":pl.land);renderUBody();var fl=document.querySelector('[data-pl="'+d.pl+'"]');if(fl)fl.focus();return;}
+  if(d.pi!==undefined){permCur().i[d.pi]=t.checked;return;}
   if(d.uact!==undefined){users[+d.uact].active=t.checked;toast(t.checked?"User activated":"User deactivated");return;}
   if(t.id==="setTheme"){applyTheme(t.value);return;}
   if(t.id==="setSize"){state.size=+t.value;toast("Saved");return;}
