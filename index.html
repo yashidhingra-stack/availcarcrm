@@ -293,6 +293,16 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 .sum-card b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
 .sum-label{color:var(--muted);font-size:13px;display:flex;align-items:center}
 .sum-files{color:var(--muted);font-size:13px}
+.pop.wide{min-width:310px}
+.pop select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;min-width:0;width:100%}
+.repcard{margin-bottom:12px}
+.repbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg-btn{border:0;background:var(--surface);padding:7px 14px}
+.seg-btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.repscroll{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.repscroll thead th{position:sticky;top:0}
+.repscroll tfoot td{background:var(--bg);position:sticky;bottom:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -574,7 +584,7 @@ function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa
 var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",month:"Month of Disbursement",pdd:"PDD Status"};
 var HR=["sno","ts","name","phone","product","make","vehicle","reg","amount","lender","status","dealer","owner"];
 var ALLTIME={Hold:1,Rejected:1,pdd:1,data:1}, NOFILTER={Hold:1,Rejected:1,pdd:1,data:1};
-state.lrangeBy={};
+state.lrangeBy={};state.rlabel={};state.fyBasis="fy";state.repTab="owner";
 function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,to:ymd(TODAY)}:state.lrange);}
 function setRange(key,r){state.lrangeBy[key]=r;}
 var HIDDEN={def:["owner"],Disbursed:["ts"],Hold:["dealer","owner"],Rejected:["dealer","owner"],pdd:["pdd"],data:["ts","status","owner"]};
@@ -649,11 +659,16 @@ function renderLeads(){
   if(!NOFILTER[key])h+='<div class="pw"><button class="btn" data-pop="filterby" aria-haspopup="true" aria-expanded="false"><span id="fbLabel">Filter by</span> '+caret+'</button><div class="pop" id="pop-filterby" hidden>'+
     [["product","Product"],["lender","Lender"],["dealer","Dealer"],["owner","Lead owner"],["min","Loan amount"],["veh","Vehicle or number"]].map(function(x){return '<button class="menu-item" data-fby="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div></div>';
   h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden><button class="menu-item" data-addlead>Add lead</button><button class="menu-item" data-importcsv>Import from CSV</button></div></div><input type="file" id="csvIn" accept=".csv,text/csv" hidden>';
-  h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r" id="pop-range" hidden><div class="field"><label for="lrFrom">From</label><input type="date" id="lrFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="lrTo">To</label><input type="date" id="lrTo" value="'+getRange(key).to+'"></div><div class="row"><button class="btn" data-preset="7">7 days</button><button class="btn" data-preset="30">30 days</button><button class="btn" data-preset="90">90 days</button></div></div></div>';
+  h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r wide" id="pop-range" hidden>'+
+    '<div class="field"><label for="pdBasis">Year type</label><select id="pdBasis"><option value="fy"'+(state.fyBasis==="fy"?" selected":"")+'>Financial year (Apr to Mar)</option><option value="cy"'+(state.fyBasis==="cy"?" selected":"")+'>Calendar year (Jan to Dec)</option></select></div>'+
+    '<div class="field"><label for="pdQ">Quarterly</label><select id="pdQ">'+periodOptions("Q",key)+'</select></div>'+
+    '<div class="field"><label for="pdH">Half yearly</label><select id="pdH">'+periodOptions("H",key)+'</select></div>'+
+    '<div class="row"><div class="field"><label for="lrFrom">From</label><input type="date" id="lrFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="lrTo">To</label><input type="date" id="lrTo" value="'+getRange(key).to+'"></div></div>'+
+    '<div class="row"><button class="btn" data-preset="7">7 days</button><button class="btn" data-preset="30">30 days</button><button class="btn" data-preset="90">90 days</button></div></div></div>';
   h+='<div class="pw"><button class="btn sq" data-pop="cols" aria-label="Choose columns" aria-haspopup="true" aria-expanded="false">'+ic("cols")+'</button><div class="pop r" id="pop-cols" hidden><div class="pop-top"><strong>Columns</strong></div><div class="pop-list">'+
     pageCols(key).map(function(c){return '<label class="chk"><input type="checkbox" data-col="'+c[0]+'"'+(colState(key)[c[0]]?" checked":"")+'>'+c[1]+'</label>';}).join("")+'</div></div></div>';
   h+='</div></div>';
-  if(key==="Disbursed")h+='<div class="sumbar" id="sumbar"></div>';
+  if(key==="Disbursed")h+='<div class="sumbar" id="sumbar"></div><section class="card repcard" id="repbox"></section>';
   if(!NOFILTER[key])h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'">Filter '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
     selectField("product","Product",products)+selectField("lender","Lender",lenders)+selectField("dealer","Dealer",dealers)+selectField("owner","Lead owner",owners)+
     '<div class="field"><label for="f_min">Loan amount from (₹)</label><input type="number" id="f_min" data-f="min" min="0" step="50000" value="'+esc(state.f.min)+'"></div>'+
@@ -664,6 +679,56 @@ function renderLeads(){
   v.innerHTML=h;
   renderTable();
 }
+function spanLabel(a,b){var x=MON[a.getMonth()],y=MON[b.getMonth()];return a.getFullYear()===b.getFullYear()?x+"–"+y+" "+a.getFullYear():x+" "+a.getFullYear()+"–"+y+" "+b.getFullYear();}
+function periodList(kind,basis){
+  var t=TODAY,y=t.getFullYear(),m=t.getMonth(),len=kind==="Q"?3:6,n=kind==="Q"?8:4,sm=basis==="fy"?3:0,out=[];
+  var off=((m-sm)%12+12)%12, idx=Math.floor(off/len), yr=m>=sm?y:y-1;
+  for(var i=0;i<n;i++){
+    var sd=new Date(yr,sm+idx*len,1), ed=new Date(yr,sm+idx*len+len,0);
+    var lab=(kind==="Q"?"Q":"H")+(idx+1)+" "+(basis==="fy"?"FY "+yr+"-"+String(yr+1).slice(2):yr)+" ("+spanLabel(sd,ed)+")";
+    out.push({from:ymd(sd),to:ymd(ed),label:lab});
+    idx--; if(idx<0){idx=12/len-1;yr--;}
+  }
+  return out;
+}
+function periodOptions(kind,key){
+  return '<option value="">Choose a '+(kind==="Q"?"quarter":"half year")+'</option>'+periodList(kind,state.fyBasis).map(function(o){return '<option value="'+o.from+'|'+o.to+'|'+esc(o.label)+'"'+(state.rlabel[key]===o.label?" selected":"")+'>'+esc(o.label)+'</option>';}).join("");
+}
+function applyPeriod(f,t,label){
+  var key=pageKey(); setRange(key,{from:f,to:t}); state.rlabel[key]=label;
+  var a=document.getElementById("lrFrom"),b=document.getElementById("lrTo"),q=document.getElementById("pdQ"),h=document.getElementById("pdH");
+  if(a)a.value=f; if(b)b.value=t;
+  if(label.charAt(0)==="Q"){if(h)h.value="";}else{if(q)q.value="";}
+  state.page=1; renderTable();
+}
+function clearPeriodLabel(){state.rlabel[pageKey()]="";var q=document.getElementById("pdQ"),h=document.getElementById("pdH");if(q)q.value="";if(h)h.value="";}
+async function saveCsv(name,csv){
+  var dl=null;
+  try{ if(typeof window!=="undefined"&&window.claude&&window.claude.use)dl=await window.claude.use("downloads"); }catch(e){dl=null;}
+  if(!dl){var tx=document.getElementById("repFallback");if(tx){tx.hidden=false;tx.value=csv;tx.focus();tx.select();}toast("Direct download is not available here. Copy the data below.");return;}
+  try{ await dl.save({filename:name,data:csv}); toast("Download started"); }
+  catch(e){ if(e&&e.code==="declined")return; toast("Could not save the file"); }
+}
+function renderReportCard(key){
+  var box=document.getElementById("repbox"); if(!box)return;
+  var rows=leadRows(key,true), by=state.repTab, map={};
+  rows.forEach(function(l){
+    var nm=(by==="owner"?l.owner:by==="lender"?l.lender:l.dealer)||"Not set", o=map[nm]||(map[nm]={name:nm,n:0,total:0,dis:0,pen:0});
+    o.n++;o.total+=l.amount;
+    if(l.status==="Disburse")o.dis+=l.amount;else if(l.status==="Disbursement Pending")o.pen+=l.amount;
+  });
+  var list=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.total-a.total;});
+  var tot=list.reduce(function(x,o){return {n:x.n+o.n,total:x.total+o.total,dis:x.dis+o.dis,pen:x.pen+o.pen};},{n:0,total:0,dis:0,pen:0});
+  var rg=getRange(key), lbl=state.rlabel[key]||(fmtDate(rg.from)+" to "+fmtDate(rg.to)), first=by==="owner"?"Lead owner":by==="lender"?"Lender":"Dealer";
+  var csv="\ufeff"+[[first,"Files","Total amount","Disburse amount","Disbursement Pending amount"]].concat(list.map(function(o){return [o.name,o.n,o.total,o.dis,o.pen];})).concat([["Total",tot.n,tot.total,tot.dis,tot.pen]]).map(function(r){return r.map(q).join(",");}).join("\r\n");
+  state.repCsv=csv; state.repName="disbursement-by-"+by+"-"+rg.from+"-to-"+rg.to+".csv";
+  box.innerHTML='<h3 class="card-title">Report: '+esc(lbl)+' <small>'+tot.n+' file'+(tot.n===1?"":"s")+', '+money(tot.total)+'</small></h3>'+
+   '<div class="repbar"><div class="seg" role="group" aria-label="Group report by"><button class="seg-btn" data-reptab="owner" aria-pressed="'+(by==="owner")+'">Lead owner</button><button class="seg-btn" data-reptab="dealer" aria-pressed="'+(by==="dealer")+'">Dealer</button><button class="seg-btn" data-reptab="lender" aria-pressed="'+(by==="lender")+'">Lender</button></div><button class="btn" id="repDl">Download CSV</button></div>'+
+   (list.length?'<div class="repscroll"><table class="center striped" style="min-width:560px"><thead><tr><th class="l">'+first+'</th><th>Files</th><th>Total amount</th><th>Disburse amount</th><th>Disbursement Pending amount</th></tr></thead><tbody>'+
+     list.map(function(o){return '<tr><td class="l">'+esc(o.name)+'</td><td>'+o.n+'</td><td>'+money(o.total)+'</td><td>'+money(o.dis)+'</td><td>'+money(o.pen)+'</td></tr>';}).join("")+
+     '</tbody><tfoot><tr><td class="l"><b>Total</b></td><td><b>'+tot.n+'</b></td><td><b>'+money(tot.total)+'</b></td><td><b>'+money(tot.dis)+'</b></td><td><b>'+money(tot.pen)+'</b></td></tr></tfoot></table></div>':'<p class="dlnote">No disbursement files in this period.</p>')+
+   '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Report CSV data"></textarea>';
+}
 function renderSummary(key){
   var box=document.getElementById("sumbar"); if(!box||key!=="Disbursed")return;
   var base=leadRows(key,true);
@@ -673,6 +738,7 @@ function renderSummary(key){
     var on=c[0]==="all"?state.sel.length===0:(state.sel.length===1&&state.sel[0]===c[0]);
     return '<button class="sum-card'+(on?" on":"")+'" data-sum="'+c[0]+'" aria-pressed="'+on+'"><span class="sum-label">'+(c[0]==="all"?"":dotted(c[0]))+c[1]+'</span><b>'+money(amt(c[2]))+'</b><span class="sum-files">'+c[2].length+' file'+(c[2].length===1?"":"s")+'</span></button>';
   }).join("");
+  renderReportCard(key);
 }
 function renderTable(){
   var box=document.getElementById("tbl"); if(!box)return;
@@ -685,7 +751,7 @@ function renderTable(){
   var nf=Object.keys(state.f).filter(function(k){return state.f[k]!=="";}).length;
   document.getElementById("selLabel").textContent=state.sel.length?state.sel.length+" selected":"Select status";
   var fbl=document.getElementById("fbLabel");if(fbl)fbl.textContent=nf?"Filter by ("+nf+")":"Filter by";
-  var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+". The last 30 days are shown by default; use the calendar to change this.";
+  var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing "+(state.rlabel[key]?state.rlabel[key]+", ":"")+"records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+". The last 30 days are shown by default; use the calendar to change this.";
   var sortable={ts:1,name:1,status:1,owner:1};
   var head='<tr>'+vis.map(function(c){
     var k=c[0]; if(!sortable[k])return '<th>'+c[1]+'</th>';
@@ -1292,7 +1358,7 @@ document.addEventListener("click",function(e){
   if(d.sel){state.sel=d.sel==="all"?statusOptions(pageKey()).slice():[];var cbs=document.querySelectorAll("[data-status]"),j;for(j=0;j<cbs.length;j++)cbs[j].checked=state.sel.indexOf(cbs[j].dataset.status)>-1;state.page=1;renderTable();return;}
   if(d.sort){var so=state.sort;state.sort=so.k===d.sort?{k:d.sort,d:-so.d}:{k:d.sort,d:d.sort==="ts"?-1:1};renderTable();return;}
   if(d.pg){state.page+=d.pg==="next"?1:-1;renderTable();return;}
-  if(d.preset){var fr=new Date(TODAY);fr.setDate(fr.getDate()-(+d.preset-1));var rg2={from:ymd(fr),to:ymd(TODAY)};setRange(pageKey(),rg2);document.getElementById("lrFrom").value=rg2.from;document.getElementById("lrTo").value=rg2.to;state.page=1;renderTable();return;}
+  if(d.preset){var fr=new Date(TODAY);fr.setDate(fr.getDate()-(+d.preset-1));var rg2={from:ymd(fr),to:ymd(TODAY)};setRange(pageKey(),rg2);clearPeriodLabel();document.getElementById("lrFrom").value=rg2.from;document.getElementById("lrTo").value=rg2.to;state.page=1;renderTable();return;}
   if(d.view){openLead(+d.view);return;}
   if(d.del){openDelete(+d.del);return;}
   if(d.confirmdel){var id=+d.confirmdel;leads=leads.filter(function(x){return x.id!==id;});closeAll();if(state.route.indexOf("lead/")===0){state.route=state.listRoute||"leads/Login";render();}else renderTable();toast("Lead deleted");return;}
@@ -1309,6 +1375,8 @@ document.addEventListener("click",function(e){
   if(t.id==="saveSeg"){saveSeg();return;}
   if(t.id==="uAdd"){if(state.utab==="roles")openRole();else if(state.utab==="users")openAddUser();else if(state.utab==="shifts")openShift();return;}
   if(d.utab){state.utab=d.utab;renderUsers();return;}
+  if(d.reptab){state.repTab=d.reptab;renderTable();return;}
+  if(t.id==="repDl"){saveCsv(state.repName,state.repCsv);return;}
   if(d.sum){
     state.sel=d.sum==="all"?[]:[d.sum];
     var sc=document.querySelectorAll("[data-status]"),q2;for(q2=0;q2<sc.length;q2++)sc[q2].checked=state.sel.indexOf(sc[q2].dataset.status)>-1;
@@ -1381,9 +1449,11 @@ document.addEventListener("change",function(e){
   if(t.id==="rFrom"||t.id==="rTo"){
     var f1=document.getElementById("rFrom").value,t1=document.getElementById("rTo").value;
     if(f1&&t1&&f1<=t1){state.range={from:f1,to:t1};drawCharts();}else toast("Pick a start date before the end date");return;}
+  if(t.id==="pdBasis"){state.fyBasis=t.value;var kq=document.getElementById("pdQ"),kh=document.getElementById("pdH");if(kq)kq.innerHTML=periodOptions("Q",pageKey());if(kh)kh.innerHTML=periodOptions("H",pageKey());return;}
+  if(t.id==="pdQ"||t.id==="pdH"){if(!t.value)return;var pr=t.value.split("|");applyPeriod(pr[0],pr[1],pr[2]);return;}
   if(t.id==="lrFrom"||t.id==="lrTo"){
     var f2=document.getElementById("lrFrom").value,t2=document.getElementById("lrTo").value;
-    if(f2&&t2&&f2<=t2){setRange(pageKey(),{from:f2,to:t2});state.page=1;renderTable();}else toast("Pick a start date before the end date");return;}
+    if(f2&&t2&&f2<=t2){setRange(pageKey(),{from:f2,to:t2});clearPeriodLabel();state.page=1;renderTable();}else toast("Pick a start date before the end date");return;}
   if(d.status!==undefined){var ix=state.sel.indexOf(d.status);if(t.checked&&ix<0)state.sel.push(d.status);if(!t.checked&&ix>-1)state.sel.splice(ix,1);state.page=1;renderTable();return;}
   if(d.col){colState(pageKey())[d.col]=t.checked;renderTable();return;}
   if(d.sf){state.sf[d.sf]=t.checked;renderTable();return;}
