@@ -341,45 +341,6 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 tr.pvoid td{opacity:.6}
 tr.pvoid td.amt{text-decoration:line-through}
 td small{color:var(--muted)}
-
-/* ---------- lead detail page (profile card, summary, tabs, parameter tables) ---------- */
-.linklike{border:0;background:none;padding:0;color:var(--focus);font-weight:500;text-align:left;cursor:pointer}
-.linklike:hover{text-decoration:underline}
-.cl-top{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:12px;align-items:stretch;margin-bottom:14px}
-.cl-profile{background:var(--surface);border:2px solid var(--accent);border-radius:10px;padding:12px 14px;min-width:0}
-.cl-who{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.cl-av{flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
-.cl-name{margin:0;font-size:19px;font-weight:500;overflow-wrap:anywhere;min-width:0}
-.cl-ids{display:flex;gap:22px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
-.cl-ids small{display:block;font-weight:600}
-.cl-ids span{color:var(--focus);overflow-wrap:anywhere}
-.cl-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 10px;align-items:center;margin:0}
-.cl-kv dt{font-weight:600;white-space:nowrap}
-.cl-kv dd{margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
-.cl-kv a{color:var(--focus);text-decoration:none}
-.cl-sum{position:relative;padding-bottom:52px}
-.cl-sg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 20px}
-.cl-sg h3{margin:0 0 4px;font-size:13px;font-weight:600}
-.cl-sg p{margin:0;overflow-wrap:anywhere}
-.cl-act{position:absolute;right:14px;bottom:10px;display:flex;gap:8px;align-items:center}
-.cl-body{margin-top:10px}
-.cl-body>.tabs{margin-bottom:12px}
-.cl-grids{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
-.cl-t{width:100%;table-layout:fixed;border-collapse:collapse;background:var(--surface);border:1px solid var(--line)}
-.cl-t th,.cl-t td{padding:8px 10px;text-align:left;border-top:1px solid var(--line);vertical-align:middle}
-.cl-t thead th{background:var(--bg);font-weight:600;border-top:0}
-.cl-t thead th:first-child{width:38%}
-.cl-t tbody th{font-weight:400;color:var(--muted);overflow-wrap:anywhere}
-.cl-t td{overflow:hidden}
-.cl-grids>*{min-width:0}
-.cl-t input,.cl-t select{width:100%;max-width:100%;min-width:0;border:1px solid transparent;background:transparent;border-radius:6px;padding:5px 6px}
-.cl-t input:hover,.cl-t select:hover,.cl-t input:focus,.cl-t select:focus{border-color:var(--line);background:var(--surface)}
-.cl-ro{overflow-wrap:anywhere}
-.cl-empty{padding:28px 10px;text-align:center;color:var(--muted)}
-.mailprev{background:#fff;color:#222;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:Arial,sans-serif;font-size:14px;overflow:auto;max-height:340px}
-.mailprev p{margin:0 0 8px}
-.mailpre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;white-space:pre-wrap;font-size:12.5px;margin:4px 0 6px}
-@media (max-width:900px){.cl-top,.cl-grids{grid-template-columns:minmax(0,1fr)}.cl-sg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -709,7 +670,6 @@ function leadRows(key,noSel){
 var PH={};
 function phoneCounts(){var m={};leads.forEach(function(l){if(l.phone)m[l.phone]=(m[l.phone]||0)+1;});return m;}
 function cell(l,k,i){
-  if(k==="name")return '<button class="linklike" data-view="'+l.id+'">'+esc(l.name)+'</button>';
   if(k==="sno")return (i+1)+(PH[l.phone]>1?' <span class="rep" role="img" aria-label="Repeat lead" title="Repeat lead: this mobile number appears more than once">R</span>':"");
   if(k==="month")return l.stage==="Disbursed"?MON[+l.date.slice(5,7)-1]+" "+l.date.slice(0,4):"";
   if(k==="ts")return l.ts.slice(0,10)+"<br>"+l.ts.slice(11);
@@ -904,7 +864,7 @@ function importCSV(file){
 
 /* ---------- lead detail ---------- */
 var DOCS=["Aadhaar card","PAN card","Address proof","Bank statement (6 months)","Income proof","RC copy","Insurance copy"];
-var DETAIL=[["name","Name"],["phone","Mobile"],["email","Email"],["product","Product"],["amount","Loan amount"],["owner","Lead owner"],["source","Source"],["vehicle","Vehicle"],["reg","Vehicle number"],["lender","Lender"],["dealer","Dealer"],["pdd","PDD status"]];
+var DETAIL=[["name","Name"],["phone","Mobile"],["product","Product"],["amount","Loan amount"],["owner","Lead owner"],["source","Source"],["vehicle","Vehicle"],["reg","Vehicle number"],["lender","Lender"],["dealer","Dealer"],["pdd","PDD status"]];
 function lead(id){return leads.filter(function(x){return x.id===id;})[0];}
 function curLead(){return lead(+state.route.split("/")[1]);}
 function stamp(){var n=new Date();return ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds());}
@@ -924,83 +884,36 @@ function ensure(l){
 }
 function openLead(id){
   if(state.route.indexOf("leads/")===0)state.listRoute=state.route;
-  state.ltab="Lead Details";state.lsub="main";state.route="lead/"+id; render();
+  state.route="lead/"+id; render();
 }
 function fld(id,label,val,type){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><input id="ld_'+id+'"'+(type?' type="'+type+'"':"")+' value="'+esc(val)+'"></div>';}
 function fsel(id,label,list,val,blank){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><select id="ld_'+id+'">'+(blank?'<option value="">Not set</option>':"")+list.map(function(o){return '<option'+(o===val?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div>';}
-state.ltab="Lead Details";state.lsub="main";
-var LTABS=["Lead Details","Timeline","Follow up & Notes","Document Locker","Communication Logs","Repeat Lead","Call History"];
-P.clpen='<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>';
-P.clcopy='<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>';
-P.clcall='<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>';
-P.clplus='<path d="M12 5v14M5 12h14"/>';
-P.clswap='<path d="M4 8h14m-4-4 4 4-4 4M20 16H6m4-4-4 4 4 4"/>';
-P.clmail='<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>';
-function prow(id,label,val,type,list,blank){
-  var inner;
-  if(list){inner='<select id="ld_'+id+'" aria-label="'+esc(label)+'">'+(blank?'<option value="">Not set</option>':"")+list.map(function(o){return '<option'+(o===val?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select>';}
-  else{inner='<input id="ld_'+id+'"'+(type?' type="'+type+'"':"")+' value="'+esc(val===undefined||val===null?"":val)+'" aria-label="'+esc(label)+'">';}
-  return '<tr><th scope="row">'+esc(label)+'</th><td>'+inner+'</td></tr>';
-}
-function rrow(label,val){return '<tr><th scope="row">'+esc(label)+'</th><td class="cl-ro">'+esc(val===""||val===undefined||val===null?"-":val)+'</td></tr>';}
-function ptable(rows){return '<table class="cl-t"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>'+rows.join("")+'</tbody></table>';}
 function renderLead(){
   var l=curLead(), v=document.getElementById("view");
   if(!l){v.innerHTML='<div class="stub"><h2>Lead not found</h2>It may have been deleted.<p><button class="btn" data-back>Back to list</button></p></div>';return;}
   ensure(l);
-  var tab=state.ltab, sub=state.lsub, today=ymd(TODAY), tom=new Date(TODAY);tom.setDate(tom.getDate()+1);
-  var tel=/^\d{10}$/.test(l.phone), nextFu=l.fu.filter(function(f){return !f.done;})[0], upd=l.hist.length?l.hist[0].ts:l.ts;
   var got=DOCS.filter(function(n){return l.docs[n];}).length, pct=Math.round(got/DOCS.length*100);
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-back aria-label="Back to list">'+ic("back")+'</button><div><h1>Lead details</h1><p>Lead ID '+l.id+'</p></div></div><div class="tb"><button class="btn" data-del="'+l.id+'">Delete</button></div></div>';
-
-  h+='<div class="cl-top"><section class="cl-profile" aria-label="Lead profile"><div class="cl-who"><span class="cl-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span><h2 class="cl-name">'+esc(l.name)+'</h2><button class="icon-btn" data-lfocus="name" aria-label="Edit name" title="Edit name">'+ic("clpen")+'</button></div>'+
-    '<div class="cl-ids"><div><small>Audience ID</small><span>'+esc(l.audId||l.id)+'</span></div><div><small>Lead Stage</small><span>'+esc(l.stage)+'</span></div></div>'+
-    '<dl class="cl-kv"><dt>Email</dt><dd>'+(l.email?esc(l.email):'<button class="icon-btn" data-lfocus="email" aria-label="Add email" title="Add email">'+ic("clplus")+'</button>')+'</dd>'+
-    '<dt>Mobile</dt><dd>'+(tel?'<a href="tel:+91'+l.phone+'">'+esc(l.phone)+'</a><button class="icon-btn" data-copy="'+l.phone+'" aria-label="Copy mobile number" title="Copy number">'+ic("clcopy")+'</button><a class="icon-btn" href="tel:+91'+l.phone+'" aria-label="Call" title="Call">'+ic("clcall")+'</a><a class="icon-btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">'+ic("chat")+'</a>':esc(l.phone))+'</dd>'+
-    '<dt>Added On</dt><dd>'+fmtDate(l.date)+'</dd><dt>Updated On</dt><dd>'+esc(upd)+'</dd></dl></section>'+
-    '<section class="card cl-sum" aria-label="Lead summary"><div class="cl-sg">'+
-    '<div><h3>Communication status</h3><p>N/A</p></div>'+
-    '<div><h3>Call logs</h3><p><button class="linklike" data-ltab="Call History">Load logs</button></p></div>'+
-    '<div><h3>Lead owner</h3><p>'+esc(l.owner)+'</p></div>'+
-    '<div><h3>Recent follow-up</h3><p>'+(nextFu?fmtDate(nextFu.date)+', '+esc(nextFu.text):'None scheduled')+'</p></div>'+
-    '<div><h3>Lead source</h3><p>'+esc(l.source)+'</p></div>'+
-    '<div><h3>Lead status</h3><div class="statusbar">'+dotted(l.status)+'<select id="ldStatus" aria-label="Lead status">'+STATUS.map(function(x){return '<option'+(x[0]===l.status?" selected":"")+'>'+x[0]+'</option>';}).join("")+'</select></div></div>'+
-    '</div><div class="cl-act"><button class="icon-btn" data-ltab="Follow up &amp; Notes" aria-label="Schedule a follow-up" title="Schedule a follow-up">'+ic("clplus")+'</button><button class="icon-btn" data-lfocus="owner" aria-label="Change lead owner" title="Change lead owner">'+ic("clswap")+'</button><button class="icon-btn" data-print aria-label="Print this lead" title="Print">'+ic("printer")+'</button></div></section></div>';
-
-  h+='<div class="tabs" role="tablist" aria-label="Lead sections">'+LTABS.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(t===tab)+'" data-ltab="'+esc(t)+'">'+esc(t)+'</button>';}).join("")+'</div>';
-
-  var b='';
-  if(tab==="Lead Details"){
-    b+='<div class="tabs" role="tablist" aria-label="Lead details sections"><button class="tab" role="tab" aria-selected="'+(sub==="main")+'" data-lsub="main">Lead Details</button><button class="tab" role="tab" aria-selected="'+(sub==="more")+'" data-lsub="more">Additional Details</button></div>';
-    if(sub==="main"){
-      var Lr=[prow("name","Name",l.name),prow("phone","Mobile",l.phone),prow("email","Email",l.email||"","email"),prow("product","Product",l.product,0,products,true),prow("amount","Loan amount (₹)",l.amount,"number"),prow("owner","Lead owner",l.owner,0,owners)];
-      var Rr=[prow("source","Source",l.source,0,sources),prow("vehicle","Vehicle",l.vehicle),prow("reg","Vehicle number",l.reg),prow("lender","Lender",l.lender,0,lenders,true),prow("dealer","Dealer",l.dealer,0,dealers,true)];
-      if(l.stage==="Disbursed")Rr.push(prow("pdd","PDD status",l.pdd,0,["Pending","Received","Overdue"]));
-      b+='<div class="cl-grids">'+ptable(Lr)+ptable(Rr)+'</div><div class="actions"><button class="btn primary" id="saveDetails">Save details</button></div>';
-    }else{
-      var pc=phoneCounts()[l.phone]||1;
-      b+='<div class="cl-grids">'+ptable([rrow("Lead ID",l.id),rrow("Audience ID",l.audId),rrow("Entry date",l.ts),rrow("Lead status",l.status)])+ptable([rrow("Lead stage",l.stage),rrow("Times this mobile appears",pc),rrow("Documents received",got+" of "+DOCS.length),rrow("Open follow-ups",l.fu.filter(function(f){return !f.done;}).length)])+'</div>';
-    }
-  }else if(tab==="Timeline"){
-    b+='<ol class="timeline" style="margin-top:0">'+l.hist.map(function(e){return '<li class="'+e.type+'"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol>';
-  }else if(tab==="Follow up & Notes"){
-    b+='<h3 class="card-title">Follow-ups</h3>'+
-      (l.fu.length?l.fu.map(function(f,i){var od=!f.done&&f.date<today;return '<div class="fu-row'+(f.done?" done":"")+'"><input type="checkbox" data-fu="'+i+'" aria-label="Mark follow-up done"'+(f.done?" checked":"")+'><span class="t">'+esc(f.text)+'</span>'+(od?'<span class="pill Overdue">Overdue</span>':"")+'<time>'+fmtDate(f.date)+'</time></div>';}).join(""):'<p class="fu-empty">No follow-ups yet. Schedule the next call below.</p>')+
-      '<div class="fu-add"><input type="date" id="fuDate" value="'+ymd(tom)+'" aria-label="Follow-up date"><input type="text" id="fuText" placeholder="What needs to happen?" aria-label="Follow-up note"><button class="btn" id="addFu">Schedule</button></div>'+
-      '<h3 class="card-title" style="margin-top:18px">Notes</h3><div class="noteform"><textarea id="noteText" rows="3" placeholder="Add a note about this lead" aria-label="Note"></textarea><button class="btn primary" id="addNote">Add note</button></div>'+
-      '<ol class="timeline">'+(l.hist.filter(function(e){return e.type==="note";}).map(function(e){return '<li class="note"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")||'<li><p class="fu-empty">No notes yet.</p></li>')+'</ol>';
-  }else if(tab==="Document Locker"){
-    b+='<h3 class="card-title">Documents <small>'+got+' of '+DOCS.length+' received</small></h3><div class="meter" role="img" aria-label="'+pct+'% of documents received"><i style="width:'+pct+'%"></i></div><ul class="checklist">'+
-      DOCS.map(function(n,i){return '<li><label class="chk"><input type="checkbox" data-doc="'+i+'"'+(l.docs[n]?" checked":"")+'>'+esc(n)+'</label></li>';}).join("")+'</ul>';
-  }else if(tab==="Repeat Lead"){
-    var rep=leads.filter(function(x){return x.phone===l.phone&&x.id!==l.id;});
-    b+=rep.length?'<div class="tscroll"><table class="cl-t"><thead><tr><th>Name</th><th>Entry date</th><th>Status</th><th>Lead owner</th></tr></thead><tbody>'+rep.map(function(x){return '<tr><td><button class="linklike" data-view="'+x.id+'">'+esc(x.name)+'</button></td><td>'+esc(x.ts)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.owner)+'</td></tr>';}).join("")+'</tbody></table></div>':'<p class="cl-empty">This mobile number appears only once. No repeat leads.</p>';
-  }else if(tab==="Communication Logs"){
-    b+='<p class="cl-empty">No messages are logged for this lead yet.'+(tel?' <a class="linklike" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener">Open WhatsApp</a>':'')+'</p>';
-  }else{
-    b+='<p class="cl-empty">No call history is available for this lead yet.'+(tel?' <a class="linklike" href="tel:+91'+l.phone+'">Call '+esc(l.phone)+'</a>':'')+'</p>';
-  }
-  h+='<section class="card cl-body" role="tabpanel">'+b+'</section>';
+  var tel=/^\d{10}$/.test(l.phone), today=ymd(TODAY), tom=new Date(TODAY);tom.setDate(tom.getDate()+1);
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-back aria-label="Back to list">'+ic("back")+'</button><div><h1>'+esc(l.name)+'</h1><p>Lead ID '+l.id+'. Entered '+esc(l.ts)+'.</p></div></div><div class="tb">'+
+    '<div class="statusbar">'+dotted(l.status)+'<select id="ldStatus" aria-label="Lead status">'+STATUS.map(function(x){return '<option'+(x[0]===l.status?" selected":"")+'>'+x[0]+'</option>';}).join("")+'</select></div>'+
+    (tel?'<a class="btn" href="tel:+91'+l.phone+'">Call</a><a class="btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener">WhatsApp</a>':"")+
+    '<button class="btn" data-del="'+l.id+'">Delete</button></div></div>';
+  h+='<div class="lead-grid"><div class="col">';
+  h+='<section class="card"><h3 class="card-title">Lead details</h3><div class="fgrid">'+
+    fld("name","Name",l.name)+fld("phone","Mobile",l.phone)+fsel("product","Product",products,l.product,true)+fld("amount","Loan amount (₹)",l.amount,"number")+fsel("owner","Lead owner",owners,l.owner)+fsel("source","Source",sources,l.source)+
+    '<div class="sec-label">Vehicle and finance</div>'+
+    fld("vehicle","Vehicle",l.vehicle)+fld("reg","Vehicle number",l.reg)+fsel("lender","Lender",lenders,l.lender,true)+fsel("dealer","Dealer",dealers,l.dealer,true)+
+    (l.stage==="Disbursed"?fsel("pdd","PDD status",["Pending","Received","Overdue"],l.pdd):"")+
+    '</div><div class="actions"><button class="btn primary" id="saveDetails">Save details</button></div></section>';
+  h+='<section class="card"><h3 class="card-title">Documents <small>'+got+' of '+DOCS.length+' received</small></h3><div class="meter" role="img" aria-label="'+pct+'% of documents received"><i style="width:'+pct+'%"></i></div><ul class="checklist">'+
+    DOCS.map(function(n,i){return '<li><label class="chk"><input type="checkbox" data-doc="'+i+'"'+(l.docs[n]?" checked":"")+'>'+esc(n)+'</label></li>';}).join("")+'</ul></section>';
+  h+='</div><div class="col">';
+  h+='<section class="card"><h3 class="card-title">Follow-ups</h3>'+
+    (l.fu.length?l.fu.map(function(f,i){var od=!f.done&&f.date<today;return '<div class="fu-row'+(f.done?" done":"")+'"><input type="checkbox" data-fu="'+i+'" aria-label="Mark follow-up done"'+(f.done?" checked":"")+'><span class="t">'+esc(f.text)+'</span>'+(od?'<span class="pill Overdue">Overdue</span>':"")+'<time>'+fmtDate(f.date)+'</time></div>';}).join(""):'<p class="fu-empty">No follow-ups yet. Schedule the next call below.</p>')+
+    '<div class="fu-add"><input type="date" id="fuDate" value="'+ymd(tom)+'" aria-label="Follow-up date"><input type="text" id="fuText" placeholder="What needs to happen?" aria-label="Follow-up note"><button class="btn" id="addFu">Schedule</button></div></section>';
+  h+='<section class="card"><h3 class="card-title">Activity</h3><div class="noteform"><textarea id="noteText" rows="3" placeholder="Add a note about this lead" aria-label="Note"></textarea><button class="btn primary" id="addNote">Add note</button></div><ol class="timeline">'+
+    l.hist.map(function(e){return '<li class="'+e.type+'"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol></section>';
+  h+='</div></div>';
   v.innerHTML=h;
 }
 function changeStatus(ns){
@@ -1019,7 +932,7 @@ function saveDetails(){
   DETAIL.forEach(function(f){
     var el=document.getElementById("ld_"+f[0]); if(!el)return;
     var val=f[0]==="amount"?(+el.value||0):(f[0]==="name"?nm:el.value.trim());
-    if(val!==(l[f[0]]===undefined?"":l[f[0]])){l[f[0]]=val;changed.push(f[1]);}
+    if(val!==l[f[0]]){l[f[0]]=val;changed.push(f[1]);}
   });
   if(!changed.length){toast("No changes to save");return;}
   l.hist.unshift({ts:stamp(),text:"Details updated: "+changed.join(", "),type:"system"});
@@ -1546,7 +1459,7 @@ function bulkImportClick(){
 }
 /* ---------- category ---------- */
 var MAXCAT=15, catNext=20;
-var cats=[[1,"Audience","Audience"],[2,"Login Business","Login"],[3,"Hold","Hold"],[4,"Disbursement Business","Disbursed"],[5,"Reject Business","Rejected"],[6,"Channel List","channel"],[7,"PDD Status","pdd"],[8,"Data","data"]]
+var cats=[[8,"Data","data"],[7,"PDD Status","pdd"],[6,"Channel List","channel"],[5,"Reject Business","Rejected"],[4,"Disbursement Business","Disbursed"],[3,"Hold","Hold"],[2,"Login Business","Login"],[1,"Audience","Audience"]]
   .map(function(x){return {id:x[0],name:x[1],key:x[2],built:true};});
 state.catEdit=null;
 function catKids(){return cats.map(function(c){return ["leads/"+c.key,c.name];});}
@@ -1751,11 +1664,11 @@ function payPayoutsTab(list,tot){
   function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' file'+(n===1?"":"s")+'</span></div>';}
   var T=rows.reduce(function(a,x){return {n:a.n+x.n,total:a.total+x.total,paid:a.paid+x.paid,paidN:a.paidN+x.paidN,bal:a.bal+x.bal,balN:a.balN+x.balN};},{n:0,total:0,paid:0,paidN:0,bal:0,balN:0});
   return '<div class="sumbar">'+card("Total payout",T.total,T.n)+card("Paid",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'</div>'+
-   (rows.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:900px"><thead><tr><th>Sr. No.</th><th class="l">Dealer</th><th>Files</th><th>Loan amount</th><th>Rate</th><th>Total payout</th><th>Paid</th><th>Balance</th><th>In-app notice</th><th>Email</th><th>Action</th></tr></thead><tbody>'+
+   (rows.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:900px"><thead><tr><th>Sr. No.</th><th class="l">Dealer</th><th>Files</th><th>Loan amount</th><th>Rate</th><th>Total payout</th><th>Paid</th><th>Balance</th><th>In-app notice</th><th>Action</th></tr></thead><tbody>'+
     rows.map(function(x,i){
       var em=state.emailed[emailKey(x.dealer)], d=esc(x.dealer);
       return '<tr><td>'+(i+1)+'</td><td class="l">'+d+'</td><td>'+x.n+'</td><td>'+money(x.loan)+'</td><td>'+x.rate+'%</td><td>'+money(x.total)+'</td><td>'+money(x.paid)+'</td><td><b>'+money(x.bal)+'</b></td><td>'+(em?'Notified '+esc(em.slice(0,10)):(dApp(x.dealer)?'Not notified':'<span class="st-inactive">No app ID set</span>'))+'</td>'+
-       '<td>'+mailCell(x.dealer)+'</td>'+'<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay '+d+'" title="Record payment"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn" data-pamail="'+d+'" aria-label="Email payout details to '+d+'" title="Email payout details">'+ic("clmail")+'</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
+       '<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay '+d+'" title="Record payment"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
    :'<div class="stub"><h2>'+(state.pf.q||state.pf.st!=="all"?"No dealers match your filters":"No disbursed files in this period")+'</h2>Choose another period or clear the filters above. Payouts are worked out from files with the Disburse status.</div>')+
    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="CSV data"></textarea>';
 }
@@ -1763,7 +1676,7 @@ function renderPayments(){
   var tabs=[["payouts","Dealer payouts"],["history","Payment history"]], hist=state.ptab==="history";
   var list=allDealerSums();
   document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Payments</h1><p class="note" style="margin:0">Pay dealer payouts and send dealers their payout details.</p></div></div>'+
-   (hist?'<div class="tb"><button class="btn" id="payHistCsv">Download CSV</button></div>':'<div class="tb"><button class="btn" id="payMailAll">'+ic("clmail")+' Email all dealers</button><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payMailSettings">Email settings</button><button class="btn" id="payCsv">Download CSV</button></div>')+'</div>'+
+   (hist?'<div class="tb"><button class="btn" id="payHistCsv">Download CSV</button></div>':'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download CSV</button></div>')+'</div>'+
    '<div class="appcard"><div class="ai"><b>Dealer app (Android preview)</b><span>Preview build with sample data. It is not connected to this CRM yet, so it does not show real payments or receive in-app notifications. Debug build, 17.5M.</span></div><a class="btn primary" href="downloads/dealer-app.apk" download="dealer-app.apk">Download APK</a></div>'+
    '<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ptab===t[0])+'" data-ptab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
    '<p class="dlnote">'+storeNote()+'</p>'+(hist?'':payControls()+payFilterBar())+'<div style="margin-top:'+(hist?"14":"0")+'px">'+(hist?payHistoryTab():payPayoutsTab(list))+'</div>';
@@ -1784,7 +1697,7 @@ function openStatement(dealer){
    '<div class="repscroll"><table class="center striped" style="min-width:720px"><thead><tr><th>Disbursal date</th><th class="l">Customer</th><th>Vehicle</th><th>Lender</th><th>Loan amount</th><th>Payout</th><th>Status</th></tr></thead><tbody>'+
    cs.map(function(l){return '<tr><td>'+l.date+'</td><td class="l">'+esc(l.name)+'</td><td>'+esc((l.vehicle+" "+l.reg).trim())+'</td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+money(casePayout(l))+'</td><td>'+(state.paidAmt[l.id]!==undefined?"Paid":"Pending")+'</td></tr>';}).join("")+'</tbody></table></div>'+
    '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="CSV data"></textarea>'+
-   '<div class="actions" style="flex-wrap:wrap"><button class="btn" data-close>Close</button><button class="btn" data-stcsv="'+esc(dealer)+'">Download CSV</button><button class="btn" data-pamail="'+esc(dealer)+'">'+ic("clmail")+' Email dealer</button><button class="btn" data-paemail="'+esc(dealer)+'">'+ic("bell")+' Notify in app</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+esc(dealer)+'">Record payment</button>':"")+'</div>');
+   '<div class="actions" style="flex-wrap:wrap"><button class="btn" data-close>Close</button><button class="btn" data-stcsv="'+esc(dealer)+'">Download CSV</button><button class="btn" data-paemail="'+esc(dealer)+'">'+ic("bell")+' Notify in app</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+esc(dealer)+'">Record payment</button>':"")+'</div>');
   m.classList.add("wide");
 }
 function openPay(dealer){
@@ -1836,13 +1749,12 @@ function confirmVoid(id){
   sendDealerNotification(p.dealer,{title:"Payment cancelled",body:money(p.amount)+" payment of "+fmtDate(p.date)+" was cancelled. Reason: "+r,type:"payment_cancelled",paymentId:p.id}).catch(function(){});
 }
 function openDealerCfg(dealer){
-  openPayModal('<h2>'+esc(dealer)+'</h2><div class="row"><div class="field"><label for="dcRate">Payout rate (% of loan amount)</label><input id="dcRate" type="number" min="0" max="100" step="0.05" value="'+dRate(dealer)+'"></div></div><div class="field"><label for="dcApp">App dealer ID</label><input id="dcApp" value="'+esc(dApp(dealer))+'" placeholder="Dealer ID used by the app login"></div><div class="field"><label for="dcEmail">Dealer email</label><input id="dcEmail" type="email" value="'+esc(dEmail(dealer))+'" placeholder="Where payout details are emailed"></div><p class="dlnote">A new rate applies to files not yet paid. Paid files keep the amount they were paid at.</p><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" data-savedc="'+esc(dealer)+'">Save</button></div>');
+  openPayModal('<h2>'+esc(dealer)+'</h2><div class="row"><div class="field"><label for="dcRate">Payout rate (% of loan amount)</label><input id="dcRate" type="number" min="0" max="100" step="0.05" value="'+dRate(dealer)+'"></div></div><div class="field"><label for="dcApp">App dealer ID</label><input id="dcApp" value="'+esc(dApp(dealer))+'" placeholder="Dealer ID used by the app login"></div><p class="dlnote">A new rate applies to files not yet paid. Paid files keep the amount they were paid at.</p><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" data-savedc="'+esc(dealer)+'">Save</button></div>');
 }
 function saveDealerCfg(dealer){
-  var r=parseFloat(document.getElementById("dcRate").value), ap=document.getElementById("dcApp").value.trim(), em=document.getElementById("dcEmail").value.trim();
+  var r=parseFloat(document.getElementById("dcRate").value), ap=document.getElementById("dcApp").value.trim();
   if(isNaN(r)||r<0||r>100){toast("Enter a rate between 0 and 100");return;}
-  if(em&&!validEmail(em)){toast("That email address does not look right");return;}
-  state.dcfg[dealer]={rate:r,email:em,appId:ap};closeAll();renderPayments();toast("Saved");persistCfg().catch(function(e){toast("Saved here but NOT in Firebase: "+(e&&e.message||e));});
+  state.dcfg[dealer]={rate:r,email:dEmail(dealer),appId:ap};closeAll();renderPayments();toast("Saved");persistCfg().catch(function(e){toast("Saved here but NOT in Firebase: "+(e&&e.message||e));});
 }
 function emailText(d){
   var s=dealerSum(d), L=["Payout statement for "+state.pay.label,"","Files disbursed: "+s.n,"Total loan amount: "+money(s.loan),"Payout rate: "+s.rate+"%","Total payout: "+money(s.total),"Paid so far: "+money(s.paid),"Balance to pay: "+money(s.bal),"","Open the app to see each file."];
@@ -1880,113 +1792,6 @@ function emSendAll(){
     closeAll();renderPayments();
     toast(ok===rows.length?(last&&last.delivered?ok+" dealers notified":"Saved in the CRM only. Connect Firebase (firebase-connector.js) to reach the app."):ok+" of "+rows.length+" sent. Check the rest and try again.");
   });
-}
-/* ---------- email payout details to dealers (EmailJS) ---------- */
-var MAIL_KEY="avail_crm_emailjs_v1";
-state.mailed={};state.mailDealer=null;
-function mailCfg(){
-  var c={service:"",template:"",key:"",footer:"Avail Car CRM | +91 95920 29990, +91 98728 09990"};
-  try{var j=JSON.parse(localStorage.getItem(MAIL_KEY)||"null");if(j){for(var k in j){if(j[k]!==undefined)c[k]=j[k];}}}catch(e){}
-  return c;
-}
-function mailReady(){var c=mailCfg();return !!(c.service&&c.template&&c.key);}
-function validEmail(x){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x||"");}
-function mailCell(dl){
-  var m=state.mailed[emailKey(dl)];
-  return m?"Emailed "+esc(m.slice(0,10)):(validEmail(dEmail(dl))?"Not emailed":'<span class="st-inactive">No email set</span>');
-}
-function copyText(tx){
-  function done(){toast("Copied");}
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tx).then(done,function(){toast("Could not copy");});}
-  else{var a=document.createElement("textarea");a.value=tx;document.body.appendChild(a);a.select();try{document.execCommand("copy");done();}catch(e){toast("Could not copy");}document.body.removeChild(a);}
-}
-function mailHtml(dealer){
-  var s=dealerSum(dealer), cs=s.cases.slice().sort(function(a,b){return a.date<b.date?-1:1;}), ids={};
-  cs.forEach(function(l){ids[l.id]=1;});
-  var pays=state.payments.filter(function(p){return p.dealer===dealer&&p.status!=="void"&&p.items.some(function(it){return ids[it.id];});});
-  var th='style="padding:8px;border:1px solid #ddd;background:#f4f4f4;text-align:left;font-size:13px"';
-  var td='style="padding:8px;border:1px solid #ddd;font-size:13px"';
-  var tr='style="padding:8px;border:1px solid #ddd;font-size:13px;text-align:right"';
-  function kv(k,val){return '<tr><td '+td+'>'+k+'</td><td '+tr+'>'+val+'</td></tr>';}
-  var h='<p><b>Summary for '+esc(state.pay.label)+'</b></p><table style="border-collapse:collapse;width:100%;max-width:520px">'+
-    kv("Files disbursed",s.n)+kv("Total loan amount",money(s.loan))+kv("Payout rate",s.rate+"%")+kv("Total payout",money(s.total))+kv("Paid so far",money(s.paid))+kv("<b>Balance to pay</b>","<b>"+money(s.bal)+"</b>")+'</table>';
-  h+='<p><b>Files</b></p><table style="border-collapse:collapse;width:100%;max-width:700px"><tr><th '+th+'>Disbursal date</th><th '+th+'>Customer</th><th '+th+'>Vehicle</th><th '+th+'>Lender</th><th '+th+'>Loan amount</th><th '+th+'>Payout</th><th '+th+'>Status</th></tr>'+
-    cs.map(function(l){return '<tr><td '+td+'>'+fmtDate(l.date)+'</td><td '+td+'>'+esc(l.name)+'</td><td '+td+'>'+esc((l.vehicle+" "+l.reg).trim()||"-")+'</td><td '+td+'>'+esc(l.lender||"-")+'</td><td '+tr+'>'+money(l.amount)+'</td><td '+tr+'>'+money(casePayout(l))+'</td><td '+td+'>'+(state.paidAmt[l.id]!==undefined?"Paid":"Pending")+'</td></tr>';}).join("")+'</table>';
-  if(pays.length){
-    h+='<p><b>Payments received</b></p><table style="border-collapse:collapse;width:100%;max-width:520px"><tr><th '+th+'>Date</th><th '+th+'>Mode</th><th '+th+'>Reference</th><th '+th+'>Amount</th></tr>'+
-      pays.map(function(p){return '<tr><td '+td+'>'+fmtDate(p.date)+'</td><td '+td+'>'+esc(p.mode||"-")+'</td><td '+td+'>'+esc(p.ref||"-")+'</td><td '+tr+'>'+money(p.amount)+'</td></tr>';}).join("")+'</table>';
-  }
-  return h;
-}
-function mailParams(dealer){
-  var c=mailCfg(), s=dealerSum(dealer);
-  return {to_email:dEmail(dealer),to_name:dealer,dealer_name:dealer,period:state.pay.label,subject:"Payout statement: "+state.pay.label+" - Avail Car CRM",
-    payout_html:mailHtml(dealer),total_payout:money(s.total),paid:money(s.paid),balance:money(s.bal),footer:c.footer,from_name:"Avail Car CRM"};
-}
-function sendPayoutEmail(dealer){
-  var c=mailCfg(), s=dealerSum(dealer);
-  if(!validEmail(dEmail(dealer)))return Promise.reject(new Error("Add an email for "+dealer+" with the gear icon first"));
-  if(!mailReady())return Promise.reject(new Error("Add your EmailJS details under Email settings first"));
-  if(!s.n)return Promise.reject(new Error(dealer+" has no disbursed files in this period"));
-  return fetch("https://api.emailjs.com/api/v1.0/email/send",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({service_id:c.service,template_id:c.template,user_id:c.key,template_params:mailParams(dealer)})
-  }).then(function(r){return r.text().then(function(tx){
-    if(!r.ok)throw new Error(tx||("Send failed ("+r.status+")"));
-    state.mailed[emailKey(dealer)]=stamp();
-  });},function(){throw new Error("Could not reach EmailJS. Check your internet connection.");});
-}
-function openMailOne(dealer){
-  state.mailDealer=dealer;
-  var s=dealerSum(dealer), em=dEmail(dealer), ok=validEmail(em), c=mailCfg();
-  var warn=!ok?'<p class="dlnote"><span class="st-inactive">No email set for this dealer.</span> Use the gear icon on the dealer first.</p>':(!mailReady()?'<p class="dlnote"><span class="st-inactive">EmailJS is not set up yet.</span> Use Email settings on the Payments page.</p>':'');
-  var m=openPayModal('<h2>Email payout details: '+esc(dealer)+'</h2><p class="dlnote">To: <b>'+(ok?esc(em):"not set")+'</b><br>Subject: '+esc("Payout statement: "+state.pay.label+" - Avail Car CRM")+'</p>'+warn+
-    (s.n?'<div class="mailprev"><p>Hello '+esc(dealer)+',</p><p>Please find your payout details for '+esc(state.pay.label)+'.</p>'+mailHtml(dealer)+'<p style="color:#666">'+esc(c.footer)+'</p></div>':'<p class="dlnote">No disbursed files in this period, so there is nothing to send.</p>')+
-    '<p class="dlnote st-inactive" id="mailErr" role="alert"></p><div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" id="mailSend"'+(ok&&s.n&&mailReady()?"":" disabled")+'>Send email</button></div>');
-  m.classList.add("wide");
-}
-function doMailSend(){
-  var d=state.mailDealer, btn=document.getElementById("mailSend"), er=document.getElementById("mailErr");
-  btn.disabled=true; btn.textContent="Sending..."; er.textContent="";
-  sendPayoutEmail(d).then(function(){closeAll();renderPayments();toast("Payout details emailed to "+d);}).catch(function(e){btn.disabled=false;btn.textContent="Send email";er.textContent=e.message||"Could not send";});
-}
-function openMailAll(){
-  var rows=allDealerSums().filter(function(x){return x.n>0;});
-  if(!rows.length){toast("No disbursed files in this period");return;}
-  var can=rows.filter(function(x){return validEmail(dEmail(x.dealer));}).length;
-  var m=openPayModal('<h2>Email all dealers</h2><p class="dlnote">'+esc(state.pay.label)+'. Each dealer gets their own payout details. Dealers without an email are skipped. EmailJS free plan: 200 emails a month.</p>'+(mailReady()?'':'<p class="dlnote"><span class="st-inactive">EmailJS is not set up yet.</span> Use Email settings first.</p>')+
-    '<div class="repscroll"><table class="center striped" style="min-width:560px"><thead><tr><th class="l">Dealer</th><th>Files</th><th>Balance</th><th>Email</th></tr></thead><tbody>'+
-    rows.map(function(x){return '<tr><td class="l">'+esc(x.dealer)+'</td><td>'+x.n+'</td><td>'+money(x.bal)+'</td><td>'+(validEmail(dEmail(x.dealer))?esc(dEmail(x.dealer))+' ('+mailCell(x.dealer)+')':'<span class="st-inactive">No email set</span>')+'</td></tr>';}).join("")+'</tbody></table></div>'+
-    '<p class="dlnote" id="mailErr" role="status"></p><div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" id="mailSendAll"'+(can&&mailReady()?"":" disabled")+'>Send to '+can+' dealer'+(can===1?"":"s")+'</button></div>');
-  m.classList.add("wide");
-}
-function doMailSendAll(){
-  var rows=allDealerSums().filter(function(x){return x.n>0&&validEmail(dEmail(x.dealer));}), btn=document.getElementById("mailSendAll"), er=document.getElementById("mailErr");
-  var ok=0, fail=[], i=0;
-  btn.disabled=true;
-  function next(){
-    if(i>=rows.length){closeAll();renderPayments();toast(ok+" sent"+(fail.length?", "+fail.length+" failed: "+fail[0]:""));return;}
-    var x=rows[i++]; btn.textContent="Sending "+i+" of "+rows.length+"...";
-    sendPayoutEmail(x.dealer).then(function(){ok++;}).catch(function(e){fail.push(e.message);}).then(function(){setTimeout(next,1100);});
-  }
-  next();
-}
-function openMailSettings(){
-  var c=mailCfg();
-  var m=openPayModal('<h2>Email settings (EmailJS)</h2>'+
-    '<div class="row"><div class="field"><label for="mcService">Service ID</label><input id="mcService" value="'+esc(c.service)+'" placeholder="service_xxxxxxx"></div><div class="field"><label for="mcTemplate">Template ID</label><input id="mcTemplate" value="'+esc(c.template)+'" placeholder="template_xxxxxxx"></div></div>'+
-    '<div class="field"><label for="mcKey">Public key</label><input id="mcKey" value="'+esc(c.key)+'" placeholder="EmailJS, Account, General"></div>'+
-    '<div class="field"><label for="mcFooter">Email footer</label><input id="mcFooter" value="'+esc(c.footer)+'"></div>'+
-    '<p class="dlnote">Saved in this browser only. On the free EmailJS plan anyone who copies the public key from a public page can send through your account, so keep the repository private or use a plan with a domain allowlist.</p>'+
-    '<p class="dlnote"><b>One-time setup in EmailJS:</b> add an email service (for example Gmail) to get the Service ID. Create a template with <b>To Email</b> set to <code>{{to_email}}</code>, then use the subject and body below. The triple braces keep the tables as tables.</p>'+
-    '<b>Subject</b><div class="mailpre" id="mcSubj">{{subject}}</div><button class="btn" data-copytext="mcSubj">Copy subject</button>'+
-    '<p style="margin:10px 0 0"><b>Body</b></p><div class="mailpre" id="mcBody">Hello {{to_name}},\n\nPlease find your payout details for {{period}}.\n\n{{{payout_html}}}\n\n{{footer}}</div><button class="btn" data-copytext="mcBody">Copy body</button>'+
-    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveMailSettings">Save settings</button></div>');
-  m.classList.add("wide");
-}
-function saveMailSettings(){
-  var c={service:document.getElementById("mcService").value.trim(),template:document.getElementById("mcTemplate").value.trim(),key:document.getElementById("mcKey").value.trim(),footer:document.getElementById("mcFooter").value.trim()};
-  try{localStorage.setItem(MAIL_KEY,JSON.stringify(c));}catch(e){toast("Could not save in this browser");return;}
-  closeAll();toast("Email settings saved");
 }
 function openCampaign(i){
   var m=document.getElementById("modal"), segs=segments.map(function(x){return x.name;});
@@ -2156,18 +1961,6 @@ document.addEventListener("click",function(e){
   if(d.paview){openStatement(d.paview);return;}
   if(d.papay){openPay(d.papay);return;}
   if(d.paemail){openEmail(d.paemail,false);return;}
-  if(d.pamail){openMailOne(d.pamail);return;}
-  if(t.id==="payMailAll"){openMailAll();return;}
-  if(t.id==="payMailSettings"){openMailSettings();return;}
-  if(t.id==="saveMailSettings"){saveMailSettings();return;}
-  if(t.id==="mailSend"){doMailSend();return;}
-  if(t.id==="mailSendAll"){doMailSendAll();return;}
-  if(d.copytext){copyText((document.getElementById(d.copytext)||{}).textContent||"");return;}
-  if(d.copy){copyText(d.copy);return;}
-  if(d.ltab){state.ltab=d.ltab;state.lsub="main";renderLead();return;}
-  if(d.lsub){state.lsub=d.lsub;renderLead();return;}
-  if(d.lfocus){state.ltab="Lead Details";state.lsub="main";renderLead();var fe=document.getElementById("ld_"+d.lfocus);if(fe)fe.focus();return;}
-  if(t.hasAttribute("data-print")){window.print();return;}
   if(d.paset){openDealerCfg(d.paset);return;}
   if(d.savedc){saveDealerCfg(d.savedc);return;}
   if(d.paprep){openEmail(d.paprep,true);return;}
