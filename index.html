@@ -514,8 +514,7 @@ var H0=280, charts={};
 /* ---------- nav ---------- */
 var NAV=[
  {id:"dashboard",label:"Dashboard",icon:"grid"},
- {id:"leads",label:"Leads",icon:"users",kids:[["leads/Audience","Audience"],["leads/Login","Login business"],["leads/Hold","Hold"],["leads/Disbursed","Disbursement business"],["leads/Rejected","Reject business"],["leads/channel","Channel list"],["leads/pdd","PDD status"],["leads/data","Data"]]},
- {id:"data",label:"Data",icon:"db",kids:[["data/report","Leads report"],["data/analysis","Analysis"],["data/download","Download data"]]},
+ {id:"leads",label:"Leads",icon:"users",kids:[["leads/Audience","Audience"],["leads/Login","Login business"],["leads/Hold","Hold"],["leads/Disbursed","Disbursement business"],["leads/Rejected","Reject business"],["leads/channel","Channel list"],["leads/pdd","PDD status"],["leads/data","Data"],["data/report","Leads report"],["data/analysis","Analysis"],["data/download","Download data"]]},
  {id:"catalogue",label:"Catalogue",icon:"book"},
  {id:"announcement",label:"Announcement",icon:"horn"},
  {id:"url",label:"URL shortener",icon:"link"},
@@ -699,6 +698,8 @@ function renderLeads(){
   h+='<div class="searchbox pw"><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
   if(!NOFILTER[key])h+='<div class="pw"><button class="btn" data-pop="filterby" aria-haspopup="true" aria-expanded="false"><span id="fbLabel">Filter by</span> '+caret+'</button><div class="pop" id="pop-filterby" hidden>'+
+    (key==="Disbursed"?'<div class="pop-top"><strong>Saved filters</strong></div>'+
+      [{label:"Availcar RTO Sets",owner:""},{label:"Harjot Team Disbursement Business",owner:"Harjot Singh"},{label:"Keshav Team Disbursement Business",owner:"Keshav Sood"},{label:"Anu Team Disbursement Business",owner:"Anu Kaushal"},{label:"Nitin Team Disbursement Business",owner:"Nitin Narula"}].map(function(x){return '<button class="menu-item" data-teamfilter="'+esc(x.owner)+'" data-teamlabel="'+esc(x.label)+'">'+esc(x.label)+'</button>';}).join("")+'<div class="pop-top"><strong>Filter fields</strong></div>':'')+
     [["product","Product"],["lender","Lender"],["dealer","Dealer"],["owner","Lead owner"],["min","Loan amount"],["veh","Vehicle or number"]].map(function(x){return '<button class="menu-item" data-fby="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div></div>';
   h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden><button class="menu-item" data-addlead>Add lead</button><button class="menu-item" data-importcsv>Import from CSV</button></div></div><input type="file" id="csvIn" accept=".csv,text/csv" hidden>';
   h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r wide" id="pop-range" hidden>'+
@@ -1934,6 +1935,15 @@ document.addEventListener("click",function(e){
   var d=t.dataset;
   if(t.id==="overlay"||t.hasAttribute("data-close")){closeAll();return;}
   if(d.pop){var p=document.getElementById("pop-"+d.pop),was=!p.hidden;closePops();p.hidden=was;t.setAttribute("aria-expanded",String(!was));if(!was&&d.pop==="status"){}return;}
+  if(d.teamfilter!==undefined){
+    closePops();
+    state.f={product:"",lender:"",dealer:"",owner:d.teamfilter,min:"",max:"",veh:""};
+    state.q="";state.page=1;
+    var fields=document.querySelectorAll("[data-f]");for(var fi=0;fi<fields.length;fi++){fields[fi].value=state.f[fields[fi].dataset.f]||"";}
+    var qi=document.getElementById("q");if(qi)qi.value="";
+    var label=document.getElementById("fbLabel");if(label)label.textContent=d.teamlabel;
+    renderTable();return;
+  }
   if(d.fby){closePops();setPanel(true);var c=document.querySelector('[data-f="'+d.fby+'"]');if(c)c.focus();return;}
   if(t.hasAttribute("data-panel")){setPanel(document.getElementById("fpBody").hidden);return;}
   if(t.hasAttribute("data-clearf")){state.f={product:"",lender:"",dealer:"",owner:"",min:"",max:"",veh:""};var cs=document.querySelectorAll("[data-f]"),k;for(k=0;k<cs.length;k++)cs[k].value="";state.page=1;renderTable();return;}
