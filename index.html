@@ -303,7 +303,83 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 .repscroll{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
 .repscroll thead th{position:sticky;top:0}
 .repscroll tfoot td{background:var(--bg);position:sticky;bottom:0}
+.linkbtn{border:0;background:none;color:var(--focus);font-weight:500;padding:6px 0}
+.linkbtn:hover{text-decoration:underline}
+.attr-scroll{max-height:calc(100vh - 430px);min-height:300px;overflow:auto}
+.attr-scroll thead th{position:sticky;top:0;z-index:1}
+.sub-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:18px 0 10px}
+.sub-head h2{margin:0;font-size:20px;font-weight:500}
+.sub-head p{margin:2px 0 0;color:var(--muted)}
+.def-note{color:var(--muted)}
+.bulk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;max-width:1300px}
+.bulk-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);min-height:90px}
+.bulk-card:hover{border-color:var(--muted)}
+.bc-main{display:flex;flex-direction:column;gap:6px;align-items:flex-start;justify-content:flex-end;width:100%;height:100%;min-height:90px;padding:12px;border:0;background:none;text-align:left;border-radius:8px}
+.bc-main svg{width:24px;height:24px}
+.bc-tools{position:absolute;top:6px;right:6px;display:flex;gap:2px;z-index:1}
+.bc-tools .icon-btn{padding:4px;color:var(--muted)}
+.bc-tools .icon-btn svg{width:15px;height:15px}
+.bulk-card.add .bc-main{align-items:center;justify-content:center}
+.bulk-card.add .plus{font-size:34px;line-height:1;font-weight:300}
+.bulk-card.off{opacity:.55}
+.plugin{display:flex;align-items:center;gap:10px;margin-top:18px}
+.sw{appearance:none;-webkit-appearance:none;width:36px;height:20px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;border:0;transition:background .15s;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw:checked{background:#1f9d55}
+.sw:checked::after{transform:translateX(16px)}
+.modal.wide{width:min(900px,calc(100% - 24px))}
+.paytotal{margin:12px 0}
+.modal .kpis{margin:10px 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.appcard{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--accent-soft);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px}
+.appcard .ai{flex:1;min-width:240px}
+.appcard b{display:block;font-weight:600;margin-bottom:2px}
+.appcard span{color:var(--muted);font-size:13px;line-height:1.45;display:block}
+.appcard .btn{text-decoration:none;white-space:nowrap}
+.pfilt{margin:12px 0;gap:8px;flex-wrap:wrap;align-items:center}
+.pfilt input[type=search]{min-width:240px}
+tr.pvoid td{opacity:.6}
+tr.pvoid td.amt{text-decoration:line-through}
+td small{color:var(--muted)}
+
+/* ---------- lead detail page (profile card, summary, tabs, parameter tables) ---------- */
+.linklike{border:0;background:none;padding:0;color:var(--focus);font-weight:500;text-align:left;cursor:pointer}
+.linklike:hover{text-decoration:underline}
+.cl-top{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:12px;align-items:stretch;margin-bottom:14px}
+.cl-profile{background:var(--surface);border:2px solid var(--accent);border-radius:10px;padding:12px 14px;min-width:0}
+.cl-who{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cl-av{flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
+.cl-name{margin:0;font-size:19px;font-weight:500;overflow-wrap:anywhere;min-width:0}
+.cl-ids{display:flex;gap:22px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.cl-ids small{display:block;font-weight:600}
+.cl-ids span{color:var(--focus);overflow-wrap:anywhere}
+.cl-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 10px;align-items:center;margin:0}
+.cl-kv dt{font-weight:600;white-space:nowrap}
+.cl-kv dd{margin:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.cl-kv a{color:var(--focus);text-decoration:none}
+.cl-sum{position:relative;padding-bottom:52px}
+.cl-sg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 20px}
+.cl-sg h3{margin:0 0 4px;font-size:13px;font-weight:600}
+.cl-sg p{margin:0;overflow-wrap:anywhere}
+.cl-act{position:absolute;right:14px;bottom:10px;display:flex;gap:8px;align-items:center}
+.cl-body{margin-top:10px}
+.cl-body>.tabs{margin-bottom:12px}
+.cl-grids{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.cl-t{width:100%;table-layout:fixed;border-collapse:collapse;background:var(--surface);border:1px solid var(--line)}
+.cl-t th,.cl-t td{padding:8px 10px;text-align:left;border-top:1px solid var(--line);vertical-align:middle}
+.cl-t thead th{background:var(--bg);font-weight:600;border-top:0}
+.cl-t thead th:first-child{width:38%}
+.cl-t tbody th{font-weight:400;color:var(--muted);overflow-wrap:anywhere}
+.cl-t td{overflow:hidden}
+.cl-grids>*{min-width:0}
+.cl-t input,.cl-t select{width:100%;max-width:100%;min-width:0;border:1px solid transparent;background:transparent;border-radius:6px;padding:5px 6px}
+.cl-t input:hover,.cl-t select:hover,.cl-t input:focus,.cl-t select:focus{border-color:var(--line);background:var(--surface)}
+.cl-ro{overflow-wrap:anywhere}
+.cl-empty{padding:28px 10px;text-align:center;color:var(--muted)}
+.mailprev{background:#fff;color:#222;border:1px solid var(--line);border-radius:8px;padding:12px;font-family:Arial,sans-serif;font-size:14px;overflow:auto;max-height:340px}
+.mailprev p{margin:0 0 8px}
+.mailpre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;white-space:pre-wrap;font-size:12.5px;margin:4px 0 6px}
+@media (max-width:900px){.cl-top,.cl-grids{grid-template-columns:minmax(0,1fr)}.cl-sg{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -322,7 +398,7 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
         <button class="icon-btn" id="themeBtn" aria-label="Toggle light or dark theme"></button>
         <button class="icon-btn" id="searchBtn" aria-label="Search leads"></button>
         <button class="icon-btn" id="bellBtn" aria-label="Notifications, 13 unread"><span class="badge">13</span></button>
-        <button class="avatar" aria-label="Account">AM</button>
+        <button class="avatar" aria-label="Account">UD</button>
       </div>
     </header>
     <main class="content" id="view"></main>
@@ -374,6 +450,8 @@ var P = {
   eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   plusS:'<path d="M12 5v14M5 12h14"/>',
   doc:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  tools:'<path d="M5 5l14 14M19 5L5 19"/><circle cx="5" cy="5" r="1.6"/><circle cx="19" cy="5" r="1.6"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
   cog:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
   phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
   chat:'<path d="M4 20l1.3-4A8 8 0 1 1 8.2 18.7z"/><path d="M9.5 8.5c0 3 3 6 6 6l1-2-2-1-1 .7a4 4 0 0 1-1.7-1.7l.7-1-1-2z"/>'
@@ -483,6 +561,7 @@ var NAV=[
  {id:"campaign",label:"Campaign",icon:"send"},
  {id:"segments",label:"Segments",icon:"pie"},
  {id:"report",label:"Report",icon:"chart"},
+ {id:"payments",label:"Payments",icon:"card"},
  {id:"assets",label:"Asset library",icon:"folder"},
  {id:"integration",label:"Project integration",icon:"plug",kids:[["integration/forms","Forms"],["integration/marketplace","Marketplace"],["integration/social","Social media"],["integration/api","API"],["integration/bulk","Bulk"],["integration/custom","Custom"],["integration/telephony","Telephony"],["integration/ivr","IVR"],["integration/generic","Generic"]]},
  {id:"subscription",label:"Subscription",icon:"card"},
@@ -500,10 +579,11 @@ function navRoute(){return state.route.indexOf("lead/")===0?(state.listRoute||"l
 function renderNav(){
   var h="", cur=navRoute();
   NAV.forEach(function(n){
-    if(n.kids){
+    var kids=n.id==="leads"?catKids():n.kids;
+    if(kids){
       var open=state.open[n.id]||cur.indexOf(n.id+"/")===0;
       h+='<div class="nav-group'+(open?" open":"")+'"><button class="nav-item" data-toggle="'+n.id+'" aria-expanded="'+!!open+'">'+ic(n.icon)+'<span>'+n.label+'</span>'+ic("chev","chev")+'</button><div class="sub">';
-      n.kids.forEach(function(k){h+='<button data-route="'+k[0]+'" class="'+(cur===k[0]?"active":"")+'">'+k[1]+'</button>';});
+      kids.forEach(function(k){h+='<button data-route="'+k[0]+'" class="'+(cur===k[0]?"active":"")+'">'+k[1]+'</button>';});
       h+='</div></div>';
     } else h+='<button class="nav-item'+(cur===n.id?" active":"")+'" data-route="'+n.id+'">'+ic(n.icon)+'<span>'+n.label+'</span></button>';
   });
@@ -525,7 +605,7 @@ function ring(pct){
 }
 function renderDashboard(){
   var v=document.getElementById("view");
-  var h='<section class="hero"><div><h1>Hi <b>Alex</b>,</h1><p>What would you like to do today?</p><div class="chips">';
+  var h='<section class="hero"><div><h1>Hi <b>Umesh Dhingra</b>,</h1><p>What would you like to do today?</p><div class="chips">';
   channels.forEach(function(c,i){h+='<button class="chip" data-newcamp="'+i+'">'+c[0]+'</button>';});
   h+='</div></div><div class="mau">'+ring(25)+'<strong>Active contacts 2,480</strong><span>Limit 10,000 · renews Nov 4, 2026</span></div></section>';
   h+='<div class="sec-head"><h2>Analysis graph</h2><div class="range"><input type="date" id="rFrom" value="'+state.range.from+'" aria-label="From date"><span>to</span><input type="date" id="rTo" value="'+state.range.to+'" aria-label="To date"></div></div><div class="grid" id="grid">';
@@ -600,6 +680,7 @@ function leadRows(key,noSel){
   var st=pageStages(key), q=state.q.trim().toLowerCase(), f=state.f, lr=getRange(key), sf=state.sf;
   var rows=leads.filter(function(l){
     if(st.indexOf(l.stage)<0)return false;
+    if(key.indexOf("cat")===0){if(l.cat!==key)return false;}else if(l.cat&&key!=="data"&&key!=="channel")return false;
     if(l.date<lr.from||l.date>lr.to)return false;
     if(key==="pdd"&&l.status!=="Disburse")return false;
     if(!noSel&&state.sel.length&&state.sel.indexOf(key==="pdd"?l.pdd:l.status)<0)return false;
@@ -628,6 +709,7 @@ function leadRows(key,noSel){
 var PH={};
 function phoneCounts(){var m={};leads.forEach(function(l){if(l.phone)m[l.phone]=(m[l.phone]||0)+1;});return m;}
 function cell(l,k,i){
+  if(k==="name")return '<button class="linklike" data-view="'+l.id+'">'+esc(l.name)+'</button>';
   if(k==="sno")return (i+1)+(PH[l.phone]>1?' <span class="rep" role="img" aria-label="Repeat lead" title="Repeat lead: this mobile number appears more than once">R</span>':"");
   if(k==="month")return l.stage==="Disbursed"?MON[+l.date.slice(5,7)-1]+" "+l.date.slice(0,4):"";
   if(k==="ts")return l.ts.slice(0,10)+"<br>"+l.ts.slice(11);
@@ -649,7 +731,7 @@ function renderLeads(){
       t.map(function(x){return '<tr><td>'+x.s+'</td><td class="num">'+x.n+'</td><td class="num">'+x.d+'</td><td class="num">'+money(x.a)+'</td><td class="num">'+(x.n?Math.round(x.d/x.n*100):0)+'%</td></tr>';}).join("")+'</tbody></table></div>';
     return;
   }
-  var title=key==="pdd"?"PDD status":key==="data"?"All leads":stageName[key];
+  var title=catName(key)||stageName[key]||"Leads";
   var opts=statusOptions(key), caret=ic("caret");
   var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><h1>'+title+'</h1></div><div class="tb">';
   h+='<div class="pw"><button class="btn dark" data-pop="status" aria-haspopup="true" aria-expanded="false"><span id="selLabel"></span> '+caret+'</button><div class="pop" id="pop-status" hidden><div class="pop-top"><button data-sel="all">Select all</button><button data-sel="reset">Reset all</button></div><div class="pop-list">'+
@@ -702,10 +784,10 @@ function applyPeriod(f,t,label){
   state.page=1; renderTable();
 }
 function clearPeriodLabel(){state.rlabel[pageKey()]="";var q=document.getElementById("pdQ"),h=document.getElementById("pdH");if(q)q.value="";if(h)h.value="";}
-async function saveCsv(name,csv){
+async function saveCsv(name,csv,fid){
   var dl=null;
   try{ if(typeof window!=="undefined"&&window.claude&&window.claude.use)dl=await window.claude.use("downloads"); }catch(e){dl=null;}
-  if(!dl){var tx=document.getElementById("repFallback");if(tx){tx.hidden=false;tx.value=csv;tx.focus();tx.select();}toast("Direct download is not available here. Copy the data below.");return;}
+  if(!dl){var tx=document.getElementById(fid||"repFallback");if(tx){tx.hidden=false;tx.value=csv;tx.focus();tx.select();}toast("Direct download is not available here. Copy the data below.");return;}
   try{ await dl.save({filename:name,data:csv}); toast("Download started"); }
   catch(e){ if(e&&e.code==="declined")return; toast("Could not save the file"); }
 }
@@ -781,7 +863,7 @@ function openDrawer(id){
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" data-save="'+l.id+'">Save changes</button></div>';
   d.classList.add("show");showOverlay(true);
 }
-function closeAll(){document.getElementById("drawer").classList.remove("show");document.getElementById("modal").classList.remove("show");showOverlay(false);}
+function closeAll(){document.getElementById("drawer").classList.remove("show");document.getElementById("modal").classList.remove("show","wide");showOverlay(false);}
 function showOverlay(on){document.getElementById("overlay").classList.toggle("show",on);}
 function openAddLead(){
   var m=document.getElementById("modal");
@@ -803,6 +885,7 @@ function newLead(o){
   var key=pageKey(), st=statusOptions(key)[0]||"Open", n=new Date();
   if(!statusStage[st])st=key==="pdd"?"Disburse":"Open";
   var l={id:nextId++,name:o.name,phone:o.phone||"",owner:o.owner||owners[0],product:o.product||products[0],amount:o.amount||0,status:st,stage:statusStage[st],source:"Walk-in",date:ymd(TODAY),ts:ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds()),vehicle:o.vehicle||"",reg:"",lender:o.lender||"",dealer:o.dealer||"",pdd:statusStage[st]==="Disbursed"?"Pending":"—",note:"",audId:String(Date.now())};
+  if(key.indexOf("cat")===0&&cats.some(function(c){return c.key===key;}))l.cat=key;
   leads.unshift(l); return l;
 }
 function importCSV(file){
@@ -821,7 +904,7 @@ function importCSV(file){
 
 /* ---------- lead detail ---------- */
 var DOCS=["Aadhaar card","PAN card","Address proof","Bank statement (6 months)","Income proof","RC copy","Insurance copy"];
-var DETAIL=[["name","Name"],["phone","Mobile"],["product","Product"],["amount","Loan amount"],["owner","Lead owner"],["source","Source"],["vehicle","Vehicle"],["reg","Vehicle number"],["lender","Lender"],["dealer","Dealer"],["pdd","PDD status"]];
+var DETAIL=[["name","Name"],["phone","Mobile"],["email","Email"],["product","Product"],["amount","Loan amount"],["owner","Lead owner"],["source","Source"],["vehicle","Vehicle"],["reg","Vehicle number"],["lender","Lender"],["dealer","Dealer"],["pdd","PDD status"]];
 function lead(id){return leads.filter(function(x){return x.id===id;})[0];}
 function curLead(){return lead(+state.route.split("/")[1]);}
 function stamp(){var n=new Date();return ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds());}
@@ -841,36 +924,83 @@ function ensure(l){
 }
 function openLead(id){
   if(state.route.indexOf("leads/")===0)state.listRoute=state.route;
-  state.route="lead/"+id; render();
+  state.ltab="Lead Details";state.lsub="main";state.route="lead/"+id; render();
 }
 function fld(id,label,val,type){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><input id="ld_'+id+'"'+(type?' type="'+type+'"':"")+' value="'+esc(val)+'"></div>';}
 function fsel(id,label,list,val,blank){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><select id="ld_'+id+'">'+(blank?'<option value="">Not set</option>':"")+list.map(function(o){return '<option'+(o===val?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div>';}
+state.ltab="Lead Details";state.lsub="main";
+var LTABS=["Lead Details","Timeline","Follow up & Notes","Document Locker","Communication Logs","Repeat Lead","Call History"];
+P.clpen='<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>';
+P.clcopy='<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>';
+P.clcall='<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>';
+P.clplus='<path d="M12 5v14M5 12h14"/>';
+P.clswap='<path d="M4 8h14m-4-4 4 4-4 4M20 16H6m4-4-4 4 4 4"/>';
+P.clmail='<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>';
+function prow(id,label,val,type,list,blank){
+  var inner;
+  if(list){inner='<select id="ld_'+id+'" aria-label="'+esc(label)+'">'+(blank?'<option value="">Not set</option>':"")+list.map(function(o){return '<option'+(o===val?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select>';}
+  else{inner='<input id="ld_'+id+'"'+(type?' type="'+type+'"':"")+' value="'+esc(val===undefined||val===null?"":val)+'" aria-label="'+esc(label)+'">';}
+  return '<tr><th scope="row">'+esc(label)+'</th><td>'+inner+'</td></tr>';
+}
+function rrow(label,val){return '<tr><th scope="row">'+esc(label)+'</th><td class="cl-ro">'+esc(val===""||val===undefined||val===null?"-":val)+'</td></tr>';}
+function ptable(rows){return '<table class="cl-t"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>'+rows.join("")+'</tbody></table>';}
 function renderLead(){
   var l=curLead(), v=document.getElementById("view");
   if(!l){v.innerHTML='<div class="stub"><h2>Lead not found</h2>It may have been deleted.<p><button class="btn" data-back>Back to list</button></p></div>';return;}
   ensure(l);
+  var tab=state.ltab, sub=state.lsub, today=ymd(TODAY), tom=new Date(TODAY);tom.setDate(tom.getDate()+1);
+  var tel=/^\d{10}$/.test(l.phone), nextFu=l.fu.filter(function(f){return !f.done;})[0], upd=l.hist.length?l.hist[0].ts:l.ts;
   var got=DOCS.filter(function(n){return l.docs[n];}).length, pct=Math.round(got/DOCS.length*100);
-  var tel=/^\d{10}$/.test(l.phone), today=ymd(TODAY), tom=new Date(TODAY);tom.setDate(tom.getDate()+1);
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-back aria-label="Back to list">'+ic("back")+'</button><div><h1>'+esc(l.name)+'</h1><p>Lead ID '+l.id+'. Entered '+esc(l.ts)+'.</p></div></div><div class="tb">'+
-    '<div class="statusbar">'+dotted(l.status)+'<select id="ldStatus" aria-label="Lead status">'+STATUS.map(function(x){return '<option'+(x[0]===l.status?" selected":"")+'>'+x[0]+'</option>';}).join("")+'</select></div>'+
-    (tel?'<a class="btn" href="tel:+91'+l.phone+'">Call</a><a class="btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener">WhatsApp</a>':"")+
-    '<button class="btn" data-del="'+l.id+'">Delete</button></div></div>';
-  h+='<div class="lead-grid"><div class="col">';
-  h+='<section class="card"><h3 class="card-title">Lead details</h3><div class="fgrid">'+
-    fld("name","Name",l.name)+fld("phone","Mobile",l.phone)+fsel("product","Product",products,l.product,true)+fld("amount","Loan amount (₹)",l.amount,"number")+fsel("owner","Lead owner",owners,l.owner)+fsel("source","Source",sources,l.source)+
-    '<div class="sec-label">Vehicle and finance</div>'+
-    fld("vehicle","Vehicle",l.vehicle)+fld("reg","Vehicle number",l.reg)+fsel("lender","Lender",lenders,l.lender,true)+fsel("dealer","Dealer",dealers,l.dealer,true)+
-    (l.stage==="Disbursed"?fsel("pdd","PDD status",["Pending","Received","Overdue"],l.pdd):"")+
-    '</div><div class="actions"><button class="btn primary" id="saveDetails">Save details</button></div></section>';
-  h+='<section class="card"><h3 class="card-title">Documents <small>'+got+' of '+DOCS.length+' received</small></h3><div class="meter" role="img" aria-label="'+pct+'% of documents received"><i style="width:'+pct+'%"></i></div><ul class="checklist">'+
-    DOCS.map(function(n,i){return '<li><label class="chk"><input type="checkbox" data-doc="'+i+'"'+(l.docs[n]?" checked":"")+'>'+esc(n)+'</label></li>';}).join("")+'</ul></section>';
-  h+='</div><div class="col">';
-  h+='<section class="card"><h3 class="card-title">Follow-ups</h3>'+
-    (l.fu.length?l.fu.map(function(f,i){var od=!f.done&&f.date<today;return '<div class="fu-row'+(f.done?" done":"")+'"><input type="checkbox" data-fu="'+i+'" aria-label="Mark follow-up done"'+(f.done?" checked":"")+'><span class="t">'+esc(f.text)+'</span>'+(od?'<span class="pill Overdue">Overdue</span>':"")+'<time>'+fmtDate(f.date)+'</time></div>';}).join(""):'<p class="fu-empty">No follow-ups yet. Schedule the next call below.</p>')+
-    '<div class="fu-add"><input type="date" id="fuDate" value="'+ymd(tom)+'" aria-label="Follow-up date"><input type="text" id="fuText" placeholder="What needs to happen?" aria-label="Follow-up note"><button class="btn" id="addFu">Schedule</button></div></section>';
-  h+='<section class="card"><h3 class="card-title">Activity</h3><div class="noteform"><textarea id="noteText" rows="3" placeholder="Add a note about this lead" aria-label="Note"></textarea><button class="btn primary" id="addNote">Add note</button></div><ol class="timeline">'+
-    l.hist.map(function(e){return '<li class="'+e.type+'"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol></section>';
-  h+='</div></div>';
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-back aria-label="Back to list">'+ic("back")+'</button><div><h1>Lead details</h1><p>Lead ID '+l.id+'</p></div></div><div class="tb"><button class="btn" data-del="'+l.id+'">Delete</button></div></div>';
+
+  h+='<div class="cl-top"><section class="cl-profile" aria-label="Lead profile"><div class="cl-who"><span class="cl-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span><h2 class="cl-name">'+esc(l.name)+'</h2><button class="icon-btn" data-lfocus="name" aria-label="Edit name" title="Edit name">'+ic("clpen")+'</button></div>'+
+    '<div class="cl-ids"><div><small>Audience ID</small><span>'+esc(l.audId||l.id)+'</span></div><div><small>Lead Stage</small><span>'+esc(l.stage)+'</span></div></div>'+
+    '<dl class="cl-kv"><dt>Email</dt><dd>'+(l.email?esc(l.email):'<button class="icon-btn" data-lfocus="email" aria-label="Add email" title="Add email">'+ic("clplus")+'</button>')+'</dd>'+
+    '<dt>Mobile</dt><dd>'+(tel?'<a href="tel:+91'+l.phone+'">'+esc(l.phone)+'</a><button class="icon-btn" data-copy="'+l.phone+'" aria-label="Copy mobile number" title="Copy number">'+ic("clcopy")+'</button><a class="icon-btn" href="tel:+91'+l.phone+'" aria-label="Call" title="Call">'+ic("clcall")+'</a><a class="icon-btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">'+ic("chat")+'</a>':esc(l.phone))+'</dd>'+
+    '<dt>Added On</dt><dd>'+fmtDate(l.date)+'</dd><dt>Updated On</dt><dd>'+esc(upd)+'</dd></dl></section>'+
+    '<section class="card cl-sum" aria-label="Lead summary"><div class="cl-sg">'+
+    '<div><h3>Communication status</h3><p>N/A</p></div>'+
+    '<div><h3>Call logs</h3><p><button class="linklike" data-ltab="Call History">Load logs</button></p></div>'+
+    '<div><h3>Lead owner</h3><p>'+esc(l.owner)+'</p></div>'+
+    '<div><h3>Recent follow-up</h3><p>'+(nextFu?fmtDate(nextFu.date)+', '+esc(nextFu.text):'None scheduled')+'</p></div>'+
+    '<div><h3>Lead source</h3><p>'+esc(l.source)+'</p></div>'+
+    '<div><h3>Lead status</h3><div class="statusbar">'+dotted(l.status)+'<select id="ldStatus" aria-label="Lead status">'+STATUS.map(function(x){return '<option'+(x[0]===l.status?" selected":"")+'>'+x[0]+'</option>';}).join("")+'</select></div></div>'+
+    '</div><div class="cl-act"><button class="icon-btn" data-ltab="Follow up &amp; Notes" aria-label="Schedule a follow-up" title="Schedule a follow-up">'+ic("clplus")+'</button><button class="icon-btn" data-lfocus="owner" aria-label="Change lead owner" title="Change lead owner">'+ic("clswap")+'</button><button class="icon-btn" data-print aria-label="Print this lead" title="Print">'+ic("printer")+'</button></div></section></div>';
+
+  h+='<div class="tabs" role="tablist" aria-label="Lead sections">'+LTABS.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(t===tab)+'" data-ltab="'+esc(t)+'">'+esc(t)+'</button>';}).join("")+'</div>';
+
+  var b='';
+  if(tab==="Lead Details"){
+    b+='<div class="tabs" role="tablist" aria-label="Lead details sections"><button class="tab" role="tab" aria-selected="'+(sub==="main")+'" data-lsub="main">Lead Details</button><button class="tab" role="tab" aria-selected="'+(sub==="more")+'" data-lsub="more">Additional Details</button></div>';
+    if(sub==="main"){
+      var Lr=[prow("name","Name",l.name),prow("phone","Mobile",l.phone),prow("email","Email",l.email||"","email"),prow("product","Product",l.product,0,products,true),prow("amount","Loan amount (₹)",l.amount,"number"),prow("owner","Lead owner",l.owner,0,owners)];
+      var Rr=[prow("source","Source",l.source,0,sources),prow("vehicle","Vehicle",l.vehicle),prow("reg","Vehicle number",l.reg),prow("lender","Lender",l.lender,0,lenders,true),prow("dealer","Dealer",l.dealer,0,dealers,true)];
+      if(l.stage==="Disbursed")Rr.push(prow("pdd","PDD status",l.pdd,0,["Pending","Received","Overdue"]));
+      b+='<div class="cl-grids">'+ptable(Lr)+ptable(Rr)+'</div><div class="actions"><button class="btn primary" id="saveDetails">Save details</button></div>';
+    }else{
+      var pc=phoneCounts()[l.phone]||1;
+      b+='<div class="cl-grids">'+ptable([rrow("Lead ID",l.id),rrow("Audience ID",l.audId),rrow("Entry date",l.ts),rrow("Lead status",l.status)])+ptable([rrow("Lead stage",l.stage),rrow("Times this mobile appears",pc),rrow("Documents received",got+" of "+DOCS.length),rrow("Open follow-ups",l.fu.filter(function(f){return !f.done;}).length)])+'</div>';
+    }
+  }else if(tab==="Timeline"){
+    b+='<ol class="timeline" style="margin-top:0">'+l.hist.map(function(e){return '<li class="'+e.type+'"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol>';
+  }else if(tab==="Follow up & Notes"){
+    b+='<h3 class="card-title">Follow-ups</h3>'+
+      (l.fu.length?l.fu.map(function(f,i){var od=!f.done&&f.date<today;return '<div class="fu-row'+(f.done?" done":"")+'"><input type="checkbox" data-fu="'+i+'" aria-label="Mark follow-up done"'+(f.done?" checked":"")+'><span class="t">'+esc(f.text)+'</span>'+(od?'<span class="pill Overdue">Overdue</span>':"")+'<time>'+fmtDate(f.date)+'</time></div>';}).join(""):'<p class="fu-empty">No follow-ups yet. Schedule the next call below.</p>')+
+      '<div class="fu-add"><input type="date" id="fuDate" value="'+ymd(tom)+'" aria-label="Follow-up date"><input type="text" id="fuText" placeholder="What needs to happen?" aria-label="Follow-up note"><button class="btn" id="addFu">Schedule</button></div>'+
+      '<h3 class="card-title" style="margin-top:18px">Notes</h3><div class="noteform"><textarea id="noteText" rows="3" placeholder="Add a note about this lead" aria-label="Note"></textarea><button class="btn primary" id="addNote">Add note</button></div>'+
+      '<ol class="timeline">'+(l.hist.filter(function(e){return e.type==="note";}).map(function(e){return '<li class="note"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")||'<li><p class="fu-empty">No notes yet.</p></li>')+'</ol>';
+  }else if(tab==="Document Locker"){
+    b+='<h3 class="card-title">Documents <small>'+got+' of '+DOCS.length+' received</small></h3><div class="meter" role="img" aria-label="'+pct+'% of documents received"><i style="width:'+pct+'%"></i></div><ul class="checklist">'+
+      DOCS.map(function(n,i){return '<li><label class="chk"><input type="checkbox" data-doc="'+i+'"'+(l.docs[n]?" checked":"")+'>'+esc(n)+'</label></li>';}).join("")+'</ul>';
+  }else if(tab==="Repeat Lead"){
+    var rep=leads.filter(function(x){return x.phone===l.phone&&x.id!==l.id;});
+    b+=rep.length?'<div class="tscroll"><table class="cl-t"><thead><tr><th>Name</th><th>Entry date</th><th>Status</th><th>Lead owner</th></tr></thead><tbody>'+rep.map(function(x){return '<tr><td><button class="linklike" data-view="'+x.id+'">'+esc(x.name)+'</button></td><td>'+esc(x.ts)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.owner)+'</td></tr>';}).join("")+'</tbody></table></div>':'<p class="cl-empty">This mobile number appears only once. No repeat leads.</p>';
+  }else if(tab==="Communication Logs"){
+    b+='<p class="cl-empty">No messages are logged for this lead yet.'+(tel?' <a class="linklike" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener">Open WhatsApp</a>':'')+'</p>';
+  }else{
+    b+='<p class="cl-empty">No call history is available for this lead yet.'+(tel?' <a class="linklike" href="tel:+91'+l.phone+'">Call '+esc(l.phone)+'</a>':'')+'</p>';
+  }
+  h+='<section class="card cl-body" role="tabpanel">'+b+'</section>';
   v.innerHTML=h;
 }
 function changeStatus(ns){
@@ -889,7 +1019,7 @@ function saveDetails(){
   DETAIL.forEach(function(f){
     var el=document.getElementById("ld_"+f[0]); if(!el)return;
     var val=f[0]==="amount"?(+el.value||0):(f[0]==="name"?nm:el.value.trim());
-    if(val!==l[f[0]]){l[f[0]]=val;changed.push(f[1]);}
+    if(val!==(l[f[0]]===undefined?"":l[f[0]])){l[f[0]]=val;changed.push(f[1]);}
   });
   if(!changed.length){toast("No changes to save");return;}
   l.hist.unshift({ts:stamp(),text:"Details updated: "+changed.join(", "),type:"system"});
@@ -1013,7 +1143,7 @@ function saveReport(){
   var rows=leads.filter(function(l){return st.indexOf(l.stage)>-1&&l.date>=f&&l.date<=t;}).sort(function(a,b){return a.ts<b.ts?1:-1;});
   if(!rows.length){toast("No leads match this date range");return;}
   var ex=new Date(TODAY);ex.setDate(ex.getDate()+7);
-  var r={id:repNext++,type:state.dltype,from:f,to:t,count:rows.length,csv:csvFor(rows,cols),ts:stamp(),exp:ymd(ex),status:"Processing",by:"Alex"};
+  var r={id:repNext++,type:state.dltype,from:f,to:t,count:rows.length,csv:csvFor(rows,cols),ts:stamp(),exp:ymd(ex),status:"Processing",by:"Umesh Dhingra"};
   state.reports.unshift(r);closeAll();renderDownload();toast("Report requested");
   setTimeout(function(){r.status="Ready";if(state.route==="data/download")renderDownload();},1500);
 }
@@ -1214,6 +1344,650 @@ function renderSettings(){
    '<div class="field"><label for="setRange">Default date range for lead lists</label><select id="setRange">'+o(7,"Last 7 days",days)+o(30,"Last 30 days",days)+o(90,"Last 90 days",days)+'</select></div></div></section>';
 }
 
+/* ---------- project integration ---------- */
+var ATYPES=["String","Number","Date","Boolean"];
+var attrNext=100, grpNext=10;
+var attrs=[
+ ["Anniversary Date","Date","anniversary_date"],["Bank Executive","String","bank_executive"],["Case booked in","String","car_booked_in"],["Category","String","category"],
+ ["Challan Charges","String","challan_charges"],["Chasis Number","String","chasis_number"],["city","String","city"],["Dealer Name","String","dealer"],
+ ["Date of Birth","Date","date_of_birth"],["Disbursed Amount","String","disbursed_amount"],["Engine Number","String","engine_number"],["Insurance Expiry Date","Date","insurance_expiry_date"],
+ ["Lender","String","lender"],["Loan Tenure","String","loan_tenure"],["PDD Status","String","pdd_status"],["Vehicle Make","String","vehicle_make"],["Vehicle Model","String","vehicle_model"],["Vehicle Number","String","vehicle_number"]
+].map(function(x,i){return {id:i+1,label:x[0],cat:"Attribute",type:x[1],key:x[2]};});
+var sysAttrs=[["Name","String","name"],["Mobile","String","mobile"],["Email","String","email"],["Entry Date","Date","entry_date"],["Lead Owner","String","lead_owner"],["Lead Status","String","lead_status"],["Audience Id","String","audience_id"],["Source","String","source"],["Product","String","product"],["Loan Amount","Number","loan_amount"]]
+  .map(function(x,i){return {id:"s"+i,label:x[0],cat:"Attribute",type:x[1],key:x[2]};});
+var attrGroups=[
+ {id:1,label:"Lead Details",sort:0,def:true,keys:[]},
+ {id:2,label:"PDD Details",sort:3,def:false,keys:["pdd_status","insurance_expiry_date","chasis_number","engine_number"]},
+ {id:3,label:"Payout Details",sort:3,def:false,keys:["disbursed_amount","bank_executive","challan_charges","loan_tenure"]}];
+function groupKeys(g){
+  if(!g.def)return g.keys;
+  var used=[]; attrGroups.forEach(function(x){if(!x.def)used=used.concat(x.keys);});
+  return allAttrs().map(function(a){return a.key;}).filter(function(k){return used.indexOf(k)<0;});
+}
+state.atab="user"; state.attrEdit=null; state.grpEdit=null;
+var ITABS=[["waba","WABA","waba"],["forms","Forms","integration/forms"],["marketplace","Marketplace","integration/marketplace"],["ivr","IVR","integration/ivr"],["telephony","TelePhony","integration/telephony"],["social","Social Media","integration/social"],["generic","Generic","integration/generic"],["api","API","integration/api"],["bulk","Bulk","integration/bulk"],["custom","Attributes","integration/custom"]];
+function toKey(l){return l.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");}
+function allAttrs(){return sysAttrs.concat(attrs);}
+function attrByKey(k){return allAttrs().filter(function(a){return a.key===k;})[0];}
+function attrTable(list,actions){
+  return '<div class="tcard"><div class="attr-scroll"><table class="center striped"><thead><tr><th>Sr. No.</th><th>Label</th><th>Category</th><th>Type</th><th>Key</th>'+(actions?'<th>Action</th>':'')+'</tr></thead><tbody>'+
+   list.map(function(a,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(a.label)+'</td><td>'+a.cat+'</td><td>'+a.type+'</td><td>'+esc(a.key)+'</td>'+(actions?'<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-attredit="'+a.id+'" aria-label="Edit '+esc(a.label)+'">'+ic("pencil")+'</button><button class="icon-btn seg-edit" data-attrdel="'+a.id+'" aria-label="Delete '+esc(a.label)+'">'+ic("trash")+'</button></div></td>':'')+'</tr>';}).join("")+'</tbody></table></div></div>';
+}
+function groupTable(){
+  var rows=attrGroups.slice().sort(function(a,b){return a.sort-b.sort||a.id-b.id;});
+  return '<div class="tcard"><div class="attr-scroll"><table class="center striped"><thead><tr><th>Sr. No.</th><th>Label</th><th>Sort No.</th><th>Action</th></tr></thead><tbody>'+
+   rows.map(function(g,i){
+     return '<tr><td>'+(i+1)+'</td><td>'+esc(g.label)+'</td><td>'+g.sort+'</td><td><div class="act" style="justify-content:center;align-items:center;gap:6px"><button class="icon-btn seg-eye" data-grpview="'+g.id+'" aria-label="View attributes in '+esc(g.label)+'">'+ic("eye")+'</button>'+
+      (g.def?'<span class="def-note">Default</span>':'<button class="icon-btn seg-eye" data-grpedit="'+g.id+'" aria-label="Edit '+esc(g.label)+'">'+ic("pencil")+'</button><button class="icon-btn seg-edit" data-grpdel="'+g.id+'" aria-label="Delete '+esc(g.label)+'">'+ic("trash")+'</button>')+'</div></td></tr>';}).join("")+'</tbody></table></div></div>';
+}
+function attributesView(){
+  var st=state.atab, subs=[["user","User Defined Attributes"],["system","System Defined Attributes"],["groups","Attribute Groups"]];
+  var head=st==="user"?['User defined Category &amp; Attributes','Create more categories for collecting specific data from your users. These parameters will be helpful for segmentation of your specific users.',true]
+    :st==="system"?['System defined Attributes','Standard lead fields that every project has. They cannot be changed.',false]
+    :['Group List','These groups are show in lead details.',true];
+  return '<div class="tabs" role="tablist">'+subs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(st===t[0])+'" data-atab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
+    '<div class="sub-head"><div><h2>'+head[0]+'</h2><p>'+head[1]+'</p></div>'+(head[2]?'<button class="btn" id="addAttr">'+ic("plusS")+' Add</button>':"")+'</div>'+
+    (st==="user"?attrTable(attrs,true):st==="system"?attrTable(sysAttrs,false):groupTable());
+}
+function renderIntegration(){
+  var tab=state.route.split("/")[1];
+  var body=tab==="custom"?attributesView():tab==="bulk"?bulkView():'<div class="stub"><h2>'+titles["integration/"+tab]+' is the next module to build</h2>'+blurbs["integration/"+tab]+'</div>';
+  document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Project Integration</h1><p class="note" style="margin:0">Provide project information to start integration.</p></div></div><button class="linkbtn" id="apiKit">API Integration Kit</button></div>'+
+   '<div class="tabs" role="tablist">'+ITABS.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(t[0]===tab)+'" data-route="'+t[2]+'">'+t[1]+'</button>';}).join("")+'</div><div style="margin-top:14px">'+body+'</div>';
+}
+function openAttr(id){
+  var a=id?attrs.filter(function(x){return x.id===id;})[0]:null, m=document.getElementById("modal"); state.attrEdit=a?a.id:null;
+  m.innerHTML='<h2>'+(a?"Edit attribute":"Add attribute")+'</h2><div class="field"><label for="atLabel">Label</label><input id="atLabel" value="'+esc(a?a.label:"")+'"></div>'+
+   '<div class="field"><label for="atKey">Key</label><input id="atKey" value="'+esc(a?a.key:"")+'"'+(a?" disabled":"")+' placeholder="Made from the label if left empty"></div>'+
+   '<div class="row"><div class="field"><label for="atCat">Category</label><select id="atCat">'+["Attribute","Category"].map(function(c){return '<option'+(a&&a.cat===c?" selected":"")+'>'+c+'</option>';}).join("")+'</select></div>'+
+   '<div class="field"><label for="atType">Type</label><select id="atType">'+ATYPES.map(function(c){return '<option'+(a&&a.type===c?" selected":"")+'>'+c+'</option>';}).join("")+'</select></div></div>'+
+   '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveAttr">Save attribute</button></div>';
+  m.classList.add("show");showOverlay(true);document.getElementById("atLabel").focus();
+}
+function saveAttr(){
+  var lb=document.getElementById("atLabel").value.trim(), cat=document.getElementById("atCat").value, ty=document.getElementById("atType").value, edit=state.attrEdit;
+  if(!lb){document.getElementById("atLabel").focus();toast("Enter a label");return;}
+  if(edit){var a=attrs.filter(function(x){return x.id===edit;})[0];a.label=lb;a.cat=cat;a.type=ty;}
+  else{
+    var key=(document.getElementById("atKey").value.trim()||toKey(lb));
+    if(!/^[a-z][a-z0-9_]*$/.test(key)){toast("Keys use lowercase letters, numbers and underscores, and start with a letter");return;}
+    if(attrByKey(key)){toast("The key "+key+" is already in use");return;}
+    attrs.push({id:attrNext++,label:lb,cat:cat,type:ty,key:key});
+    attrs.sort(function(x,y){return x.label.toLowerCase()<y.label.toLowerCase()?-1:x.label.toLowerCase()>y.label.toLowerCase()?1:0;});
+  }
+  state.attrEdit=null;closeAll();renderIntegration();toast(edit?"Attribute updated":"Attribute added");
+}
+function openAttrDelete(id){
+  var a=attrs.filter(function(x){return x.id===id;})[0]; if(!a)return;
+  var m=document.getElementById("modal");
+  m.innerHTML='<h2>Delete attribute?</h2><p>'+esc(a.label)+' ('+esc(a.key)+') will be removed, including from any group. This cannot be undone.</p><div class="actions"><button class="btn" data-close>Keep attribute</button><button class="btn primary" data-confirmattr="'+id+'">Delete attribute</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+function openGroup(id){
+  var g=id?attrGroups.filter(function(x){return x.id===id;})[0]:null, m=document.getElementById("modal"); state.grpEdit=g?g.id:null;
+  var nextSort=attrGroups.reduce(function(mx,x){return Math.max(mx,x.sort);},0)+1;
+  m.innerHTML='<h2>'+(g?"Edit group":"Add group")+'</h2><div class="row"><div class="field"><label for="gpName">Label</label><input id="gpName" value="'+esc(g?g.label:"")+'"></div><div class="field"><label for="gpSort">Sort No.</label><input id="gpSort" type="number" min="0" step="1" value="'+(g?g.sort:nextSort)+'"></div></div>'+
+   '<h3 class="card-title">Attributes in this group</h3><div class="pop-list checks">'+
+   allAttrs().map(function(a){return '<label class="chk"><input type="checkbox" data-gk="'+esc(a.key)+'"'+(g&&g.keys.indexOf(a.key)>-1?" checked":"")+'>'+esc(a.label)+'</label>';}).join("")+'</div>'+
+   '<p class="dlnote">An attribute belongs to one group. Attributes not in any group stay in Lead Details.</p>'+
+   '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveGrp">Save group</button></div>';
+  m.classList.add("show");showOverlay(true);document.getElementById("gpName").focus();
+}
+function saveGrp(){
+  var nm=document.getElementById("gpName").value.trim(), sv=document.getElementById("gpSort").value.trim(), edit=state.grpEdit;
+  if(!nm){document.getElementById("gpName").focus();toast("Enter a label");return;}
+  if(!/^\d+$/.test(sv)){document.getElementById("gpSort").focus();toast("Sort No. must be a whole number, 0 or more");return;}
+  if(attrGroups.some(function(g){return g.id!==edit&&g.label.toLowerCase()===nm.toLowerCase();})){toast("A group with this label already exists");return;}
+  var keys=[].slice.call(document.querySelectorAll("input[data-gk]")).filter(function(i){return i.checked;}).map(function(i){return i.dataset.gk;});
+  attrGroups.forEach(function(x){if(!x.def&&x.id!==edit)x.keys=x.keys.filter(function(k){return keys.indexOf(k)<0;});});
+  if(edit){var g=attrGroups.filter(function(x){return x.id===edit;})[0];g.label=nm;g.sort=+sv;g.keys=keys;}
+  else attrGroups.push({id:grpNext++,label:nm,sort:+sv,def:false,keys:keys});
+  state.grpEdit=null;closeAll();renderIntegration();toast(edit?"Group updated":"Group added");
+}
+function openGrpView(id){
+  var g=attrGroups.filter(function(x){return x.id===id;})[0]; if(!g)return;
+  var list=groupKeys(g).map(attrByKey).filter(Boolean), m=document.getElementById("modal");
+  m.innerHTML='<h2>'+esc(g.label)+'</h2>'+(list.length?'<div class="repscroll"><table class="center striped" style="min-width:0"><thead><tr><th class="l">Label</th><th>Type</th><th>Key</th></tr></thead><tbody>'+list.map(function(a){return '<tr><td class="l">'+esc(a.label)+'</td><td>'+a.type+'</td><td>'+esc(a.key)+'</td></tr>';}).join("")+'</tbody></table></div>':'<p class="dlnote">No attributes in this group yet.</p>')+
+   '<div class="actions"><button class="btn primary" data-close>Done</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+function openGrpDelete(id){
+  var g=attrGroups.filter(function(x){return x.id===id;})[0]; if(!g||g.def)return;
+  var m=document.getElementById("modal");
+  m.innerHTML='<h2>Delete group?</h2><p>'+esc(g.label)+' will be removed. Its attributes move back to Lead Details.</p><div class="actions"><button class="btn" data-close>Keep group</button><button class="btn primary" data-confirmgrp="'+id+'">Delete group</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+function openApiKit(){
+  var m=document.getElementById("modal");
+  m.innerHTML='<h2>API Integration Kit</h2><p>This will hold your API keys, the web address that receives new leads and sample requests. It needs a real backend, which this prototype does not have yet.</p><div class="actions"><button class="btn primary" data-close>Close</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+/* ---------- bulk upload forms ---------- */
+var bulkNext=20;
+var bulkForms=["Channels","IVR","data","banker","Dealers","Broadcast 2022","Broadcast 2020","Broadcast 2023","Broadcast 2023 new","broadcast 2024","Availcar 2025 Channels","Broadcast 2025"].map(function(n,i){
+  return {id:i+1,name:n,cols:n==="Dealers"?["name","mobile","dealer"]:n==="banker"?["name","mobile","lender","bank_executive"]:["name","mobile","product","loan_amount"]};});
+state.bulkOn=true; state.bulkEdit=null;
+function xlIcon(){return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" stroke="#1d7a46" stroke-width="1.8"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#1d7a46" stroke-width="1.8" stroke-linecap="round"/></svg>';}
+function bulkView(){
+  return '<div class="bulk-grid">'+bulkForms.map(function(f){
+    return '<div class="bulk-card'+(state.bulkOn?"":" off")+'"><div class="bc-tools"><button class="icon-btn" data-bulkcols="'+f.id+'" aria-label="Columns and template for '+esc(f.name)+'" title="Columns and template">'+ic("tools")+'</button><button class="icon-btn" data-bulkset="'+f.id+'" aria-label="Settings for '+esc(f.name)+'" title="Settings">'+ic("cog")+'</button></div><button class="bc-main" data-bulkup="'+f.id+'">'+xlIcon()+'<span>'+esc(f.name)+'</span></button></div>';}).join("")+
+   '<div class="bulk-card add"><button class="bc-main" id="addForm"><span class="plus" aria-hidden="true">+</span><span>Add Form</span></button></div></div>'+
+   '<label class="plugin"><span>Plugin Active:</span><input type="checkbox" class="sw" id="plugActive" role="switch"'+(state.bulkOn?" checked":"")+'></label>';
+}
+function bulkById(id){return bulkForms.filter(function(f){return f.id===id;})[0];}
+function openBulkNew(){
+  var m=document.getElementById("modal"); state.bulkEdit=null;
+  m.innerHTML='<h2>Add form</h2><div class="field"><label for="bfName">Form name</label><input id="bfName"></div><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveBulkNew">Add form</button></div>';
+  m.classList.add("show");showOverlay(true);document.getElementById("bfName").focus();
+}
+function bulkNameTaken(nm,except){return bulkForms.some(function(f){return f.id!==except&&f.name.toLowerCase()===nm.toLowerCase();});}
+function openBulkSet(id){
+  var f=bulkById(id); if(!f)return; state.bulkEdit=id;
+  var m=document.getElementById("modal");
+  m.innerHTML='<h2>Form settings</h2><div class="field"><label for="bfName">Form name</label><input id="bfName" value="'+esc(f.name)+'"></div><div class="actions" style="justify-content:space-between"><button class="btn" id="delBulkForm">Delete form</button><span><button class="btn" data-close>Cancel</button> <button class="btn primary" id="saveBulkSet">Save</button></span></div>';
+  m.classList.add("show");showOverlay(true);document.getElementById("bfName").focus();
+}
+function openBulkCols(id){
+  var f=bulkById(id); if(!f)return; state.bulkEdit=id;
+  var m=document.getElementById("modal");
+  m.innerHTML='<h2>'+esc(f.name)+': columns</h2><p class="dlnote">The columns your Excel or CSV file should have. Name and Mobile are needed to create a lead.</p><div class="pop-list checks">'+
+   allAttrs().map(function(a){return '<label class="chk"><input type="checkbox" data-bc="'+esc(a.key)+'"'+(f.cols.indexOf(a.key)>-1?" checked":"")+'>'+esc(a.label)+'</label>';}).join("")+'</div>'+
+   '<textarea class="csvbox" id="repFallback" rows="3" readonly hidden aria-label="Template header row"></textarea>'+
+   '<div class="actions" style="justify-content:space-between"><button class="btn" id="dlBulkTpl">Download template</button><span><button class="btn" data-close>Cancel</button> <button class="btn primary" id="saveBulkCols">Save columns</button></span></div>';
+  m.classList.add("show");showOverlay(true);
+}
+function bulkChecked(){return [].slice.call(document.querySelectorAll("input[data-bc]")).filter(function(i){return i.checked;}).map(function(i){return i.dataset.bc;});}
+function openBulkUp(id){
+  var f=bulkById(id); if(!f)return;
+  if(!state.bulkOn){toast("Turn Plugin Active on to upload files");return;}
+  state.bulkEdit=id;
+  var m=document.getElementById("modal");
+  m.innerHTML='<h2>Upload to '+esc(f.name)+'</h2><p class="dlnote">Expected columns: '+esc(f.cols.map(function(k){var a=attrByKey(k);return a?a.label:k;}).join(", "))+'.<br>The first row must hold the column names. Each row becomes a lead in Audience.</p><div class="field"><label for="bulkFile">CSV file</label><input type="file" id="bulkFile" accept=".csv,text/csv"></div><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="bulkImport">Import</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+function parseCSV(t){
+  var rows=[],row=[],f="",q=false,i,c; t=t.replace(/^\ufeff/,"");
+  for(i=0;i<t.length;i++){
+    c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
+    else if(c==='"')q=true;
+    else if(c===","){row.push(f);f="";}
+    else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;row.push(f);f="";if(row.length>1||row[0]!=="")rows.push(row);row=[];}
+    else f+=c;
+  }
+  if(f!==""||row.length){row.push(f);if(row.length>1||row[0]!=="")rows.push(row);}
+  return rows;
+}
+function bulkImportText(text){
+  var rows=parseCSV(text); if(rows.length<2)return {err:"The file has no data rows."};
+  var map={};
+  rows[0].forEach(function(h,i){var n=h.trim().toLowerCase(),a=allAttrs().filter(function(x){return x.label.toLowerCase()===n||x.key===n;})[0];if(a&&map[a.key]===undefined)map[a.key]=i;});
+  if(map.name===undefined||map.mobile===undefined)return {err:"The first row must include Name and Mobile columns."};
+  var ok=0,skip=0;
+  rows.slice(1).forEach(function(r){
+    function g(k){return map[k]===undefined?"":String(r[map[k]]||"").trim();}
+    var nm=g("name"),ph=g("mobile").replace(/\D/g,"").slice(-10);
+    if(!nm||ph.length!==10){skip++;return;}
+    var l=newLead({name:nm,phone:ph,amount:+g("loan_amount").replace(/[^0-9.]/g,"")||0,vehicle:g("vehicle_model"),lender:g("lender"),dealer:g("dealer")});
+    var pr=g("product"); l.product=products.indexOf(pr)>-1?pr:""; l.reg=g("vehicle_number"); ok++;
+  });
+  return {ok:ok,skip:skip};
+}
+function bulkImportClick(){
+  var el=document.getElementById("bulkFile"), file=el&&el.files&&el.files[0];
+  if(!file){toast("Choose a CSV file first");return;}
+  var rd=new FileReader();
+  rd.onload=function(){
+    var r=bulkImportText(String(rd.result));
+    if(r.err){toast(r.err);return;}
+    closeAll();toast(r.ok+" lead"+(r.ok===1?"":"s")+" imported to Audience"+(r.skip?", "+r.skip+" skipped":""));
+  };
+  rd.readAsText(file);
+}
+/* ---------- category ---------- */
+var MAXCAT=15, catNext=20;
+var cats=[[1,"Audience","Audience"],[2,"Login Business","Login"],[3,"Hold","Hold"],[4,"Disbursement Business","Disbursed"],[5,"Reject Business","Rejected"],[6,"Channel List","channel"],[7,"PDD Status","pdd"],[8,"Data","data"]]
+  .map(function(x){return {id:x[0],name:x[1],key:x[2],built:true};});
+state.catEdit=null;
+function catKids(){return cats.map(function(c){return ["leads/"+c.key,c.name];});}
+function catName(key){var c=cats.filter(function(x){return x.key===key;})[0];return c?c.name:"";}
+function catById(id){return cats.filter(function(c){return c.id===id;})[0];}
+function catLeads(c){
+  if(!c.built)return leads.filter(function(l){return l.cat===c.key;}).length;
+  if(c.key==="data"||c.key==="channel")return leads.length;
+  if(c.key==="pdd")return leads.filter(function(l){return !l.cat&&l.status==="Disburse";}).length;
+  var st=pageStages(c.key);return leads.filter(function(l){return !l.cat&&st.indexOf(l.stage)>-1;}).length;
+}
+function renderCategory(){
+  var full=cats.length>=MAXCAT;
+  document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Category</h1><p class="note" style="margin:0" id="catCount">'+cats.length+' of '+MAXCAT+' categories used'+(full?'. The limit is reached.':'.')+'</p></div></div>'+
+   '<button class="btn" id="addCat"'+(full?' disabled title="You can have at most '+MAXCAT+' categories"':"")+'>'+ic("plusS")+' Add</button></div>'+
+   '<div class="tcard"><div class="tscroll"><table class="center striped"><thead><tr><th>S.No.</th><th>Name</th><th>Action</th></tr></thead><tbody>'+
+   cats.map(function(c,i){
+     return '<tr><td>'+(i+1)+'</td><td>'+esc(c.name)+'</td><td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-catview="'+c.id+'" aria-label="View '+esc(c.name)+'">'+ic("eye")+'</button><button class="icon-btn seg-edit" data-catedit="'+c.id+'" aria-label="Edit '+esc(c.name)+'">'+ic("pencil")+'</button>'+
+      (c.built?'<button class="icon-btn" disabled title="Built-in categories cannot be deleted" aria-label="'+esc(c.name)+' cannot be deleted">'+ic("trash")+'</button>':'<button class="icon-btn" data-catdel="'+c.id+'" aria-label="Delete '+esc(c.name)+'">'+ic("trash")+'</button>')+'</div></td></tr>';}).join("")+'</tbody></table></div></div>';
+}
+function openCat(id){
+  var c=id?catById(id):null, m=document.getElementById("modal"); state.catEdit=c?c.id:null;
+  m.innerHTML='<h2>'+(c?"Edit category":"Add category")+'</h2><div class="field"><label for="ctName">Name</label><input id="ctName" maxlength="40" value="'+esc(c?c.name:"")+'"></div>'+(c?"":'<p class="dlnote">A new category gets its own page under Leads. You can add up to '+MAXCAT+' categories.</p>')+
+   '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveCat">Save category</button></div>';
+  m.classList.add("show");showOverlay(true);document.getElementById("ctName").focus();
+}
+function saveCat(){
+  var nm=document.getElementById("ctName").value.trim(), edit=state.catEdit;
+  if(!nm){document.getElementById("ctName").focus();toast("Enter a name");return;}
+  if(cats.some(function(c){return c.id!==edit&&c.name.toLowerCase()===nm.toLowerCase();})){toast("A category with this name already exists");return;}
+  if(edit){catById(edit).name=nm;}
+  else{
+    if(cats.length>=MAXCAT){toast("You can have at most "+MAXCAT+" categories");return;}
+    var id=catNext++; cats.push({id:id,name:nm,key:"cat"+id,built:false});
+  }
+  state.catEdit=null;closeAll();renderCategory();renderNav();toast(edit?"Category updated":"Category added");
+}
+function openCatView(id){
+  var c=catById(id); if(!c)return;
+  var m=document.getElementById("modal"), sts=c.built?(c.key==="pdd"?["Pending","Received","Overdue"]:statusOptions(c.key)):null;
+  m.innerHTML='<h2>'+esc(c.name)+'</h2><dl class="kv"><dt>Page</dt><dd>Leads, '+esc(c.name)+'</dd><dt>Leads</dt><dd>'+catLeads(c)+'</dd><dt>Statuses</dt><dd>'+(sts?esc(sts.join(", ")):"All lead statuses")+'</dd></dl><div class="actions"><button class="btn primary" data-close>Done</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+function openCatDelete(id){
+  var c=catById(id); if(!c||c.built)return;
+  var n=catLeads(c);
+  if(n){toast(n+" lead"+(n===1?" is":"s are")+" in "+c.name+". Delete those leads first.");return;}
+  var m=document.getElementById("modal");
+  m.innerHTML='<h2>Delete category?</h2><p>'+esc(c.name)+' and its page will be removed.</p><div class="actions"><button class="btn" data-close>Keep category</button><button class="btn primary" data-confirmcat="'+c.id+'">Delete category</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+/* ---------- payments to dealers ---------- */
+var DEALER_RATE={"Royal Cars":1.5,"Ravi Empire Motor":1.25,"Sirjan Motors":1.5,"Freelancer":1,"Direct - Direct":0};
+state.dcfg={};state.payments=[];state.paidAmt={};state.emailed={};state.ptab="payouts";state.payDealer=null;state.emailDealer=null;state.fromQueue=false;state.payMap={};
+var payNext=1;
+/* ---- saving, filters, receipts, audit trail ---- */
+P.printer='<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M6 14h12v7H6z"/>';
+state.pf={q:"",st:"all"};
+state.hf={q:"",dealer:"",mode:"",from:"",to:"",st:"active"};
+function whoAmI(){return window.CRM_USER||"Umesh Dhingra";}
+function payById(id){return state.payments.filter(function(x){return x.id===id;})[0];}
+function rebuildPaid(){state.paidAmt={};state.payments.forEach(function(p){if(p.status==="void")return;p.items.forEach(function(it){state.paidAmt[it.id]=it.amount;});});}
+var LS_KEY="avail_crm_payments_v1";
+function storeLoadLocal(){try{var j=JSON.parse(localStorage.getItem(LS_KEY)||"null");if(j){state.payments=j.payments||[];state.dcfg=j.dcfg||{};}}catch(e){}}
+function storeSaveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify({payments:state.payments,dcfg:state.dcfg}));}catch(e){}}
+function persistPayment(p){if(window.CRM_STORE)return window.CRM_STORE.savePayment(p);storeSaveLocal();return Promise.resolve();}
+function persistCfg(){if(window.CRM_STORE)return window.CRM_STORE.saveConfig(state.dcfg);storeSaveLocal();return Promise.resolve();}
+window.CRM_LOAD=function(d){state.payments=d.payments||[];if(d.dcfg)state.dcfg=d.dcfg;rebuildPaid();if(state.route==="payments")renderPayments();};
+function storeNote(){
+  if(window.CRM_STORE)return 'Saved to Firebase. Signed in as '+esc(whoAmI())+'.';
+  return 'Saved in this browser only, so other staff and the app cannot see it.'+(window.CRM_SIGNIN?' <button class="btn" id="payCloudIn">Sign in to save to Firebase</button>':'');
+}
+function payRefocus(id){var el=document.getElementById(id);if(el){el.focus();try{var n=el.value.length;el.setSelectionRange(n,n);}catch(e){}}}
+function uniq(a){return a.filter(function(v,i){return v&&a.indexOf(v)===i;}).sort();}
+function voucherNo(p){return "PV-"+p.date.replace(/-/g,"")+"-"+String(p.id).slice(-4);}
+
+/* payouts tab filters */
+function payMatch(x){var f=state.pf;if(f.q&&x.dealer.toLowerCase().indexOf(f.q.toLowerCase())<0)return false;if(f.st==="pending"&&x.bal<=0)return false;if(f.st==="paid"&&x.bal>0)return false;return true;}
+function payFilterBar(){
+  function o(v,l){return '<option value="'+v+'"'+(state.pf.st===v?" selected":"")+'>'+l+'</option>';}
+  return '<div class="tb pfilt"><input id="pfQ" type="search" placeholder="Search dealer" value="'+esc(state.pf.q)+'" aria-label="Search dealer"><select id="pfSt" aria-label="Balance status">'+o("all","All dealers")+o("pending","Balance pending")+o("paid","Fully paid")+'</select></div>';
+}
+
+/* payment history */
+function histRows(){
+  var f=state.hf,q=f.q.toLowerCase();
+  return state.payments.filter(function(p){
+    var vo=p.status==="void";
+    if(f.st==="active"&&vo)return false; if(f.st==="void"&&!vo)return false;
+    if(f.dealer&&p.dealer!==f.dealer)return false; if(f.mode&&p.mode!==f.mode)return false;
+    if(f.from&&p.date<f.from)return false; if(f.to&&p.date>f.to)return false;
+    if(q&&(p.dealer+" "+(p.ref||"")+" "+voucherNo(p)).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.id-a.id;});
+}
+function histOpts(vals,cur,all){return '<option value="">'+all+'</option>'+vals.map(function(v){return '<option value="'+esc(v)+'"'+(cur===v?" selected":"")+'>'+esc(v)+'</option>';}).join("");}
+function histFilterBar(){
+  var f=state.hf;
+  function o(v,l){return '<option value="'+v+'"'+(f.st===v?" selected":"")+'>'+l+'</option>';}
+  return '<div class="tb pfilt"><input id="hfQ" type="search" placeholder="Search dealer, reference or voucher" value="'+esc(f.q)+'" aria-label="Search payments">'+
+   '<select id="hfDealer" aria-label="Dealer">'+histOpts(uniq(state.payments.map(function(p){return p.dealer;})),f.dealer,"All dealers")+'</select>'+
+   '<select id="hfMode" aria-label="Payment mode">'+histOpts(uniq(state.payments.map(function(p){return p.mode;})),f.mode,"All modes")+'</select>'+
+   '<select id="hfSt" aria-label="Status">'+o("active","Paid")+o("void","Cancelled")+o("all","Paid and cancelled")+'</select>'+
+   '<div class="range"><input type="date" id="hfFrom" value="'+f.from+'" aria-label="From date"><span>to</span><input type="date" id="hfTo" value="'+f.to+'" aria-label="To date"></div>'+
+   '<button class="btn" id="hfClear">Clear</button></div>';
+}
+function payHistoryTab(){
+  if(!state.payments.length)return '<div class="stub"><h2>No payments recorded yet</h2>Use the card icon on a dealer in Dealer payouts to record one.</div>';
+  var list=histRows(), act=list.filter(function(p){return p.status!=="void";});
+  var amt=act.reduce(function(a,p){return a+p.amount;},0), files=act.reduce(function(a,p){return a+p.items.length;},0);
+  var body=list.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:1150px"><thead><tr><th>Sr. No.</th><th>Voucher</th><th>Payment date</th><th class="l">Dealer</th><th>Period</th><th>Files</th><th>Amount</th><th>Mode</th><th>Reference</th><th>Status</th><th>Recorded by</th><th>Action</th></tr></thead><tbody>'+
+   list.map(function(p,i){
+     var vo=p.status==="void";
+     return '<tr'+(vo?' class="pvoid"':'')+'><td>'+(i+1)+'</td><td>'+voucherNo(p)+'</td><td>'+fmtDate(p.date)+'</td><td class="l">'+esc(p.dealer)+'</td><td>'+esc(p.label)+'</td><td>'+p.items.length+'</td><td class="amt">'+money(p.amount)+'</td><td>'+esc(p.mode)+'</td><td>'+esc(p.ref||"-")+'</td>'+
+      '<td>'+(vo?'<span class="pill Hold">Cancelled</span><br><small>'+esc(p.voidReason||"")+'<br>'+esc(p.voidedBy||"")+' '+esc(p.voidedAtText||"")+'</small>':'<span class="pill Disbursed">Paid</span>')+'</td>'+
+      '<td>'+esc(p.createdBy||"-")+'<br><small>'+esc(p.createdAtText||"")+'</small></td>'+
+      '<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-payrcpt="'+p.id+'" aria-label="Receipt for '+voucherNo(p)+'" title="Receipt">'+ic("printer")+'</button>'+(vo?'':'<button class="icon-btn" data-payvoid="'+p.id+'" aria-label="Cancel payment of '+money(p.amount)+' to '+esc(p.dealer)+'" title="Cancel this payment">'+ic("trash")+'</button>')+'</div></td></tr>';}).join("")+
+   '</tbody><tfoot><tr><td colspan="5" class="l"><b>Total paid ('+act.length+' payment'+(act.length===1?"":"s")+', cancelled ones left out)</b></td><td><b>'+files+'</b></td><td><b>'+money(amt)+'</b></td><td colspan="5"></td></tr></tfoot></table></div></div>'
+   :'<div class="stub"><h2>No payments match your filters</h2>Change or clear the filters above.</div>';
+  return histFilterBar()+body;
+}
+function histCsv(){
+  var rows=[["Voucher","Payment date","Dealer","Dealer app ID","Period","Files","Amount","Mode","Reference","Status","Recorded by","Recorded at","Cancelled by","Cancelled at","Cancel reason"]];
+  histRows().forEach(function(p){rows.push([voucherNo(p),p.date,p.dealer,p.dealerId||"",p.label,p.items.length,p.amount,p.mode,p.ref||"",p.status==="void"?"Cancelled":"Paid",p.createdBy||"",p.createdAtText||"",p.voidedBy||"",p.voidedAtText||"",p.voidReason||""]);});
+  saveCsv("dealer-payments-"+ymd(TODAY)+".csv",csvText(rows));
+}
+
+/* receipt */
+function inWords(n){
+  n=Math.round(n); if(n===0)return "Zero";
+  var a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"],b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  function two(x){return x<20?a[x]:b[Math.floor(x/10)]+(x%10?" "+a[x%10]:"");}
+  function three(x){return (x>=100?a[Math.floor(x/100)]+" Hundred"+(x%100?" ":""):"")+(x%100?two(x%100):"");}
+  var cr=Math.floor(n/1e7);n%=1e7;var lk=Math.floor(n/1e5);n%=1e5;var th=Math.floor(n/1e3);n%=1e3;var o=[];
+  if(cr)o.push(three(cr)+" Crore"); if(lk)o.push(two(lk)+" Lakh"); if(th)o.push(two(th)+" Thousand"); if(n)o.push(three(n));
+  return o.join(" ");
+}
+var RCPT_CSS='.rc{font:14px/1.5 Arial,sans-serif;color:#111;padding:6px 4px}.rc h2{margin:0;font-size:20px}.rc .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:10px}.rc table{width:100%;min-width:0;border-collapse:collapse;margin:10px 0}.rc th,.rc td{border:1px solid #999;padding:5px 7px;text-align:left;font-size:12px;color:#111;background:#fff}.rc .n{text-align:right!important}.rc .meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin:8px 0}.rc .tot{font-weight:700;font-size:13px}.rc .sign{display:flex;justify-content:space-between;margin-top:46px}.rc .sign div{border-top:1px solid #111;padding-top:4px;width:40%;text-align:center;font-size:12px}.rc .void{border:2px solid #b00020;color:#b00020;font-weight:700;padding:6px;text-align:center;margin:8px 0}';
+function receiptHtml(p){
+  var vo=p.status==="void";
+  var rows=p.items.map(function(it,i){return '<tr><td>'+(i+1)+'</td><td>'+(it.date?fmtDate(it.date):"-")+'</td><td>'+esc(it.name||"-")+'</td><td>'+esc(((it.vehicle||"")+" "+(it.reg||"")).trim()||"-")+'</td><td>'+esc(it.lender||"-")+'</td><td class="n">'+money(it.loan||0)+'</td><td class="n">'+money(it.amount)+'</td></tr>';}).join("");
+  return '<div class="rc"><div class="top"><div><h2>Avail Car</h2><div>Dealer payout voucher</div></div><div style="text-align:right"><b>'+voucherNo(p)+'</b><br>Date: '+fmtDate(p.date)+'</div></div>'+
+   (vo?'<div class="void">CANCELLED'+(p.voidReason?': '+esc(p.voidReason):'')+'</div>':'')+
+   '<div class="meta"><div><b>Paid to:</b> '+esc(p.dealer)+'</div><div><b>Period:</b> '+esc(p.label)+'</div><div><b>Mode:</b> '+esc(p.mode)+'</div><div><b>Reference:</b> '+esc(p.ref||"-")+'</div></div>'+
+   '<table><thead><tr><th>#</th><th>Disbursal date</th><th>Customer</th><th>Vehicle</th><th>Lender</th><th class="n">Loan amount</th><th class="n">Payout</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr><td colspan="6" class="n tot">Total paid</td><td class="n tot">'+money(p.amount)+'</td></tr></tfoot></table>'+
+   '<div>Amount in words: <b>Rupees '+inWords(p.amount)+' Only</b></div>'+
+   '<div class="sign"><div>Prepared by '+esc(p.createdBy||"")+'</div><div>Received by '+esc(p.dealer)+'</div></div></div>';
+}
+function openReceipt(id){
+  var p=payById(id); if(!p)return;
+  var m=openPayModal('<style>'+RCPT_CSS+'</style>'+receiptHtml(p)+'<div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" id="rcptPrint" data-rid="'+p.id+'">'+ic("printer")+' Print</button></div>');
+  m.classList.add("wide");
+}
+function printReceipt(id){
+  var p=payById(id); if(!p)return;
+  var f=document.createElement("iframe"); f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0"; document.body.appendChild(f);
+  var d=f.contentWindow.document; d.open();
+  d.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(voucherNo(p))+'</title><style>body{margin:18px}'+RCPT_CSS+'</style></head><body>'+receiptHtml(p)+'</body></html>'); d.close();
+  setTimeout(function(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){toast("Printing is blocked in this browser");}setTimeout(function(){f.remove();},1500);},250);
+}
+storeLoadLocal(); rebuildPaid();
+
+state.pay={opt:"last30",from:"",to:"",label:""};
+function payApply(opt){
+  var r=state.pay; r.opt=opt;
+  if(opt==="last30"){var f=new Date(TODAY);f.setDate(f.getDate()-29);r.from=ymd(f);r.to=ymd(TODAY);r.label="Last 30 days";}
+  else if(opt.charAt(0)==="q"||opt.charAt(0)==="h"){var it=periodList(opt.charAt(0)==="q"?"Q":"H",state.fyBasis)[+opt.slice(1)];if(it){r.from=it.from;r.to=it.to;r.label=it.label;}}
+  else{r.label=fmtDate(r.from)+" to "+fmtDate(r.to);}
+}
+payApply("last30");
+function dRate(d){var c=state.dcfg[d];if(c&&c.rate!==undefined)return c.rate;return DEALER_RATE[d]!==undefined?DEALER_RATE[d]:1;}
+function dApp(d){return (state.dcfg[d]&&state.dcfg[d].appId)||"";}
+state.notifLog=[];
+/* In-app notifications. Set window.CRM_NOTIFY (see firebase-connector.js) to deliver to the dealer app. */
+function sendDealerNotification(dealer,n){
+  var rec={dealer:dealer,appId:dApp(dealer),title:n.title,body:n.body,type:n.type||"general",ts:stamp()};
+  state.notifLog.push(rec);
+  if(typeof window.CRM_NOTIFY!=="function")return Promise.resolve({delivered:false});
+  if(!rec.appId)return Promise.reject(new Error("Set the app dealer ID with the gear icon first"));
+  return Promise.resolve(window.CRM_NOTIFY(rec)).then(function(){return {delivered:true};});
+}
+function notifyToast(r,ok){toast(r&&r.delivered?ok:"Saved in the CRM only. Connect Firebase (firebase-connector.js) to reach the app.");}
+function dEmail(d){return (state.dcfg[d]&&state.dcfg[d].email)||"";}
+function payCases(dealer){var r=state.pay;return leads.filter(function(l){return l.status==="Disburse"&&!l.cat&&l.dealer&&l.date>=r.from&&l.date<=r.to&&(!dealer||l.dealer===dealer);});}
+function casePayout(l){return state.paidAmt[l.id]!==undefined?state.paidAmt[l.id]:Math.round(l.amount*dRate(l.dealer)/100);}
+function dealerSum(d){
+  var cs=payCases(d),loan=0,tot=0,paid=0,paidN=0;
+  cs.forEach(function(l){var p=casePayout(l);loan+=l.amount;tot+=p;if(state.paidAmt[l.id]!==undefined){paid+=p;paidN++;}});
+  return {dealer:d,n:cs.length,loan:loan,rate:dRate(d),total:tot,paid:paid,paidN:paidN,bal:tot-paid,balN:cs.length-paidN,cases:cs};
+}
+function allDealerSums(){return dealers.map(dealerSum).sort(function(a,b){return b.bal-a.bal||b.total-a.total;});}
+function emailKey(d){return d+"|"+state.pay.from+"|"+state.pay.to;}
+function payControls(){
+  var qs=periodList("Q",state.fyBasis),hs=periodList("H",state.fyBasis),o=state.pay.opt;
+  function op(v,l){return '<option value="'+v+'"'+(o===v?" selected":"")+'>'+esc(l)+'</option>';}
+  return '<div class="tb" style="margin:14px 0"><select id="payBasis" aria-label="Year type"><option value="fy"'+(state.fyBasis==="fy"?" selected":"")+'>Financial year (Apr to Mar)</option><option value="cy"'+(state.fyBasis==="cy"?" selected":"")+'>Calendar year</option></select>'+
+   '<select id="payPeriod" aria-label="Period">'+op("last30","Last 30 days")+'<optgroup label="Quarterly">'+qs.map(function(x,i){return op("q"+i,x.label);}).join("")+'</optgroup><optgroup label="Half yearly">'+hs.map(function(x,i){return op("h"+i,x.label);}).join("")+'</optgroup>'+op("custom","Custom dates")+'</select>'+
+   (o==="custom"?'<div class="range"><input type="date" id="payFrom" value="'+state.pay.from+'" aria-label="From date"><span>to</span><input type="date" id="payTo" value="'+state.pay.to+'" aria-label="To date"></div>':"")+'</div>';
+}
+function payPayoutsTab(list,tot){
+  var rows=list.filter(function(x){return x.n>0&&payMatch(x);});
+  function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' file'+(n===1?"":"s")+'</span></div>';}
+  var T=rows.reduce(function(a,x){return {n:a.n+x.n,total:a.total+x.total,paid:a.paid+x.paid,paidN:a.paidN+x.paidN,bal:a.bal+x.bal,balN:a.balN+x.balN};},{n:0,total:0,paid:0,paidN:0,bal:0,balN:0});
+  return '<div class="sumbar">'+card("Total payout",T.total,T.n)+card("Paid",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'</div>'+
+   (rows.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:900px"><thead><tr><th>Sr. No.</th><th class="l">Dealer</th><th>Files</th><th>Loan amount</th><th>Rate</th><th>Total payout</th><th>Paid</th><th>Balance</th><th>In-app notice</th><th>Email</th><th>Action</th></tr></thead><tbody>'+
+    rows.map(function(x,i){
+      var em=state.emailed[emailKey(x.dealer)], d=esc(x.dealer);
+      return '<tr><td>'+(i+1)+'</td><td class="l">'+d+'</td><td>'+x.n+'</td><td>'+money(x.loan)+'</td><td>'+x.rate+'%</td><td>'+money(x.total)+'</td><td>'+money(x.paid)+'</td><td><b>'+money(x.bal)+'</b></td><td>'+(em?'Notified '+esc(em.slice(0,10)):(dApp(x.dealer)?'Not notified':'<span class="st-inactive">No app ID set</span>'))+'</td>'+
+       '<td>'+mailCell(x.dealer)+'</td>'+'<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay '+d+'" title="Record payment"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn" data-pamail="'+d+'" aria-label="Email payout details to '+d+'" title="Email payout details">'+ic("clmail")+'</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
+   :'<div class="stub"><h2>'+(state.pf.q||state.pf.st!=="all"?"No dealers match your filters":"No disbursed files in this period")+'</h2>Choose another period or clear the filters above. Payouts are worked out from files with the Disburse status.</div>')+
+   '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="CSV data"></textarea>';
+}
+function renderPayments(){
+  var tabs=[["payouts","Dealer payouts"],["history","Payment history"]], hist=state.ptab==="history";
+  var list=allDealerSums();
+  document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Payments</h1><p class="note" style="margin:0">Pay dealer payouts and send dealers their payout details.</p></div></div>'+
+   (hist?'<div class="tb"><button class="btn" id="payHistCsv">Download CSV</button></div>':'<div class="tb"><button class="btn" id="payMailAll">'+ic("clmail")+' Email all dealers</button><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payMailSettings">Email settings</button><button class="btn" id="payCsv">Download CSV</button></div>')+'</div>'+
+   '<div class="appcard"><div class="ai"><b>Dealer app (Android preview)</b><span>Preview build with sample data. It is not connected to this CRM yet, so it does not show real payments or receive in-app notifications. Debug build, 17.5M.</span></div><a class="btn primary" href="downloads/dealer-app.apk" download="dealer-app.apk">Download APK</a></div>'+
+   '<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ptab===t[0])+'" data-ptab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
+   '<p class="dlnote">'+storeNote()+'</p>'+(hist?'':payControls()+payFilterBar())+'<div style="margin-top:'+(hist?"14":"0")+'px">'+(hist?payHistoryTab():payPayoutsTab(list))+'</div>';
+}
+function csvRowsFor(cases){
+  var byCase={}; state.payments.forEach(function(p){if(p.status==="void")return;p.items.forEach(function(it){byCase[it.id]=p;});});
+  var rows=[["Dealer","Disbursal date","Customer","Vehicle","Vehicle number","Lender","Loan amount","Payout rate %","Payout amount","Status","Payment date","Payment reference"]];
+  cases.forEach(function(l){var pm=byCase[l.id];rows.push([l.dealer,l.date,l.name,l.vehicle,l.reg,l.lender,l.amount,dRate(l.dealer),casePayout(l),pm?"Paid":"Pending",pm?pm.date:"",pm?pm.ref:""]);});
+  return rows;
+}
+function csvText(rows){return "\ufeff"+rows.map(function(r){return r.map(q).join(",");}).join("\r\n");}
+function payFile(prefix){return prefix+"-"+state.pay.from+"-to-"+state.pay.to+".csv";}
+function openPayModal(html){var m=document.getElementById("modal");m.innerHTML=html;m.classList.add("show");showOverlay(true);return m;}
+function openStatement(dealer){
+  var s=dealerSum(dealer), cs=s.cases.slice().sort(function(a,b){return a.date<b.date?1:-1;});
+  function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
+  var m=openPayModal('<h2>Payout statement: '+esc(dealer)+'</h2><p class="dlnote">'+esc(state.pay.label)+'. Payout rate '+s.rate+'%.</p><div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(s.total),"Total payout")+kpi(money(s.paid),"Paid")+kpi(money(s.bal),"Balance")+'</div>'+
+   '<div class="repscroll"><table class="center striped" style="min-width:720px"><thead><tr><th>Disbursal date</th><th class="l">Customer</th><th>Vehicle</th><th>Lender</th><th>Loan amount</th><th>Payout</th><th>Status</th></tr></thead><tbody>'+
+   cs.map(function(l){return '<tr><td>'+l.date+'</td><td class="l">'+esc(l.name)+'</td><td>'+esc((l.vehicle+" "+l.reg).trim())+'</td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+money(casePayout(l))+'</td><td>'+(state.paidAmt[l.id]!==undefined?"Paid":"Pending")+'</td></tr>';}).join("")+'</tbody></table></div>'+
+   '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="CSV data"></textarea>'+
+   '<div class="actions" style="flex-wrap:wrap"><button class="btn" data-close>Close</button><button class="btn" data-stcsv="'+esc(dealer)+'">Download CSV</button><button class="btn" data-pamail="'+esc(dealer)+'">'+ic("clmail")+' Email dealer</button><button class="btn" data-paemail="'+esc(dealer)+'">'+ic("bell")+' Notify in app</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+esc(dealer)+'">Record payment</button>':"")+'</div>');
+  m.classList.add("wide");
+}
+function openPay(dealer){
+  var s=dealerSum(dealer), cs=s.cases.filter(function(l){return state.paidAmt[l.id]===undefined;});
+  if(s.rate<=0){toast(dealer+" has no payout rate. Set one with the gear icon first.");return;}
+  if(!cs.length){toast("Nothing left to pay for "+dealer+" in this period");return;}
+  state.payDealer=dealer; state.payMap={}; var tot=0; cs.forEach(function(l){var v=casePayout(l);state.payMap[l.id]=v;tot+=v;});
+  var m=openPayModal('<h2>Pay '+esc(dealer)+'</h2><p class="dlnote">'+esc(state.pay.label)+'. Tick the files you are paying now.</p>'+
+   '<div class="repscroll"><table class="center striped" style="min-width:560px"><thead><tr><th><input type="checkbox" data-pcall checked aria-label="Select all files"></th><th>Disbursal date</th><th class="l">Customer</th><th>Loan amount</th><th>Payout</th></tr></thead><tbody>'+
+   cs.map(function(l){return '<tr><td><input type="checkbox" data-pc="'+l.id+'" checked aria-label="Pay '+esc(l.name)+'"></td><td>'+l.date+'</td><td class="l">'+esc(l.name)+'</td><td>'+money(l.amount)+'</td><td>'+money(state.payMap[l.id])+'</td></tr>';}).join("")+'</tbody></table></div>'+
+   '<p class="paytotal">Total to pay: <b id="payTotal">'+money(tot)+'</b> for <span id="payCount">'+cs.length+'</span> file'+(cs.length===1?"":"s")+'</p>'+
+   '<div class="row"><div class="field"><label for="pyDate">Payment date</label><input type="date" id="pyDate" value="'+ymd(TODAY)+'"></div><div class="field"><label for="pyMode">Mode</label><select id="pyMode"><option>Bank transfer (NEFT/RTGS)</option><option>UPI</option><option>Cheque</option><option>Cash</option></select></div></div>'+
+   '<div class="field"><label for="pyRef">Reference (UTR or cheque number)</label><input id="pyRef"></div>'+
+   '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="savePay">Record payment</button></div>');
+  m.classList.add("wide");
+}
+function payChecked(){return [].slice.call(document.querySelectorAll("input[data-pc]")).filter(function(c){return c.checked;}).map(function(c){return +c.dataset.pc;});}
+function payRecalc(){
+  var ids=payChecked(), t=ids.reduce(function(a,id){return a+(state.payMap[id]||0);},0);
+  var a=document.getElementById("payTotal"),b=document.getElementById("payCount");
+  if(a)a.textContent=money(t); if(b)b.textContent=ids.length;
+}
+function savePay(){
+  var ids=payChecked(), dealer=state.payDealer;
+  if(!ids.length){toast("Tick at least one file");return;}
+  var date=document.getElementById("pyDate").value; if(!date){toast("Choose the payment date");return;}
+  var byId={}; dealerSum(dealer).cases.forEach(function(l){byId[l.id]=l;});
+  var items=ids.map(function(id){var l=byId[id]||{};return {id:id,amount:state.payMap[id],date:l.date||"",name:l.name||"",vehicle:l.vehicle||"",reg:l.reg||"",lender:l.lender||"",loan:l.amount||0};});
+  var amt=items.reduce(function(a,it){return a+it.amount;},0);
+  items.forEach(function(it){state.paidAmt[it.id]=it.amount;});
+  var p={id:Date.now(),dealer:dealer,dealerId:dApp(dealer),date:date,mode:document.getElementById("pyMode").value,ref:document.getElementById("pyRef").value.trim(),items:items,amount:amt,label:state.pay.label,status:"active",createdBy:whoAmI(),createdAtText:stamp()};
+  state.payments.push(p);
+  closeAll();renderPayments();toast("Payment of "+money(amt)+" recorded for "+dealer);
+  persistPayment(p).catch(function(e){toast("Shown here but NOT saved to Firebase: "+(e&&e.message||e));});
+  sendDealerNotification(dealer,{title:"Payment received: "+money(amt),body:money(amt)+" paid on "+fmtDate(date)+" for "+items.length+" file"+(items.length===1?"":"s")+(p.ref?". Ref "+p.ref:"")+". Open the app for details.",type:"payment",paymentId:p.id}).then(function(r){if(r&&r.delivered)toast(dealer+" notified in the app");}).catch(function(e){toast(e.message||"Payment saved, but the app notice failed");});
+}
+function openVoid(id){
+  var p=payById(id); if(!p)return;
+  openPayModal('<h2>Cancel this payment?</h2><p>'+money(p.amount)+' paid to '+esc(p.dealer)+' on '+fmtDate(p.date)+' will be marked cancelled and its '+p.items.length+' file'+(p.items.length===1?"":"s")+' go back to Pending. The record stays in Payment history.</p><div class="field"><label for="vdReason">Reason for cancelling (required)</label><textarea id="vdReason" rows="3"></textarea></div><div class="actions"><button class="btn" data-close>Keep payment</button><button class="btn primary" data-confirmpv="'+p.id+'">Cancel payment</button></div>');
+  document.getElementById("vdReason").focus();
+}
+function confirmVoid(id){
+  var p=payById(id); if(!p)return;
+  var r=document.getElementById("vdReason").value.trim();
+  if(!r){toast("Write a reason for cancelling");document.getElementById("vdReason").focus();return;}
+  p.status="void";p.voidReason=r;p.voidedBy=whoAmI();p.voidedAtText=stamp();
+  rebuildPaid();closeAll();renderPayments();toast("Payment cancelled");
+  persistPayment(p).catch(function(e){toast("Cancelled here but NOT saved to Firebase: "+(e&&e.message||e));});
+  sendDealerNotification(p.dealer,{title:"Payment cancelled",body:money(p.amount)+" payment of "+fmtDate(p.date)+" was cancelled. Reason: "+r,type:"payment_cancelled",paymentId:p.id}).catch(function(){});
+}
+function openDealerCfg(dealer){
+  openPayModal('<h2>'+esc(dealer)+'</h2><div class="row"><div class="field"><label for="dcRate">Payout rate (% of loan amount)</label><input id="dcRate" type="number" min="0" max="100" step="0.05" value="'+dRate(dealer)+'"></div></div><div class="field"><label for="dcApp">App dealer ID</label><input id="dcApp" value="'+esc(dApp(dealer))+'" placeholder="Dealer ID used by the app login"></div><div class="field"><label for="dcEmail">Dealer email</label><input id="dcEmail" type="email" value="'+esc(dEmail(dealer))+'" placeholder="Where payout details are emailed"></div><p class="dlnote">A new rate applies to files not yet paid. Paid files keep the amount they were paid at.</p><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" data-savedc="'+esc(dealer)+'">Save</button></div>');
+}
+function saveDealerCfg(dealer){
+  var r=parseFloat(document.getElementById("dcRate").value), ap=document.getElementById("dcApp").value.trim(), em=document.getElementById("dcEmail").value.trim();
+  if(isNaN(r)||r<0||r>100){toast("Enter a rate between 0 and 100");return;}
+  if(em&&!validEmail(em)){toast("That email address does not look right");return;}
+  state.dcfg[dealer]={rate:r,email:em,appId:ap};closeAll();renderPayments();toast("Saved");persistCfg().catch(function(e){toast("Saved here but NOT in Firebase: "+(e&&e.message||e));});
+}
+function emailText(d){
+  var s=dealerSum(d), L=["Payout statement for "+state.pay.label,"","Files disbursed: "+s.n,"Total loan amount: "+money(s.loan),"Payout rate: "+s.rate+"%","Total payout: "+money(s.total),"Paid so far: "+money(s.paid),"Balance to pay: "+money(s.bal),"","Open the app to see each file."];
+  return L.join("\n");
+}
+function openEmail(d,fromQueue){
+  state.emailDealer=d; state.fromQueue=!!fromQueue;
+  var m=openPayModal('<h2>Notify '+esc(d)+' in app</h2><div class="field"><label for="emSub">Title</label><input id="emSub" value="'+esc("Payout statement: "+state.pay.label)+'"></div>'+
+   '<div class="field"><label for="emBody">Message</label><textarea id="emBody" rows="9">'+esc(emailText(d))+'</textarea></div>'+
+   '<p class="dlnote">'+(dApp(d)?'Goes straight to the dealer app for ID <b>'+esc(dApp(d))+'</b>. The dealer can open the full file list there.':'<span class="st-inactive">No app dealer ID set.</span> Use the gear icon on this dealer first.')+'</p>'+
+   '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="CSV data"></textarea>'+
+   '<div class="actions" style="flex-wrap:wrap">'+(fromQueue?'<button class="btn" data-emback>Back to dealers</button>':'<button class="btn" data-close>Close</button>')+'<button class="btn" data-stcsv="'+esc(d)+'">Download CSV</button><button class="btn primary" id="emOpen">Send in-app notification</button></div>');
+  m.classList.add("wide");
+}
+function emOpen(){
+  var d=state.emailDealer, t=document.getElementById("emSub").value.trim(), b=document.getElementById("emBody").value.trim();
+  if(!t||!b){toast("Add a title and a message");return;}
+  var btn=document.getElementById("emOpen"); btn.disabled=true;
+  sendDealerNotification(d,{title:t,body:b,type:"payout_statement"}).then(function(r){
+    state.emailed[emailKey(d)]=stamp(); if(state.fromQueue){openEmailAll();}else{closeAll();} renderPayments(); notifyToast(r,"Notification sent to "+d);
+  }).catch(function(e){btn.disabled=false;toast(e.message||"Could not send");});
+}
+function openEmailAll(){
+  var rows=allDealerSums().filter(function(x){return x.n>0;});
+  if(!rows.length){toast("No disbursed files in this period");return;}
+  var m=openPayModal('<h2>Notify all dealers</h2><p class="dlnote">'+esc(state.pay.label)+'. Sends each dealer their own payout summary in the app. Dealers without an app ID are skipped.</p><div class="repscroll"><table class="center striped" style="min-width:560px"><thead><tr><th class="l">Dealer</th><th>Files</th><th>Balance</th><th>In-app notice</th><th>Action</th></tr></thead><tbody>'+
+   rows.map(function(x){var em=state.emailed[emailKey(x.dealer)];return '<tr><td class="l">'+esc(x.dealer)+'</td><td>'+x.n+'</td><td>'+money(x.bal)+'</td><td>'+(em?"Notified":(dApp(x.dealer)?"Not notified":'<span class="st-inactive">No app ID set</span>'))+'</td><td><button class="btn" data-paprep="'+esc(x.dealer)+'">Review</button></td></tr>';}).join("")+'</tbody></table></div><div class="actions"><button class="btn" data-close>Done</button><button class="btn primary" id="emSendAll">Send to all</button></div>');
+  m.classList.add("wide");
+}
+function emSendAll(){
+  var rows=allDealerSums().filter(function(x){return x.n>0&&dApp(x.dealer);});
+  if(!rows.length){toast("No dealer has an app ID set");return;}
+  var ok=0, last=null;
+  Promise.all(rows.map(function(x){return sendDealerNotification(x.dealer,{title:"Payout statement: "+state.pay.label,body:emailText(x.dealer),type:"payout_statement"}).then(function(r){state.emailed[emailKey(x.dealer)]=stamp();ok++;last=r;}).catch(function(){});})).then(function(){
+    closeAll();renderPayments();
+    toast(ok===rows.length?(last&&last.delivered?ok+" dealers notified":"Saved in the CRM only. Connect Firebase (firebase-connector.js) to reach the app."):ok+" of "+rows.length+" sent. Check the rest and try again.");
+  });
+}
+/* ---------- email payout details to dealers (EmailJS) ---------- */
+var MAIL_KEY="avail_crm_emailjs_v1";
+state.mailed={};state.mailDealer=null;
+function mailCfg(){
+  var c={service:"",template:"",key:"",footer:"Avail Car CRM | +91 95920 29990, +91 98728 09990"};
+  try{var j=JSON.parse(localStorage.getItem(MAIL_KEY)||"null");if(j){for(var k in j){if(j[k]!==undefined)c[k]=j[k];}}}catch(e){}
+  return c;
+}
+function mailReady(){var c=mailCfg();return !!(c.service&&c.template&&c.key);}
+function validEmail(x){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x||"");}
+function mailCell(dl){
+  var m=state.mailed[emailKey(dl)];
+  return m?"Emailed "+esc(m.slice(0,10)):(validEmail(dEmail(dl))?"Not emailed":'<span class="st-inactive">No email set</span>');
+}
+function copyText(tx){
+  function done(){toast("Copied");}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(tx).then(done,function(){toast("Could not copy");});}
+  else{var a=document.createElement("textarea");a.value=tx;document.body.appendChild(a);a.select();try{document.execCommand("copy");done();}catch(e){toast("Could not copy");}document.body.removeChild(a);}
+}
+function mailHtml(dealer){
+  var s=dealerSum(dealer), cs=s.cases.slice().sort(function(a,b){return a.date<b.date?-1:1;}), ids={};
+  cs.forEach(function(l){ids[l.id]=1;});
+  var pays=state.payments.filter(function(p){return p.dealer===dealer&&p.status!=="void"&&p.items.some(function(it){return ids[it.id];});});
+  var th='style="padding:8px;border:1px solid #ddd;background:#f4f4f4;text-align:left;font-size:13px"';
+  var td='style="padding:8px;border:1px solid #ddd;font-size:13px"';
+  var tr='style="padding:8px;border:1px solid #ddd;font-size:13px;text-align:right"';
+  function kv(k,val){return '<tr><td '+td+'>'+k+'</td><td '+tr+'>'+val+'</td></tr>';}
+  var h='<p><b>Summary for '+esc(state.pay.label)+'</b></p><table style="border-collapse:collapse;width:100%;max-width:520px">'+
+    kv("Files disbursed",s.n)+kv("Total loan amount",money(s.loan))+kv("Payout rate",s.rate+"%")+kv("Total payout",money(s.total))+kv("Paid so far",money(s.paid))+kv("<b>Balance to pay</b>","<b>"+money(s.bal)+"</b>")+'</table>';
+  h+='<p><b>Files</b></p><table style="border-collapse:collapse;width:100%;max-width:700px"><tr><th '+th+'>Disbursal date</th><th '+th+'>Customer</th><th '+th+'>Vehicle</th><th '+th+'>Lender</th><th '+th+'>Loan amount</th><th '+th+'>Payout</th><th '+th+'>Status</th></tr>'+
+    cs.map(function(l){return '<tr><td '+td+'>'+fmtDate(l.date)+'</td><td '+td+'>'+esc(l.name)+'</td><td '+td+'>'+esc((l.vehicle+" "+l.reg).trim()||"-")+'</td><td '+td+'>'+esc(l.lender||"-")+'</td><td '+tr+'>'+money(l.amount)+'</td><td '+tr+'>'+money(casePayout(l))+'</td><td '+td+'>'+(state.paidAmt[l.id]!==undefined?"Paid":"Pending")+'</td></tr>';}).join("")+'</table>';
+  if(pays.length){
+    h+='<p><b>Payments received</b></p><table style="border-collapse:collapse;width:100%;max-width:520px"><tr><th '+th+'>Date</th><th '+th+'>Mode</th><th '+th+'>Reference</th><th '+th+'>Amount</th></tr>'+
+      pays.map(function(p){return '<tr><td '+td+'>'+fmtDate(p.date)+'</td><td '+td+'>'+esc(p.mode||"-")+'</td><td '+td+'>'+esc(p.ref||"-")+'</td><td '+tr+'>'+money(p.amount)+'</td></tr>';}).join("")+'</table>';
+  }
+  return h;
+}
+function mailParams(dealer){
+  var c=mailCfg(), s=dealerSum(dealer);
+  return {to_email:dEmail(dealer),to_name:dealer,dealer_name:dealer,period:state.pay.label,subject:"Payout statement: "+state.pay.label+" - Avail Car CRM",
+    payout_html:mailHtml(dealer),total_payout:money(s.total),paid:money(s.paid),balance:money(s.bal),footer:c.footer,from_name:"Avail Car CRM"};
+}
+function sendPayoutEmail(dealer){
+  var c=mailCfg(), s=dealerSum(dealer);
+  if(!validEmail(dEmail(dealer)))return Promise.reject(new Error("Add an email for "+dealer+" with the gear icon first"));
+  if(!mailReady())return Promise.reject(new Error("Add your EmailJS details under Email settings first"));
+  if(!s.n)return Promise.reject(new Error(dealer+" has no disbursed files in this period"));
+  return fetch("https://api.emailjs.com/api/v1.0/email/send",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({service_id:c.service,template_id:c.template,user_id:c.key,template_params:mailParams(dealer)})
+  }).then(function(r){return r.text().then(function(tx){
+    if(!r.ok)throw new Error(tx||("Send failed ("+r.status+")"));
+    state.mailed[emailKey(dealer)]=stamp();
+  });},function(){throw new Error("Could not reach EmailJS. Check your internet connection.");});
+}
+function openMailOne(dealer){
+  state.mailDealer=dealer;
+  var s=dealerSum(dealer), em=dEmail(dealer), ok=validEmail(em), c=mailCfg();
+  var warn=!ok?'<p class="dlnote"><span class="st-inactive">No email set for this dealer.</span> Use the gear icon on the dealer first.</p>':(!mailReady()?'<p class="dlnote"><span class="st-inactive">EmailJS is not set up yet.</span> Use Email settings on the Payments page.</p>':'');
+  var m=openPayModal('<h2>Email payout details: '+esc(dealer)+'</h2><p class="dlnote">To: <b>'+(ok?esc(em):"not set")+'</b><br>Subject: '+esc("Payout statement: "+state.pay.label+" - Avail Car CRM")+'</p>'+warn+
+    (s.n?'<div class="mailprev"><p>Hello '+esc(dealer)+',</p><p>Please find your payout details for '+esc(state.pay.label)+'.</p>'+mailHtml(dealer)+'<p style="color:#666">'+esc(c.footer)+'</p></div>':'<p class="dlnote">No disbursed files in this period, so there is nothing to send.</p>')+
+    '<p class="dlnote st-inactive" id="mailErr" role="alert"></p><div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" id="mailSend"'+(ok&&s.n&&mailReady()?"":" disabled")+'>Send email</button></div>');
+  m.classList.add("wide");
+}
+function doMailSend(){
+  var d=state.mailDealer, btn=document.getElementById("mailSend"), er=document.getElementById("mailErr");
+  btn.disabled=true; btn.textContent="Sending..."; er.textContent="";
+  sendPayoutEmail(d).then(function(){closeAll();renderPayments();toast("Payout details emailed to "+d);}).catch(function(e){btn.disabled=false;btn.textContent="Send email";er.textContent=e.message||"Could not send";});
+}
+function openMailAll(){
+  var rows=allDealerSums().filter(function(x){return x.n>0;});
+  if(!rows.length){toast("No disbursed files in this period");return;}
+  var can=rows.filter(function(x){return validEmail(dEmail(x.dealer));}).length;
+  var m=openPayModal('<h2>Email all dealers</h2><p class="dlnote">'+esc(state.pay.label)+'. Each dealer gets their own payout details. Dealers without an email are skipped. EmailJS free plan: 200 emails a month.</p>'+(mailReady()?'':'<p class="dlnote"><span class="st-inactive">EmailJS is not set up yet.</span> Use Email settings first.</p>')+
+    '<div class="repscroll"><table class="center striped" style="min-width:560px"><thead><tr><th class="l">Dealer</th><th>Files</th><th>Balance</th><th>Email</th></tr></thead><tbody>'+
+    rows.map(function(x){return '<tr><td class="l">'+esc(x.dealer)+'</td><td>'+x.n+'</td><td>'+money(x.bal)+'</td><td>'+(validEmail(dEmail(x.dealer))?esc(dEmail(x.dealer))+' ('+mailCell(x.dealer)+')':'<span class="st-inactive">No email set</span>')+'</td></tr>';}).join("")+'</tbody></table></div>'+
+    '<p class="dlnote" id="mailErr" role="status"></p><div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" id="mailSendAll"'+(can&&mailReady()?"":" disabled")+'>Send to '+can+' dealer'+(can===1?"":"s")+'</button></div>');
+  m.classList.add("wide");
+}
+function doMailSendAll(){
+  var rows=allDealerSums().filter(function(x){return x.n>0&&validEmail(dEmail(x.dealer));}), btn=document.getElementById("mailSendAll"), er=document.getElementById("mailErr");
+  var ok=0, fail=[], i=0;
+  btn.disabled=true;
+  function next(){
+    if(i>=rows.length){closeAll();renderPayments();toast(ok+" sent"+(fail.length?", "+fail.length+" failed: "+fail[0]:""));return;}
+    var x=rows[i++]; btn.textContent="Sending "+i+" of "+rows.length+"...";
+    sendPayoutEmail(x.dealer).then(function(){ok++;}).catch(function(e){fail.push(e.message);}).then(function(){setTimeout(next,1100);});
+  }
+  next();
+}
+function openMailSettings(){
+  var c=mailCfg();
+  var m=openPayModal('<h2>Email settings (EmailJS)</h2>'+
+    '<div class="row"><div class="field"><label for="mcService">Service ID</label><input id="mcService" value="'+esc(c.service)+'" placeholder="service_xxxxxxx"></div><div class="field"><label for="mcTemplate">Template ID</label><input id="mcTemplate" value="'+esc(c.template)+'" placeholder="template_xxxxxxx"></div></div>'+
+    '<div class="field"><label for="mcKey">Public key</label><input id="mcKey" value="'+esc(c.key)+'" placeholder="EmailJS, Account, General"></div>'+
+    '<div class="field"><label for="mcFooter">Email footer</label><input id="mcFooter" value="'+esc(c.footer)+'"></div>'+
+    '<p class="dlnote">Saved in this browser only. On the free EmailJS plan anyone who copies the public key from a public page can send through your account, so keep the repository private or use a plan with a domain allowlist.</p>'+
+    '<p class="dlnote"><b>One-time setup in EmailJS:</b> add an email service (for example Gmail) to get the Service ID. Create a template with <b>To Email</b> set to <code>{{to_email}}</code>, then use the subject and body below. The triple braces keep the tables as tables.</p>'+
+    '<b>Subject</b><div class="mailpre" id="mcSubj">{{subject}}</div><button class="btn" data-copytext="mcSubj">Copy subject</button>'+
+    '<p style="margin:10px 0 0"><b>Body</b></p><div class="mailpre" id="mcBody">Hello {{to_name}},\n\nPlease find your payout details for {{period}}.\n\n{{{payout_html}}}\n\n{{footer}}</div><button class="btn" data-copytext="mcBody">Copy body</button>'+
+    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveMailSettings">Save settings</button></div>');
+  m.classList.add("wide");
+}
+function saveMailSettings(){
+  var c={service:document.getElementById("mcService").value.trim(),template:document.getElementById("mcTemplate").value.trim(),key:document.getElementById("mcKey").value.trim(),footer:document.getElementById("mcFooter").value.trim()};
+  try{localStorage.setItem(MAIL_KEY,JSON.stringify(c));}catch(e){toast("Could not save in this browser");return;}
+  closeAll();toast("Email settings saved");
+}
 function openCampaign(i){
   var m=document.getElementById("modal"), segs=segments.map(function(x){return x.name;});
   m.innerHTML='<h2>New campaign</h2><div class="field"><label for="cName">Campaign name</label><input id="cName"></div>'+
@@ -1325,6 +2099,9 @@ function render(){
   else if(r==="users")renderUsers();
   else if(r==="config")renderConfig();
   else if(r==="settings/general")renderSettings();
+  else if(r.indexOf("integration/")===0)renderIntegration();
+  else if(r==="settings/category")renderCategory();
+  else if(r==="payments")renderPayments();
   else if(r==="campaign")renderCampaign();
   else if(r==="segments")renderSegments();
   else if(r==="report")renderReport();
@@ -1375,6 +2152,82 @@ document.addEventListener("click",function(e){
   if(t.id==="saveSeg"){saveSeg();return;}
   if(t.id==="uAdd"){if(state.utab==="roles")openRole();else if(state.utab==="users")openAddUser();else if(state.utab==="shifts")openShift();return;}
   if(d.utab){state.utab=d.utab;renderUsers();return;}
+  if(d.ptab){state.ptab=d.ptab;renderPayments();return;}
+  if(d.paview){openStatement(d.paview);return;}
+  if(d.papay){openPay(d.papay);return;}
+  if(d.paemail){openEmail(d.paemail,false);return;}
+  if(d.pamail){openMailOne(d.pamail);return;}
+  if(t.id==="payMailAll"){openMailAll();return;}
+  if(t.id==="payMailSettings"){openMailSettings();return;}
+  if(t.id==="saveMailSettings"){saveMailSettings();return;}
+  if(t.id==="mailSend"){doMailSend();return;}
+  if(t.id==="mailSendAll"){doMailSendAll();return;}
+  if(d.copytext){copyText((document.getElementById(d.copytext)||{}).textContent||"");return;}
+  if(d.copy){copyText(d.copy);return;}
+  if(d.ltab){state.ltab=d.ltab;state.lsub="main";renderLead();return;}
+  if(d.lsub){state.lsub=d.lsub;renderLead();return;}
+  if(d.lfocus){state.ltab="Lead Details";state.lsub="main";renderLead();var fe=document.getElementById("ld_"+d.lfocus);if(fe)fe.focus();return;}
+  if(t.hasAttribute("data-print")){window.print();return;}
+  if(d.paset){openDealerCfg(d.paset);return;}
+  if(d.savedc){saveDealerCfg(d.savedc);return;}
+  if(d.paprep){openEmail(d.paprep,true);return;}
+  if(t.hasAttribute("data-emback")){openEmailAll();return;}
+  if(d.stcsv){var sd=dealerSum(d.stcsv);saveCsv(payFile(d.stcsv.toLowerCase().replace(/[^a-z0-9]+/g,"-")),csvText(csvRowsFor(sd.cases)),"modFallback");return;}
+  if(t.id==="payCsv"){var all=[];dealers.forEach(function(x){all=all.concat(payCases(x));});saveCsv(payFile("dealer-payouts"),csvText(csvRowsFor(all)));return;}
+  if(t.id==="payEmailAll"){openEmailAll();return;}
+  if(t.id==="savePay"){savePay();return;}
+  if(d.payvoid){openVoid(+d.payvoid);return;}
+  if(d.confirmpv){confirmVoid(+d.confirmpv);return;}
+  if(d.payrcpt){openReceipt(+d.payrcpt);return;}
+  if(t.id==="rcptPrint"){printReceipt(+d.rid);return;}
+  if(t.id==="payHistCsv"){histCsv();return;}
+  if(t.id==="hfClear"){state.hf={q:"",dealer:"",mode:"",from:"",to:"",st:"active"};renderPayments();return;}
+  if(t.id==="payCloudIn"){if(window.CRM_SIGNIN)window.CRM_SIGNIN();return;}
+  if(t.id==="emOpen"){emOpen();return;}
+  if(t.id==="emSendAll"){emSendAll();return;}
+  if(t.id==="addCat"){if(cats.length>=MAXCAT){toast("You can have at most "+MAXCAT+" categories");return;}openCat();return;}
+  if(d.catview){openCatView(+d.catview);return;}
+  if(d.catedit){openCat(+d.catedit);return;}
+  if(d.catdel){openCatDelete(+d.catdel);return;}
+  if(t.id==="saveCat"){saveCat();return;}
+  if(d.confirmcat){var ci=+d.confirmcat;cats=cats.filter(function(c){return c.id!==ci;});closeAll();renderCategory();renderNav();toast("Category deleted");return;}
+  if(t.id==="addForm"){openBulkNew();return;}
+  if(d.bulkup){openBulkUp(+d.bulkup);return;}
+  if(d.bulkcols){openBulkCols(+d.bulkcols);return;}
+  if(d.bulkset){openBulkSet(+d.bulkset);return;}
+  if(t.id==="saveBulkNew"){
+    var bn=document.getElementById("bfName").value.trim();
+    if(!bn){document.getElementById("bfName").focus();toast("Enter a form name");return;}
+    if(bulkNameTaken(bn,null)){toast("A form with this name already exists");return;}
+    bulkForms.push({id:bulkNext++,name:bn,cols:["name","mobile","product","loan_amount"]});closeAll();renderIntegration();toast("Form added");return;}
+  if(t.id==="saveBulkSet"){
+    var bs=document.getElementById("bfName").value.trim(), bf=bulkById(state.bulkEdit);
+    if(!bs){document.getElementById("bfName").focus();toast("Enter a form name");return;}
+    if(bulkNameTaken(bs,state.bulkEdit)){toast("A form with this name already exists");return;}
+    bf.name=bs;closeAll();renderIntegration();toast("Form updated");return;}
+  if(t.id==="delBulkForm"){
+    var bd=bulkById(state.bulkEdit), m2=document.getElementById("modal");
+    m2.innerHTML='<h2>Delete form?</h2><p>'+esc(bd.name)+' will be removed. Leads already imported stay.</p><div class="actions"><button class="btn" data-close>Keep form</button><button class="btn primary" data-confirmbulk="'+bd.id+'">Delete form</button></div>';return;}
+  if(d.confirmbulk){var bi=+d.confirmbulk;bulkForms=bulkForms.filter(function(f){return f.id!==bi;});closeAll();renderIntegration();toast("Form deleted");return;}
+  if(t.id==="saveBulkCols"){bulkById(state.bulkEdit).cols=bulkChecked();closeAll();toast("Columns saved");return;}
+  if(t.id==="dlBulkTpl"){
+    var cols=bulkChecked().map(function(k){var a=attrByKey(k);return a?a.label:k;});
+    if(!cols.length){toast("Choose at least one column");return;}
+    var bt=bulkById(state.bulkEdit);
+    saveCsv(bt.name.toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-template.csv","\ufeff"+cols.map(q).join(","));return;}
+  if(t.id==="bulkImport"){bulkImportClick();return;}
+  if(d.atab){state.atab=d.atab;renderIntegration();return;}
+  if(t.id==="addAttr"){if(state.atab==="user")openAttr();else if(state.atab==="groups")openGroup();return;}
+  if(d.attredit){openAttr(+d.attredit);return;}
+  if(d.attrdel){openAttrDelete(+d.attrdel);return;}
+  if(t.id==="saveAttr"){saveAttr();return;}
+  if(d.confirmattr){var ai=+d.confirmattr,ak=(attrs.filter(function(x){return x.id===ai;})[0]||{}).key;attrs=attrs.filter(function(x){return x.id!==ai;});attrGroups.forEach(function(g){g.keys=g.keys.filter(function(k){return k!==ak;});});closeAll();renderIntegration();toast("Attribute deleted");return;}
+  if(d.grpview){openGrpView(+d.grpview);return;}
+  if(d.grpedit){openGroup(+d.grpedit);return;}
+  if(d.grpdel){openGrpDelete(+d.grpdel);return;}
+  if(t.id==="saveGrp"){saveGrp();return;}
+  if(d.confirmgrp){var gi=+d.confirmgrp;attrGroups=attrGroups.filter(function(g){return g.id!==gi;});closeAll();renderIntegration();toast("Group deleted");return;}
+  if(t.id==="apiKit"){openApiKit();return;}
   if(d.reptab){state.repTab=d.reptab;renderTable();return;}
   if(t.id==="repDl"){saveCsv(state.repName,state.repCsv);return;}
   if(d.sum){
@@ -1449,6 +2302,12 @@ document.addEventListener("change",function(e){
   if(t.id==="rFrom"||t.id==="rTo"){
     var f1=document.getElementById("rFrom").value,t1=document.getElementById("rTo").value;
     if(f1&&t1&&f1<=t1){state.range={from:f1,to:t1};drawCharts();}else toast("Pick a start date before the end date");return;}
+  if(t.id==="payBasis"){state.fyBasis=t.value;if(/^[qh]/.test(state.pay.opt))payApply(state.pay.opt);renderPayments();return;}
+  if(t.id==="payPeriod"){if(t.value==="custom"){state.pay.opt="custom";state.pay.label=fmtDate(state.pay.from)+" to "+fmtDate(state.pay.to);}else payApply(t.value);renderPayments();return;}
+  if(t.id==="payFrom"||t.id==="payTo"){var pf=document.getElementById("payFrom").value,pt=document.getElementById("payTo").value;if(pf&&pt&&pf<=pt){state.pay.from=pf;state.pay.to=pt;state.pay.opt="custom";state.pay.label=fmtDate(pf)+" to "+fmtDate(pt);renderPayments();}else toast("Pick a start date before the end date");return;}
+  if(d.pcall!==undefined){var on=t.checked;[].slice.call(document.querySelectorAll("input[data-pc]")).forEach(function(c){c.checked=on;});payRecalc();return;}
+  if(d.pc!==undefined){payRecalc();return;}
+  if(t.id==="plugActive"){state.bulkOn=t.checked;renderIntegration();return;}
   if(t.id==="pdBasis"){state.fyBasis=t.value;var kq=document.getElementById("pdQ"),kh=document.getElementById("pdH");if(kq)kq.innerHTML=periodOptions("Q",pageKey());if(kh)kh.innerHTML=periodOptions("H",pageKey());return;}
   if(t.id==="pdQ"||t.id==="pdH"){if(!t.value)return;var pr=t.value.split("|");applyPeriod(pr[0],pr[1],pr[2]);return;}
   if(t.id==="lrFrom"||t.id==="lrTo"){
@@ -1491,9 +2350,19 @@ document.addEventListener("input",function(e){
   if(t.dataset&&t.dataset.f&&t.tagName==="INPUT"){state.f[t.dataset.f]=t.value;state.page=1;renderTable();}
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"){closePops();closeAll();}});
+document.addEventListener("input",function(e){
+  var t=e.target;
+  if(t.id==="pfQ"){state.pf.q=t.value;renderPayments();payRefocus("pfQ");return;}
+  if(t.id==="hfQ"){state.hf.q=t.value;renderPayments();payRefocus("hfQ");return;}
+});
+document.addEventListener("change",function(e){
+  var t=e.target,m={pfSt:["pf","st"],hfDealer:["hf","dealer"],hfMode:["hf","mode"],hfSt:["hf","st"],hfFrom:["hf","from"],hfTo:["hf","to"]};
+  if(m[t.id]){state[m[t.id][0]][m[t.id][1]]=t.value;renderPayments();}
+});
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){redrawCharts();});}catch(_){}
 render();
 })();
 </script>
+<script type="module" src="firebase-connector.js"></script>
 </body>
 </html>
