@@ -4021,12 +4021,11 @@ function loginSeedRows(){try{var j=JSON.parse(document.getElementById("loginSeed
   }catch(e){}
 })();
 dedupeLeads();fitRange();
+document.addEventListener("change",function(e){var t=e.target;if(t.id==="channelPeriod"){state.channelPeriod=t.value;renderChannelBusinessReport();}else if(t.id==="channelDealer"){state.channelDealer=t.value;renderChannelBusinessReport();}else if(t.id==="channelFrom"||t.id==="channelTo"){state.channelPeriod="custom";state.channelFrom=document.getElementById("channelFrom").value;state.channelTo=document.getElementById("channelTo").value;renderChannelBusinessReport();}});
+document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="channelReset"){state.channelPeriod="month";state.channelDealer="";state.channelFrom="";state.channelTo="";renderChannelBusinessReport();}});
 if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
 })();
 </script>
-<script type="module" src="firebase-connector.js">
-document.addEventListener("change",function(e){var t=e.target;if(t.id==="channelPeriod"){state.channelPeriod=t.value;renderChannelBusinessReport();}else if(t.id==="channelDealer"){state.channelDealer=t.value;renderChannelBusinessReport();}else if(t.id==="channelFrom"||t.id==="channelTo"){state.channelPeriod="custom";state.channelFrom=document.getElementById("channelFrom").value;state.channelTo=document.getElementById("channelTo").value;renderChannelBusinessReport();}});
-document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="channelReset"){state.channelPeriod="month";state.channelDealer="";state.channelFrom="";state.channelTo="";renderChannelBusinessReport();}});
-</script>
+<script type="module" src="firebase-connector.js"></script>
 </body>
 </html>
