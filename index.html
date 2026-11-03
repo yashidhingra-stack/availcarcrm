@@ -1566,12 +1566,22 @@ function showOverlay(on){document.getElementById("overlay").classList.toggle("sh
 function openAddLead(){
   var m=document.getElementById("modal");
   function sel(id,label,list){return '<div class="field"><label for="'+id+'">'+label+'</label><select id="'+id+'">'+list.map(function(o){return "<option>"+esc(o)+"</option>";}).join("")+'</select></div>';}
+  function allLeadDealerOptions(){
+    var out=[], seen={};
+    function add(v){v=String(v==null?"":v).trim();if(!v)return;var k=v.toLowerCase();if(!seen[k]){seen[k]=1;out.push(v);}}
+    dealers.forEach(add);
+    (Array.isArray(channelMaster)?channelMaster:[]).forEach(function(d){
+      var firm=String(d.firmName||"").trim(), name=String(d.name||"").trim();
+      add(firm&&name?firm+" - "+name:(name||firm||d.dealerId||""));
+    });
+    return out.sort(function(a,b){return a.localeCompare(b);});
+  }
   m.innerHTML='<h2>Add lead</h2><div class="row"><div class="field"><label for="aName">Name</label><input id="aName"></div><div class="field"><label for="aPhone">Mobile</label><input id="aPhone" inputmode="tel"></div></div>'+
    '<div class="row">'+sel("aOwner","Lead owner",owners)+sel("aProd","Product",products)+'</div>'+
    (function(){var d0=statusOptions(pageKey())[0]||"Open";return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST;}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
    '<div class="row"><div class="field"><label for="aAmt">Loan amount (₹)</label><input id="aAmt" type="number" min="0" step="10000" value="500000"></div><div class="field"><label for="aVeh">Vehicle</label><input id="aVeh" placeholder="For example, Swift"></div></div>'+
    '<div class="row"><div class="field"><label for="aYear">Year</label><input id="aYear" type="number" min="1900" max="2100" step="1" placeholder="Enter year"></div></div>'+
-   '<div class="row">'+sel("aLender","Lender",lenderOptions())+sel("aDealer","Dealer",dealers)+'</div>'+
+   '<div class="row">'+sel("aLender","Lender",lenderOptions())+sel("aDealer","Dealer",allLeadDealerOptions())+'</div>'+
    '<div class="field"><label for="aCase">Case booked in</label><input id="aCase" list="firmList" value="[Solution]" placeholder="Firm name"><datalist id="firmList">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist></div>'+
    '<div class="row"><div class="field"><label for="aEmail">Email</label><input id="aEmail" type="email"></div>'+sel("aSource","Lead source",["Walk-in"].concat(sources.filter(function(o){return o!=="Walk-in";})))+'</div>'+
    '<div class="row"><div class="field"><label for="aReg">Vehicle number</label><input id="aReg"></div><div class="field"><label for="aBankExec">Bank executive</label><input id="aBankExec"></div></div>'+
@@ -2000,15 +2010,17 @@ function ldSave(l,k,val,q){
     if(val!==String(cxo[ck]||"")){cxo[ck]=val;l.hist.unshift({ts:stamp(),text:(ca?ca.label:ck)+" updated",type:"system"});toast("Saved");}
     rl();return;
   }
-  var x=ldx(l), names={phone:"Mobile",lender:"Lender",prevOwner:"Previous lead owner",mgr:"Reporting manager",name:"Name",email:"Email",owner:"Lead owner",bankExec:"Bank Executive",caseBooked:"Case booked in",dob:"DOB",dealer:"Dealer",amount:"Loan amount",product:"Product",vehicle:"Vehicle",reg:"Vehicle number",source:"Lead source"};
+  var x=ldx(l), names={phone:"Mobile",lender:"Lender",prevOwner:"Previous lead owner",mgr:"Reporting manager",name:"Name",email:"Email",owner:"Lead owner",bankExec:"Bank Executive",caseBooked:"Case booked in",dob:"DOB",dealer:"Dealer",rtoSet:"RTO Set Status",amount:"Loan amount",product:"Product",vehicle:"Vehicle",reg:"Vehicle number",source:"Lead source"};
   if(k==="status"){state.ldEdit=null;if(val&&val!==l.status)changeStatus(val);else rl();return;}
   if(k==="name"&&!val){toast("Enter a name");return false;}
   if(k==="phone"){val=val.replace(/[\s\-()]/g,"");if(!/^\+?\d{10,13}$/.test(val)){toast("Enter a valid mobile number (10 digits)");return false;}}
-  var inL={phone:1,name:1,email:1,owner:1,dealer:1,amount:1,product:1,vehicle:1,reg:1,source:1,lender:1}[k], old=inL?l[k]:x[k];
+  var inL={phone:1,name:1,email:1,owner:1,dealer:1,amount:1,product:1,vehicle:1,reg:1,source:1,lender:1}[k];
+  if(k==="rtoSet"){l.px=l.px||{};}
+  var old=inL?l[k]:(k==="rtoSet"?l.px.rtoSet:x[k]);
   if(k==="amount")val=+val||0;
   state.ldEdit=null;
   if(String(val)!==String(old||"")){
-    if(inL)l[k]=val;else x[k]=val;
+    if(inL)l[k]=val;else if(k==="rtoSet")l.px.rtoSet=val;else x[k]=val;
     l.hist.unshift({ts:stamp(),text:names[k]+" updated"+(k==="amount"?" to "+money(val):""),type:"system"});
     toast("Saved");
   }
@@ -2098,7 +2110,7 @@ function renderDisbLead(l){
       var L=[["bankExec","Bank Executive",x.bankExec,x.bankExec,"text"],["caseBooked","Case booked in",x.caseBooked,x.caseBooked,"text"],["dob","DOB",x.dob,x.dob,"text"],
              ["dealer","Dealer Name",l.dealer,"["+(l.dealer||"Direct Source Banker")+"]","dealer"],["entry","Entry Date",l.ts,l.ts,null],["count","Lead Count",1,"1",null],
              ["fdate","Lead Follow Date",fdt,fdt,null],["lfd","Lead Last Follow Date","",nf?nf.date+"T12:00:00.000Z":"—",null]];
-      var R=[["amount","Loan Amount",l.amount,l.amount,"num"]], Rb=[["prevOwner","Previous Lead Owner",x.prevOwner||"",x.prevOwner,"text"],["product","Product",l.product,"["+l.product+"]","product"]], Rc=[["mgr","Reporting Manager",x.mgr||"",x.mgr,"text"]];
+      var R=[["amount","Loan Amount",l.amount,l.amount,"num"],["rtoSet","RTO Set Status",(l.px||{}).rtoSet||"",(l.px||{}).rtoSet||"—","text"]], Rb=[["prevOwner","Previous Lead Owner",x.prevOwner||"",x.prevOwner,"text"],["product","Product",l.product,"["+l.product+"]","product"]], Rc=[["mgr","Reporting Manager",x.mgr||"",x.mgr,"text"]];
       colL=L.map(function(r){return ldRow(r);});
       colR=[R.map(ldRow).join("")];
       if(l.stage==="Disbursed")colR.push(ldArea("net","Net Disbursement To Client",x.net));
