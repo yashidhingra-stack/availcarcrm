@@ -645,7 +645,7 @@ var seed=7; function R(){seed=(seed*1664525+1013904223)%4294967296;return seed/4
 function pick(a){return a[Math.floor(R()*a.length)];}
 function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 var _now=new Date();var TODAY=new Date(_now.getFullYear(),_now.getMonth(),_now.getDate());
-var owners=["Harjot Singh","Puneet Kundra","Anil Gill","Anu Kaushal","Ashish","Kiranpreet Kaur","Nitin Narula","Rohit Bhalla","Sapna Jindal","Keshav","Kapil Mehra","Nisha Verma","Rahul Mahant"];
+var owners=["Harjot Singh","Puneet Kundra","Anil Gill","Anu Kaushal","Ashish","Kiranpreet Kaur","Nitin Narula","Rohit Bhalla","Sapna Jindal","Keshav","Kapil Kharb","Nisha Verma","Rahul Mahant"];
 var products=["Used Car Purchase","Used Car Refinance","New Car Loan","Car Top-up","Balance Transfer"];
 var pcolor=["#2b7de9","#3aa76d","#f2a900","#e4572e","#7c5cc4"];
 var stages=["Audience","Login","Hold","Disbursed","Rejected"];
@@ -2526,9 +2526,9 @@ var teams=[
  {id:6,name:"Sapna Team",head:9,parent:3,members:[12,13]},
  {id:7,name:"Keshav Team",head:10,parent:3,members:[]}];
 var userNext=17;
-var users=[["Harjot Singh",3],["Puneet Kundra",4],["Anil Gill",4],["Anu Kaushal",2],["Nitin Narula",2],["Kiranpreet Kaur",4],["Ashish",2],["Rohit Bhalla",4],["Sapna Jindal",3],["Keshav",3],["Kapil Mehra",4],["Nisha Verma",4],["Rahul Mahant",4],["Meena Arora",1],["Umesh Dhingra",13],["Ravi Bhardwaj",2]].map(function(x,i){
+var users=[["Harjot Singh",3],["Puneet Kundra",4],["Anil Gill",4],["Anu Kaushal",2],["Nitin Narula",2],["Kiranpreet Kaur",4],["Ashish",2],["Rohit Bhalla",4],["Sapna Jindal",3],["Keshav",3],["Kapil Kharb",4],["Nisha Verma",4],["Rahul Mahant",4],["Meena Arora",1],["Umesh Dhingra",13],["Ravi Bhardwaj",2]].map(function(x,i){
   var pending=x[0]==="Nisha Verma";
-  return {id:i+1,name:x[0],email:(x[0]==="Umesh Dhingra"?"admin":x[0]==="Ravi Bhardwaj"?"ravi":x[0].toLowerCase().replace(/[^a-z]+/g,"."))+"@example.com",roleId:x[1],active:!pending,verified:!pending,ownOnly:(x[0]==="Kapil Mehra"||x[0]==="Ravi Bhardwaj")};});
+  return {id:i+1,name:x[0],email:(x[0]==="Umesh Dhingra"?"admin":x[0]==="Ravi Bhardwaj"?"ravi":x[0]==="Kapil Kharb"?"kapil.kharb":x[0].toLowerCase().replace(/[^a-z]+/g,"."))+"@example.com",roleId:x[1],active:!pending,verified:!pending,ownOnly:(x[0]==="Kapil Kharb"||x[0]==="Ravi Bhardwaj")};});
 if(owners.indexOf("Ravi Bhardwaj")<0)owners.push("Ravi Bhardwaj");
 var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;});
 var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes","Settings","Invoice & Quotations"];
@@ -3739,7 +3739,7 @@ function hierarchyFirst(name){var m=String(name||"").trim().toLowerCase().match(
 var HIER_KEY="avail_crm_hierarchy_v1", hier=null;
 var HIER_DEFAULT={
   anu:{all:true,see:[],follow:["sapna","ashish"]},
-  nitin:{all:false,see:["keshav","puneet","kapil"]},
+  nitin:{all:false,see:["keshav","puneet","kapilkharb"]},
   keshav:{all:false,see:["puneet","kapil","kapilkharb"]},
   sapna:{all:false,see:["kiran","kiranpreet"]},
   harjot:{all:false,see:["ashish","nisha","ravi","bittu","surjeet","pawan"]},
