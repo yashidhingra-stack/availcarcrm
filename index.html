@@ -560,7 +560,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
       </div>
     </header>
     <main class="content" id="view"></main>
-    <footer class="powered">Powered by <b>YASHU DHINGRA</b><br><span id="buildStamp">Last updated: 03 Nov 2026, 12:38 PM IST</span></footer>
+    <footer class="powered">Powered by <b>YASHU DHINGRA</b><br><span id="buildStamp" class="live-clock">Live time: --</span></footer>
   </div>
 </div>
 
@@ -579,7 +579,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
     <p class="login-err" id="loginErr" role="alert"></p>
     <button class="btn primary login-btn" type="submit">Sign in</button>
     <details class="demo-wrap"><summary>Demo accounts (click one to sign in)</summary><div class="demo-list" id="demoList"></div></details>
-    <p class="login-powered">Powered by <b>YASHU DHINGRA</b><br>Last updated: 03 Nov 2026, 12:38 PM IST</p>
+    <p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
   </form>
 </div>
 
@@ -855,7 +855,7 @@ function pageStages(key){
   return stages.slice();
 }
 function statusOptions(key){
-  if(key==="pdd")return PDD_ST.slice();var st=pageStages(key);return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1;}).map(function(x){return x[0];});}
+  if(key==="pdd")return PDD_ST.slice();var st=pageStages(key);return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1&&hierStatusOk(x[0]);}).map(function(x){return x[0];});}
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
 var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
 var HR=["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"];
@@ -2105,6 +2105,7 @@ function moveCats(){
   cats.forEach(function(c){
     if(c.key==="Disbursed"&&!canDo("Leads","Move to Disbursement"))return;
     if(c.key==="pdd"&&!canDo("Leads","Move to PDD"))return;
+    if(!hierPageOk(c.key))return;
     if(c.built){if(map[c.key])out.push({key:c.key,name:c.name,stage:c.key==="pdd"?"Disbursed":c.key,built:true});else out.push({key:c.key,name:c.name,stage:null,built:false});} /* Channel List and Data are listed too, like the reference */
     else out.push({key:c.key,name:c.name,stage:null,built:false});
   });
@@ -2114,7 +2115,7 @@ function moveStatuses(key){
   var c=moveCats().filter(function(x){return x.key===key;})[0]; if(!c)return [];
   if(key==="pdd")return PDD_ST.slice();
   if(key==="Disbursed")return ["Open","Disbursed","Disbursement Pending"];
-  return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage);}).map(function(x){return x[0];});
+  return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
 }
 function openMoveCat(id){
   var l=id?lead(+id):curLead(); if(!l)return; state.mvId=l.id;
@@ -2163,7 +2164,7 @@ document.addEventListener("click",function(e){
 function ldStatusList(l){
   var st=l.cat?null:(l.stage==="Login"||l.stage==="Hold"||l.stage==="Rejected")?["Login","Hold","Rejected"]:[l.stage];
   var fromPdd=state.listRoute==="leads/pdd"&&!l.cat&&l.stage==="Disbursed";
-  return STATUS.filter(function(x){return (!st||st.indexOf(x[1])>-1)&&(x[0]!==RTO_ST||fromPdd||l.status===RTO_ST);}).map(function(x){return x[0];});
+  return STATUS.filter(function(x){return (!st||st.indexOf(x[1])>-1)&&(x[0]!==RTO_ST||fromPdd||l.status===RTO_ST)&&(x[0]===l.status||hierStatusOk(x[0]));}).map(function(x){return x[0];});
 }
 function ldStatusBlock(l){
   var pd=inPddCtx(l), opts=pd?PDD_ST:ldStatusList(l), cur=pd?pddSt(l):l.status;
@@ -2422,7 +2423,7 @@ function routeOk(r){
   if(r==="channelwise"||r==="leads/channel")return canDo("Major Reports","Channel List");
   if(h==="lead")return canDo("Leads","View lead");
   if(h==="leads"){
-    if(LEAD_PAGE[k])return canDo("Leads",LEAD_PAGE[k]);
+    if(LEAD_PAGE[k])return canDo("Leads",LEAD_PAGE[k])&&hierPageOk(k);
     if(k==="channel")return canDo("Major Reports","Channel List");
     if(k==="data")return canDo("Major Reports","Data");
     return canMod("Major Reports");
@@ -3606,6 +3607,29 @@ function hierLoad(){
   return hier;}
 function hierSave(){try{localStorage.setItem(HIER_KEY,JSON.stringify(hier));}catch(e){toast("Could not save hierarchy in this browser");}}
 function hierGet(k){hierLoad();var c=hier[k];if(!c||typeof c!=="object")c=hier[k]={all:false,see:[]};if(!Array.isArray(c.see))c.see=[];return c;}
+/* ---- category access: which categories of files each user can open (empty setting = all) ---- */
+var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","Login"],["Approval Pending","Approval Pending"],["Approved","Approved"],["Hold","Hold"],["Disbursed","Disbursement"],["Rejected","Reject"],["pdd","PDD Status"]];
+var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
+function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&((r&&r.name==="Admin")||u.name==="Umesh Dhingra");}
+function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
+function hierCatsMe(){var u=userById(state.meUser);return (!u||hierIsAdmin(u))?null:hierCats(u);}
+function hierPageOk(k){var cs=hierCatsMe(),need=HPAGE[k];if(!cs||!need)return true;return need.some(function(x){return cs.indexOf(x)>-1;});}
+function hierStatusOk(st){
+  var cs=hierCatsMe();if(!cs)return true;var g=statusStage[st];
+  if(g==="Login")return cs.indexOf(st)>-1;
+  if(g==="Audience")return cs.indexOf("Audience")>-1;
+  if(g==="Hold")return cs.indexOf("Hold")>-1;
+  if(g==="Rejected")return cs.indexOf("Rejected")>-1;
+  if(g==="Disbursed")return cs.indexOf("Disbursed")>-1||cs.indexOf("pdd")>-1;
+  return true;}
+function hierLeadAllowed(l,cs){
+  if(l.cat)return true;var g=l.stage;
+  if(g==="Audience")return cs.indexOf("Audience")>-1;
+  if(g==="Login")return cs.indexOf(l.status)>-1;
+  if(g==="Hold")return cs.indexOf("Hold")>-1;
+  if(g==="Rejected")return cs.indexOf("Rejected")>-1;
+  if(g==="Disbursed"){var pd=l.status==="Disburse"||l.status===RTO_ST;return (!l.pddImp&&cs.indexOf("Disbursed")>-1)||(pd&&cs.indexOf("pdd")>-1);}
+  return true;}
 function hierUnrestricted(u){return !!u&&!!hierGet(hierarchyFirst(u.name)).all;}
 function hierPeople(){
   var m={},out=[];
@@ -3619,15 +3643,17 @@ function hierarchyScopeFor(u){
 }
 function renderHierarchy(){
   var P=hierPeople();
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see. Everyone always sees their own. Changes save instantly and apply the next time that user opens a page.</p></div></div><button class="btn" id="hierReset">Reset to default</button></div>';
-  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>See all leads</th><th>Can also see files of</th></tr></thead><tbody>';
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. Changes save instantly and apply the next time that user opens a page.</p></div></div><button class="btn" id="hierReset">Reset to default</button></div>';
+  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th></tr></thead><tbody>';
   users.filter(function(u){return u.active;}).forEach(function(u){
     var k=hierarchyFirst(u.name),c=hierGet(k),r=roleById(u.roleId),adm=(r&&r.name==="Admin")||u.name==="Umesh Dhingra";
-    var cell;
+    var cell,cc=Array.isArray(c.cats)?c.cats:null,catCell;
+    if(adm)catCell='<em>Admin &ndash; all categories</em>';
+    else catCell=HCATS.map(function(x){return '<label class="hchip"><input type="checkbox" data-hc="'+k+'" data-hcat="'+x[0]+'"'+((!cc||cc.indexOf(x[0])>-1)?" checked":"")+'> '+esc(x[1])+'</label>';}).join("");
     if(adm)cell='<em>Admin &ndash; always sees everything</em>';
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
-    h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td></tr>';
+    h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td></tr>';
   });
   h+='</tbody></table></div>';
   document.getElementById("view").innerHTML=h;
@@ -3639,6 +3665,13 @@ document.addEventListener("change",function(e){
   if(hu){var c=hierGet(hu),p=t.getAttribute("data-hp"),i=c.see.indexOf(p);
     if(t.checked&&i<0)c.see.push(p);if(!t.checked&&i>-1)c.see.splice(i,1);
     hierSave();toast("Hierarchy saved");}
+});
+document.addEventListener("change",function(e){
+  var t=e.target,hk=t&&t.getAttribute?t.getAttribute("data-hc"):null;if(!hk)return;
+  var c=hierGet(hk),cat=t.getAttribute("data-hcat");
+  if(!Array.isArray(c.cats))c.cats=HCATS.map(function(x){return x[0];});
+  var i=c.cats.indexOf(cat);if(t.checked&&i<0)c.cats.push(cat);if(!t.checked&&i>-1)c.cats.splice(i,1);
+  hierSave();toast("Category access saved");
 });
 document.addEventListener("click",function(e){
   if(e.target&&e.target.id==="hierReset"){hier=JSON.parse(JSON.stringify(HIER_DEFAULT));hierSave();toast("Hierarchy reset to default");render();}
@@ -3662,11 +3695,13 @@ function syncScope(){
   /* Admin is the only account with unrestricted visibility. Other accounts
      see their own leads/files and the explicitly assigned reporting tree. */
   var isAnu=hierUnrestricted(u); /* users ticked "See all leads" on the Hierarchy page (Anu Kaushal by default) */
-  if(u&&!isAnu&&!(role&&role.name==="Admin")&&u.name!=="Umesh Dhingra"){
-    var scope=hierarchyScopeFor(u);
-    MASTER=leads;
-    leads=MASTER.filter(function(l){return hierarchyOwnerAllowed(l.owner,scope);});
-    SCOPED=new Set(leads);
+  if(u&&!(role&&role.name==="Admin")&&u.name!=="Umesh Dhingra"){
+    var scope=isAnu?null:hierarchyScopeFor(u), cs=hierCats(u); /* cs = categories this user may open (null = all) */
+    if(scope||cs){
+      MASTER=leads;
+      leads=MASTER.filter(function(l){return (!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs));});
+      SCOPED=new Set(leads);
+    }
   }
 }
 function scopedUser(){var u=userById(state.meUser);return u&&u.ownOnly?u:null;}
@@ -4119,5 +4154,18 @@ if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
 })();
 </script>
 <script type="module" src="firebase-connector.js"></script>
+<script>
+/* live clock in the footer and on the sign-in page (India time), updates every second */
+(function(){
+  var f;try{f=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true});}catch(e){f=null;}
+  function tick(){
+    var t;
+    if(f){var o={};f.formatToParts(new Date()).forEach(function(x){o[x.type]=x.value;});t=o.day+" "+o.month+" "+o.year+", "+o.hour+":"+o.minute+":"+o.second+" "+String(o.dayPeriod||"").toUpperCase()+" IST";}
+    else t=new Date().toLocaleString();
+    var els=document.querySelectorAll(".live-clock"),i;for(i=0;i<els.length;i++)els[i].textContent="Live time: "+t;
+  }
+  tick();setInterval(tick,1000);
+})();
+</script>
 </body>
 </html>
