@@ -1668,13 +1668,14 @@ function dropCopies(drop){
   return drop.size;}
 /* Sapna and Ashish: when they shift a lead, the same lead held under Anu Kaushal is shifted out of her list too (one record only, still visible to Anu through her team view) */
 function shiftFromAnu(l){
-  var who=String(window.CRM_USER||"").trim().toLowerCase().match(/^[a-z]+/);who=who?who[0]:"";
-  return 0; /* disabled: Anu now sees all users' moves directly, nothing is taken out of her list */
-  if(who!=="sapna"&&who!=="ashish")return 0;
-  var k=phone10(l);if(!k||l.cat)return 0;var drop=new Set();
-  (MASTER?fullLeads():leads).forEach(function(o){if(o!==l&&!o.cat&&phone10(o)===k&&sameLead(l,o)&&/^anu\b/i.test(String(o.owner||"").trim()))drop.add(o);});
+  /* Set on the Hierarchy page ("Moves by these users also shift this user's copy"): when the signed-in user moves a file, the same file (same mobile and first name) held under a user who follows them is taken out of that user's old category, so it is not left behind. The moved file stays visible to them through their access. */
+  var me=userById(state.meUser),who=hierarchyFirst(me?me.name:window.CRM_USER);
+  if(!l||!who)return 0;
+  var followers=hierFollowers(who);if(!followers.length)return 0;
+  var k=phone10(l);if(!k)return 0;var drop=new Set(),names=[];
+  (MASTER?fullLeads():leads).forEach(function(o){if(o!==l&&phone10(o)===k&&sameLead(l,o)&&followers.indexOf(hierarchyFirst(o.owner))>-1){drop.add(o);if(names.indexOf(o.owner)<0)names.push(o.owner);}});
   if(!drop.size)return 0;
-  if(l.hist)l.hist.unshift({ts:stamp(),text:"Shifted from Anu Kaushal by "+window.CRM_USER,type:"status"});
+  if(l.hist)l.hist.unshift({ts:stamp(),text:"Shifted from "+names.join(", ")+" by "+(me?me.name:who),type:"status"});
   return dropCopies(drop);}
 /* a lead that changes category is dated today, so it leaves the old category and appears at the top of the new one (like Cronberry), inside any date filter */
 function initStages(){leads.forEach(function(x){if(x.lastStage===undefined)x.lastStage=x.stage;if(x.lastStatus===undefined)x.lastStatus=x.status;});if(MASTER)MASTER.forEach(function(x){if(x.lastStage===undefined)x.lastStage=x.stage;if(x.lastStatus===undefined)x.lastStatus=x.status;});}
@@ -3592,7 +3593,7 @@ function hierarchyFirst(name){var m=String(name||"").trim().toLowerCase().match(
 /* ---------- Hierarchy: who can see whose leads and files (edited on the Hierarchy page) ---------- */
 var HIER_KEY="avail_crm_hierarchy_v1", hier=null;
 var HIER_DEFAULT={
-  anu:{all:true,see:[]},
+  anu:{all:true,see:[],follow:["sapna","ashish"]},
   nitin:{all:false,see:["keshav","puneet","kapil"]},
   keshav:{all:false,see:["puneet","kapil","kapilkharb"]},
   sapna:{all:false,see:["kiran","kiranpreet"]},
@@ -3630,6 +3631,9 @@ function hierLeadAllowed(l,cs){
   if(g==="Rejected")return cs.indexOf("Rejected")>-1;
   if(g==="Disbursed"){var pd=l.status==="Disburse"||l.status===RTO_ST;return (!l.pddImp&&cs.indexOf("Disbursed")>-1)||(pd&&cs.indexOf("pdd")>-1);}
   return true;}
+function hierFollowOf(k){hierLoad();var c=hier[k];if(c&&Array.isArray(c.follow))return c.follow;return (HIER_DEFAULT[k]&&HIER_DEFAULT[k].follow)||[];}
+function hierFollowers(mover){var all={};Object.keys(HIER_DEFAULT).forEach(function(k){all[k]=1;});hierLoad();Object.keys(hier).forEach(function(k){all[k]=1;});
+  return Object.keys(all).filter(function(k){return k!==mover&&hierFollowOf(k).indexOf(mover)>-1;});}
 function hierUnrestricted(u){return !!u&&!!hierGet(hierarchyFirst(u.name)).all;}
 function hierPeople(){
   var m={},out=[];
@@ -3643,17 +3647,18 @@ function hierarchyScopeFor(u){
 }
 function renderHierarchy(){
   var P=hierPeople();
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. Changes save instantly and apply the next time that user opens a page.</p></div></div><button class="btn" id="hierReset">Reset to default</button></div>';
-  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th></tr></thead><tbody>';
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><button class="btn" id="hierReset">Reset to default</button></div>';
+  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th><th>Also shift own copy when these people move a file</th></tr></thead><tbody>';
   users.filter(function(u){return u.active;}).forEach(function(u){
     var k=hierarchyFirst(u.name),c=hierGet(k),r=roleById(u.roleId),adm=(r&&r.name==="Admin")||u.name==="Umesh Dhingra";
     var cell,cc=Array.isArray(c.cats)?c.cats:null,catCell;
+    var fw=hierFollowOf(k),fwCell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hf="'+k+'" data-hfp="'+p.k+'"'+(fw.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
     if(adm)catCell='<em>Admin &ndash; all categories</em>';
     else catCell=HCATS.map(function(x){return '<label class="hchip"><input type="checkbox" data-hc="'+k+'" data-hcat="'+x[0]+'"'+((!cc||cc.indexOf(x[0])>-1)?" checked":"")+'> '+esc(x[1])+'</label>';}).join("");
     if(adm)cell='<em>Admin &ndash; always sees everything</em>';
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
-    h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td></tr>';
+    h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
   });
   h+='</tbody></table></div>';
   document.getElementById("view").innerHTML=h;
@@ -3665,6 +3670,13 @@ document.addEventListener("change",function(e){
   if(hu){var c=hierGet(hu),p=t.getAttribute("data-hp"),i=c.see.indexOf(p);
     if(t.checked&&i<0)c.see.push(p);if(!t.checked&&i>-1)c.see.splice(i,1);
     hierSave();toast("Hierarchy saved");}
+});
+document.addEventListener("change",function(e){
+  var t=e.target,hf=t&&t.getAttribute?t.getAttribute("data-hf"):null;if(!hf)return;
+  var c=hierGet(hf),pp=t.getAttribute("data-hfp");
+  if(!Array.isArray(c.follow))c.follow=hierFollowOf(hf).slice();
+  var i=c.follow.indexOf(pp);if(t.checked&&i<0)c.follow.push(pp);if(!t.checked&&i>-1)c.follow.splice(i,1);
+  hierSave();toast("Saved");
 });
 document.addEventListener("change",function(e){
   var t=e.target,hk=t&&t.getAttribute?t.getAttribute("data-hc"):null;if(!hk)return;
