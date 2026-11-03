@@ -1105,7 +1105,7 @@ function renderBusinessGroupDetails(mode,name){
 function bizExport(){
   var rows=leads.map(function(l){return {Name:l.name,Mobile:l.phone,Product:l.product,"Loan Amount":+l.amount||0,"Lead Owner":l.owner||"","Dealer Name":l.dealer||"",Status:l.status,Stage:l.stage,Source:l.source||"",Date:l.date||""};});
   if(window.XLSX){var wb=XLSX.utils.book_new(),ws=XLSX.utils.json_to_sheet(rows),teamWs=XLSX.utils.json_to_sheet(businessGroups("team").map(function(x){return {"Team":x.name,"Total Leads":x.leads,"Total Business":x.total,"Business Done":x.done,"Business Pending":x.pending,"Rejected":x.rejected};})),ownerWs=XLSX.utils.json_to_sheet(businessGroups("owner").map(function(x){return {"Lead Owner":x.name,"Total Leads":x.leads,"Total Business":x.total,"Business Done":x.done,"Business Pending":x.pending,"Rejected":x.rejected};})),dealerWs=XLSX.utils.json_to_sheet(businessGroups("dealer").map(function(x){return {"Dealer":x.name,"Total Leads":x.leads,"Total Business":x.total,"Business Done":x.done,"Business Pending":x.pending,"Rejected":x.rejected};}));XLSX.utils.book_append_sheet(wb,ws,"CRM Leads");XLSX.utils.book_append_sheet(wb,teamWs,"Team Wise");XLSX.utils.book_append_sheet(wb,ownerWs,"Lead Owner Wise");XLSX.utils.book_append_sheet(wb,dealerWs,"Channel Details");XLSX.writeFile(wb,"Avail_Car_CRM_Leads.xlsx");}
-  else{var head=Object.keys(rows[0]||{}),csv=[head.join(",")].concat(rows.map(function(r){return head.map(function(k){return '"'+String(r[k]??"").replace(/"/g,'""')+'"';}).join(",");})).join("\r\n");var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="Avail_Car_CRM_Leads.csv";a.click();URL.revokeObjectURL(a.href);}
+  else{toast("Excel export unavailable. Please enable internet and try again.");}
   toast("Excel export started");
 }
 function bizImportFile(file){
@@ -1320,7 +1320,7 @@ function trExport(){
   var dr=trackerData("dealer",true).map(function(x){return {"Dealer":x.name,"Dealer ID":x.id,"Mapped lead owner":x.mapped,"Handled by (leads)":x.cpTop,"Total leads":x.total,"Audience":x.audience,"Login":x.login,"Hold":x.hold,"Disbursed":x.disbursed,"Rejected":x.rejected,"Conversion %":x.conv,"PDD pending":x.pddPend,"Business done":x.done,"Business pending":x.pending,"Last lead date":x.lastAll,"Days since last lead":x.days===null?"":x.days};});
   var or=trackerData("owner",true).map(function(x){return {"Lead owner":x.name,"Dealers handled":x.cpN,"Mapped dealers":x.mappedList.length,"Total leads":x.total,"Audience":x.audience,"Login":x.login,"Hold":x.hold,"Disbursed":x.disbursed,"Rejected":x.rejected,"Conversion %":x.conv,"PDD pending":x.pddPend,"Business done":x.done,"Business pending":x.pending,"Last lead date":x.lastAll};});
   if(window.XLSX){var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dr),"Dealer-wise");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(or),"Lead owner-wise");XLSX.writeFile(wb,"Channel_Tracker.xlsx");}
-  else{var rows=state.chTab==="owner"?or:dr,head=Object.keys(rows[0]||{}),csv=[head.join(",")].concat(rows.map(function(r){return head.map(function(k){return '"'+String(r[k]==null?"":r[k]).replace(/"/g,'""')+'"';}).join(",");})).join("\r\n");var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="Channel_Tracker.csv";a.click();URL.revokeObjectURL(a.href);}
+  else{toast("Excel export unavailable. Please enable internet and try again.");}
   toast("Tracker export started");
 }
 document.addEventListener("click",function(e){
@@ -1402,11 +1402,15 @@ function applyPeriod(f,t,label){
 }
 function clearPeriodLabel(){state.rlabel[pageKey()]="";var q=document.getElementById("pdQ"),h=document.getElementById("pdH");if(q)q.value="";if(h)h.value="";}
 async function saveCsv(name,csv,fid){
-  var dl=null;
-  try{ if(typeof window!=="undefined"&&window.claude&&window.claude.use)dl=await window.claude.use("downloads"); }catch(e){dl=null;}
-  if(!dl){var tx=document.getElementById(fid||"repFallback");if(tx){tx.hidden=false;tx.value=csv;tx.focus();tx.select();}toast("Direct download is not available here. Copy the data below.");return;}
-  try{ await dl.save({filename:name,data:csv}); toast("Download started"); }
-  catch(e){ if(e&&e.code==="declined")return; toast("Could not save the file"); }
+  try{
+    if(!window.XLSX){toast("Excel download is unavailable. Please enable internet and try again.");return;}
+    var rows=csvToRows(String(csv||""));
+    if(!rows.length){toast("There is no data to export");return;}
+    var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb,ws,"Report");
+    var filename=String(name||"Report.xlsx").replace(/\.csv$/i,"").replace(/\.xlsx$/i,"")+".xlsx";
+    XLSX.writeFile(wb,filename);toast("Excel download started");
+  }catch(e){toast("Could not create the Excel file");}
 }
 var CALC={
  Disbursed:{slug:"disbursement",total:"Total disbursement",cards:["Disbursement Pending","Disburse"],cols:["Disburse","Disbursement Pending"],empty:"No disbursement files in this period."},
@@ -1432,14 +1436,14 @@ function renderReportCard(key){
   list.forEach(function(o){tot.n+=o.n;tot.total+=o.total;cfg.cols.forEach(function(c){tot.s[c]=(tot.s[c]||0)+(o.s[c]||0);});});
   var rg=getRange(key), lbl=state.rlabel[key]||(fmtDate(rg.from)+" to "+fmtDate(rg.to)), first=by==="owner"?"Lead owner":by==="lender"?"Lender":by==="firm"?"Case booked in":"Dealer";
   var csv="\ufeff"+[[first,"Files","Total amount"].concat(cfg.cols.map(function(c){return c+" amount";}))].concat(list.map(function(o){return [o.name,o.n,o.total].concat(cfg.cols.map(function(c){return o.s[c]||0;}));})).concat([["Total",tot.n,tot.total].concat(cfg.cols.map(function(c){return tot.s[c]||0;}))]).map(function(r){return r.map(q).join(",");}).join("\r\n");
-  state.repCsv=csv; state.repName=cfg.slug+"-by-"+by+"-"+rg.from+"-to-"+rg.to+".csv";
+  state.repCsv=csv; state.repName=cfg.slug+"-by-"+by+"-"+rg.from+"-to-"+rg.to+".xlsx";
   box.innerHTML='<h3 class="card-title">Report: '+esc(lbl)+' <small>'+tot.n+' file'+(tot.n===1?"":"s")+', '+money(tot.total)+'</small></h3>'+
-   '<div class="repbar"><div class="seg" role="group" aria-label="Group report by"><button class="seg-btn" data-reptab="owner" aria-pressed="'+(by==="owner")+'">Lead owner</button><button class="seg-btn" data-reptab="dealer" aria-pressed="'+(by==="dealer")+'">Dealer</button><button class="seg-btn" data-reptab="lender" aria-pressed="'+(by==="lender")+'">Lender</button><button class="seg-btn" data-reptab="firm" aria-pressed="'+(by==="firm")+'">Case booked in</button></div><input type="search" id="repQ" class="repq" placeholder="Search name, mobile, vehicle no., owner, dealer, lender, firm" value="'+esc(state.repQ||"")+'" aria-label="Search leads in this report" autocomplete="off"><button class="btn" id="repDl">Download CSV</button></div>'+
+   '<div class="repbar"><div class="seg" role="group" aria-label="Group report by"><button class="seg-btn" data-reptab="owner" aria-pressed="'+(by==="owner")+'">Lead owner</button><button class="seg-btn" data-reptab="dealer" aria-pressed="'+(by==="dealer")+'">Dealer</button><button class="seg-btn" data-reptab="lender" aria-pressed="'+(by==="lender")+'">Lender</button><button class="seg-btn" data-reptab="firm" aria-pressed="'+(by==="firm")+'">Case booked in</button></div><input type="search" id="repQ" class="repq" placeholder="Search name, mobile, vehicle no., owner, dealer, lender, firm" value="'+esc(state.repQ||"")+'" aria-label="Search leads in this report" autocomplete="off"><button class="btn" id="repDl">Download Excel</button></div>'+
    (list.length?'<div class="repscroll"><table class="center striped" style="min-width:'+(420+cfg.cols.length*140)+'px"><thead><tr><th class="l">'+first+'</th><th>Files</th><th>Total amount</th>'+cfg.cols.map(function(c){return '<th>'+c+' amount</th>';}).join("")+'</tr></thead><tbody>'+
      list.map(function(o){return '<tr><td class="l">'+nameLink(by,o.name,"disb")+'</td><td>'+o.n+'</td><td>'+money(o.total)+'</td>'+cfg.cols.map(function(c){return '<td>'+money(o.s[c]||0)+'</td>';}).join("")+'</tr>';}).join("")+
      '</tbody><tfoot><tr><td class="l"><b>Total</b></td><td><b>'+tot.n+'</b></td><td><b>'+money(tot.total)+'</b></td>'+cfg.cols.map(function(c){return '<td><b>'+money(tot.s[c]||0)+'</b></td>';}).join("")+'</tr></tfoot></table></div>':'<p class="dlnote">'+cfg.empty+'</p>')+
    (rq?(found.length?'<h4 class="card-title" style="margin-top:14px">Matching leads <small>'+found.length+(found.length>100?' (showing first 100)':'')+'</small></h4><div class="repscroll" style="max-height:340px"><table class="center striped" style="min-width:860px"><thead><tr><th class="l">Name</th><th>Mobile</th><th>Lead owner</th><th>Dealer</th><th>Lender</th><th>Case booked in</th><th>Status</th><th>Amount</th></tr></thead><tbody>'+found.slice(0,100).map(function(l){return '<tr><td class="l"><button class="name-link" data-view="'+l.id+'">'+esc(l.name)+'</button></td><td>'+esc(l.phone||"")+'</td><td>'+esc(l.owner||"Not set")+'</td><td>'+esc(l.dealer||"Not set")+'</td><td>'+esc(l.lender||"Not set")+'</td><td>'+esc(ldx(l).caseBooked||"Not set")+'</td><td>'+esc(l.status)+'</td><td>'+money(l.amount)+'</td></tr>';}).join("")+'</tbody></table></div>':'<p class="dlnote">No leads match "'+esc(state.repQ)+'".</p>'):"")+
-   '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Report CSV data"></textarea>';
+   '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Report Excel data"></textarea>';
 }
 function renderSummary(key){
   var box=document.getElementById("sumbar"), cfg=CALC[key]; if(!box||!cfg||!calcOn(key))return;
@@ -2469,8 +2473,8 @@ function renderDownload(){
    '<div class="tcard"><div class="tscroll"><table class="center"><thead><tr><th>Sr. No.</th><th>Report Link</th><th>Status</th><th>Requested Date</th><th>Created By</th></tr></thead><tbody>';
   if(!list.length)h+='<tr><td colspan="5" class="noreq">No Records Yet</td></tr>';
   else h+=list.map(function(r,i){
-    return '<tr><td>'+(i+1)+'</td><td>'+(r.status==="Ready"?'<button class="btn" data-rep="'+r.id+'">Download CSV ('+r.count+' leads)</button>':"Preparing the file")+'</td><td><span class="pill '+(r.status==="Ready"?"Disbursed":"Hold")+'">'+r.status+'</span></td><td>'+esc(r.ts)+'<br><small>Available until '+fmtDate(r.exp)+'</small></td><td>'+esc(r.by)+'</td></tr>';}).join("");
-  h+='</tbody></table></div></div><div id="dlFallback" hidden><p class="dlnote">Direct download is not available here. Copy the data below and paste it into a spreadsheet.</p><textarea class="csvbox" id="dlText" rows="8" readonly aria-label="CSV data"></textarea></div>';
+    return '<tr><td>'+(i+1)+'</td><td>'+(r.status==="Ready"?'<button class="btn" data-rep="'+r.id+'">Download Excel ('+r.count+' leads)</button>':"Preparing the file")+'</td><td><span class="pill '+(r.status==="Ready"?"Disbursed":"Hold")+'">'+r.status+'</span></td><td>'+esc(r.ts)+'<br><small>Available until '+fmtDate(r.exp)+'</small></td><td>'+esc(r.by)+'</td></tr>';}).join("");
+  h+='</tbody></table></div></div><div id="dlFallback" hidden><p class="dlnote">Direct download is not available here. Copy the data below and paste it into a spreadsheet.</p><textarea class="csvbox" id="dlText" rows="8" readonly aria-label="Excel data"></textarea></div>';
   document.getElementById("view").innerHTML=h;
 }
 function openReport(){
@@ -2494,11 +2498,9 @@ function saveReport(){
 }
 async function downloadReport(id){
   var r=state.reports.filter(function(x){return x.id===id;})[0]; if(!r)return;
-  var dl=null;
-  try{ if(typeof window!=="undefined"&&window.claude&&window.claude.use)dl=await window.claude.use("downloads"); }catch(e){dl=null;}
-  if(!dl){var fb=document.getElementById("dlFallback"),tx=document.getElementById("dlText");fb.hidden=false;tx.value=r.csv;tx.focus();tx.select();toast("Direct download is not available here");return;}
-  try{ await dl.save({filename:r.type.toLowerCase()+"-"+r.from+"-to-"+r.to+".csv",data:r.csv}); toast("Download started"); }
-  catch(e){ if(e&&e.code==="declined")return; toast("Could not save the file"); }
+  if(!window.XLSX){toast("Excel download is unavailable. Please enable internet and try again.");return;}
+  try{var rows=csvToRows(String(r.csv||"")),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),"Leads");XLSX.writeFile(wb,r.type.toLowerCase()+"-"+r.from+"-to-"+r.to+".xlsx");toast("Excel download started");}
+  catch(e){toast("Could not create the Excel file");}
 }
 var roles=[
  {id:1,name:"PDD Manager",type:"Parent",rt:null,owner:false},
@@ -3340,7 +3342,7 @@ function payHistoryTab(){
 function histCsv(){
   var rows=[["Voucher","Payment date","Dealer","Dealer app ID","Period","Files","Amount","Mode","Reference","Status","Recorded by","Recorded at","Cancelled by","Cancelled at","Cancel reason"]];
   histRows().forEach(function(p){rows.push([voucherNo(p),p.date,p.dealer,p.dealerId||"",p.label,p.items.length,p.amount,p.mode,p.ref||"",p.status==="void"?"Cancelled":"Paid",p.createdBy||"",p.createdAtText||"",p.voidedBy||"",p.voidedAtText||"",p.voidReason||""]);});
-  saveCsv("dealer-payments-"+ymd(TODAY)+".csv",csvText(rows));
+  saveCsv("dealer-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
 }
 
 /* receipt */
@@ -3426,13 +3428,13 @@ function payPayoutsTab(list,tot){
       return '<tr><td>'+(i+1)+'</td><td class="l"><button class="name-link" data-paview="'+d+'">'+d+'</button></td><td>'+x.n+'</td><td>'+money(x.loan)+'</td><td>'+x.rate+'%</td><td>'+money(x.total)+'</td><td>'+money(x.paid)+'</td><td><b>'+money(x.bal)+'</b></td><td>'+(em?'Notified '+esc(em.slice(0,10)):(dApp(x.dealer)?'Not notified':'<span class="st-inactive">No app ID set</span>'))+'</td>'+
        '<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay '+d+'" title="Record payment"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
    :'<div class="stub"><h2>'+(state.pf.q||state.pf.st!=="all"?"No dealers match your filters":"No disbursed files in this period")+'</h2>Choose another period or clear the filters above. Payouts are worked out from files with the Disburse status.</div>')+
-   '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="CSV data"></textarea>';
+   '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Excel data"></textarea>';
 }
 function renderPayments(){
   var tabs=[["payouts","Dealer payouts"],["history","Payment history"]], hist=state.ptab==="history";
   var list=allDealerSums();
   document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Payments</h1><p class="note" style="margin:0">Pay dealer payouts and send dealers their payout details.</p></div></div>'+
-   (hist?'<div class="tb"><button class="btn" id="payHistCsv">Download CSV</button></div>':'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download CSV</button></div>')+'</div>'+
+   (hist?'<div class="tb"><button class="btn" id="payHistCsv">Download Excel</button></div>':'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download Excel</button></div>')+'</div>'+
    '<div class="appcard"><div class="ai"><b>Dealer app (Android preview)</b><span>Preview build with sample data. It is not connected to this CRM yet, so it does not show real payments or receive in-app notifications. Debug build, 17.5M.</span></div><a class="btn primary" href="downloads/dealer-app.apk" download="dealer-app.apk">Download APK</a></div>'+
    '<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ptab===t[0])+'" data-ptab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
    '<p class="dlnote">'+storeNote()+'</p>'+(hist?'':payControls()+payFilterBar())+'<div style="margin-top:'+(hist?"14":"0")+'px">'+(hist?payHistoryTab():payPayoutsTab(list))+'</div>';
@@ -3444,7 +3446,7 @@ function csvRowsFor(cases){
   return rows;
 }
 function csvText(rows){return "\ufeff"+rows.map(function(r){return r.map(q).join(",");}).join("\r\n");}
-function payFile(prefix){return prefix+"-"+state.pay.from+"-to-"+state.pay.to+".csv";}
+function payFile(prefix){return prefix+"-"+state.pay.from+"-to-"+state.pay.to+".xlsx";}
 function openPayModal(html){var m=document.getElementById("modal");m.innerHTML=html;m.classList.add("show");showOverlay(true);return m;}
 function openStatement(dealer){
   var s=dealerSum(dealer), cs=s.cases.slice().sort(function(a,b){return a.date<b.date?1:-1;});
@@ -3452,8 +3454,8 @@ function openStatement(dealer){
   var m=openPayModal('<h2>Payout statement: '+esc(dealer)+'</h2><p class="dlnote">'+esc(state.pay.label)+'. Payout rate '+s.rate+'%.</p><div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(s.total),"Total payout")+kpi(money(s.paid),"Paid")+kpi(money(s.bal),"Balance")+'</div>'+
    '<div class="repscroll"><table class="center striped" style="min-width:720px"><thead><tr><th>Disbursal date</th><th class="l">Customer</th><th>Vehicle</th><th>Lender</th><th>Loan amount</th><th>Payout</th><th>Status</th></tr></thead><tbody>'+
    cs.map(function(l){return '<tr><td>'+l.date+'</td><td class="l">'+esc(l.name)+'</td><td>'+esc((l.vehicle+" "+l.reg).trim())+'</td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+money(casePayout(l))+'</td><td>'+(state.paidAmt[l.id]!==undefined?"Paid":"Pending")+'</td></tr>';}).join("")+'</tbody></table></div>'+
-   '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="CSV data"></textarea>'+
-   '<div class="actions" style="flex-wrap:wrap"><button class="btn" data-close>Close</button><button class="btn" data-stcsv="'+esc(dealer)+'">Download CSV</button><button class="btn" data-paemail="'+esc(dealer)+'">'+ic("bell")+' Notify in app</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+esc(dealer)+'">Record payment</button>':"")+'</div>');
+   '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="Excel data"></textarea>'+
+   '<div class="actions" style="flex-wrap:wrap"><button class="btn" data-close>Close</button><button class="btn" data-stcsv="'+esc(dealer)+'">Download Excel</button><button class="btn" data-paemail="'+esc(dealer)+'">'+ic("bell")+' Notify in app</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+esc(dealer)+'">Record payment</button>':"")+'</div>');
   m.classList.add("wide");
 }
 function openPay(dealer){
@@ -3521,8 +3523,8 @@ function openEmail(d,fromQueue){
   var m=openPayModal('<h2>Notify '+esc(d)+' in app</h2><div class="field"><label for="emSub">Title</label><input id="emSub" value="'+esc("Payout statement: "+state.pay.label)+'"></div>'+
    '<div class="field"><label for="emBody">Message</label><textarea id="emBody" rows="9">'+esc(emailText(d))+'</textarea></div>'+
    '<p class="dlnote">'+(dApp(d)?'Goes straight to the dealer app for ID <b>'+esc(dApp(d))+'</b>. The dealer can open the full file list there.':'<span class="st-inactive">No app dealer ID set.</span> Use the gear icon on this dealer first.')+'</p>'+
-   '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="CSV data"></textarea>'+
-   '<div class="actions" style="flex-wrap:wrap">'+(fromQueue?'<button class="btn" data-emback>Back to dealers</button>':'<button class="btn" data-close>Close</button>')+'<button class="btn" data-stcsv="'+esc(d)+'">Download CSV</button><button class="btn primary" id="emOpen">Send in-app notification</button></div>');
+   '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="Excel data"></textarea>'+
+   '<div class="actions" style="flex-wrap:wrap">'+(fromQueue?'<button class="btn" data-emback>Back to dealers</button>':'<button class="btn" data-close>Close</button>')+'<button class="btn" data-stcsv="'+esc(d)+'">Download Excel</button><button class="btn primary" id="emOpen">Send in-app notification</button></div>');
   m.classList.add("wide");
 }
 function emOpen(){
@@ -3719,7 +3721,7 @@ function importMasterFile(file,kind){
   reader.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}), data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!data.length){toast("No data rows found in this file");return;}masterData[key]=data.map(function(r){var o={};Object.keys(r).forEach(function(k){o[String(k).trim()]=r[k] instanceof Date?ymd(r[k]):r[k];});return o;});if(saveMasterData()){renderMasterDirectory(key);toast(data.length+" "+(key==="staff"?"staff":"dealer")+" records imported successfully");}}catch(err){toast("Could not read this file. Please check the Excel/CSV format.");}};
   reader.readAsArrayBuffer(file);
 }
-function downloadMasterTemplate(kind){var staff=kind==="staff", cols=staff?["Staff Name","Mobile Number","Email","Designation","Branch"]:["Dealer Name","Mobile Number","City","Address","Contact Person"];if(!window.XLSX){var csv=cols.join(",")+"\n";var blob=new Blob([csv],{type:"text/csv"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=(staff?"Staff":"Dealer")+"_Template.csv";a.click();URL.revokeObjectURL(url);return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([cols]),"Template");XLSX.writeFile(wb,(staff?"Staff":"Dealer")+"_Template.xlsx");}
+function downloadMasterTemplate(kind){var staff=kind==="staff", cols=staff?["Staff Name","Mobile Number","Email","Designation","Branch"]:["Dealer Name","Mobile Number","City","Address","Contact Person"];if(!window.XLSX){toast("Excel template download unavailable. Please enable internet and try again.");return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([cols]),"Template");XLSX.writeFile(wb,(staff?"Staff":"Dealer")+"_Template.xlsx");}
 
 /* ---------- own-leads-only scope (users flagged ownOnly see just the leads they own) ---------- */
 var MASTER=null, SCOPED=null;
