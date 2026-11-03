@@ -560,7 +560,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
       </div>
     </header>
     <main class="content" id="view"></main>
-    <footer class="powered">Powered by <b>YASHU DHINGRA</b><br><span id="buildStamp" class="live-clock">Live time: --</span></footer>
+    <footer class="powered">Powered by <b>YASHU DHINGRA</b><br><span id="buildStamp" class="live-clock">Live time: --</span><span id="syncState"></span></footer>
   </div>
 </div>
 
@@ -705,10 +705,45 @@ if(!PERSIST){leads=[];PERSIST=true;nextId=1001;try{localStorage.setItem(LEADS_KE
 (function(){var m={"Keshav Sood":"Keshav","Ashish Rana":"Ashish"};leads.forEach(function(l){if(m[l.owner])l.owner=m[l.owner];});})(); /* rename already-saved leads */
 var saveT=null;
 var SYNC_SKIP=false;
-function saveLeads(){if(!PERSIST)return true;if(SYNC_SKIP)return true;try{localStorage.setItem(LEADS_KEY,JSON.stringify(fullLeads()));return true;}catch(e){return false;}}
+function saveLeads(){if(!PERSIST)return true;if(SYNC_SKIP)return true;var ok=true;try{localStorage.setItem(LEADS_KEY,JSON.stringify(fullLeads()));}catch(e){ok=false;}try{if(window.CRM_SYNC)window.CRM_SYNC.pushLeads(fullLeads());}catch(e){}return ok;}
 /* keep every saved lead in exactly one stage: stage always follows its status, so nothing stays behind in Login after a move (fixes old data saved in users' browsers) */
 (function(){var ch=0;leads.forEach(function(l){if(l.cat)return;var sg=statusStage[l.status];if(sg&&l.stage!==sg){l.stage=sg;ch++;}});if(ch)saveLeads();})();
 function saveLeadsSoon(){if(!PERSIST)return;clearTimeout(saveT);saveT=setTimeout(saveLeads,800);}
+/* ---- shared database (crm-sync.js): receive files and Hierarchy settings saved by other users ---- */
+function crmRerender(){
+  clearTimeout(crmRerender.t);
+  crmRerender.t=setTimeout(function(){
+    var a=document.activeElement,md=document.getElementById("modal");
+    var typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName), open=md&&md.classList.contains("show");
+    if(typing||open){crmRerender();return;} /* never wipe what someone is typing */
+    if(state.meUser)render();
+  },700);
+}
+window.CRM_GET_LEADS=function(){return fullLeads();};
+window.CRM_GET_HIER=function(){return hierLoad();};
+window.CRM_SYNC_STATUS=function(t){var el=document.getElementById("syncState");if(el)el.textContent=t?" · "+t:"";};
+window.CRM_APPLY_LEADS=function(up,rem,all){
+  try{
+    var full;
+    if(all){full=up.slice();}
+    else{
+      full=fullLeads().slice();var ix={};full.forEach(function(x,i){ix[String(x.id)]=i;});
+      up.forEach(function(x){var i=ix[String(x.id)];if(i===undefined){ix[String(x.id)]=full.length;full.push(x);}else full[i]=x;});
+      if(rem.length){var rs={};rem.forEach(function(id){rs[String(id)]=1;});full=full.filter(function(x){return !rs[String(x.id)];});}
+    }
+    leads=full;MASTER=null;SCOPED=null;
+    nextId=Math.max(nextId,full.reduce(function(m,x){return Math.max(m,(+x.id||0)+1);},1001));
+    try{localStorage.setItem(LEADS_KEY,JSON.stringify(full));}catch(e){}
+    ALLFROM=full.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));ALLTO=full.reduce(function(m,l){return l.date>m?l.date:m;},"");
+    if(all)fitRange();
+    crmRerender();
+  }catch(e){console.warn("CRM sync apply failed",e);}
+};
+window.CRM_APPLY_HIER=function(o){
+  if(!o||typeof o!=="object")return;
+  hier=o;try{localStorage.setItem(HIER_KEY,JSON.stringify(o));}catch(e){}
+  crmRerender();
+};
 /* same browser, other tab or window (for example Sapna in one window and Anu in another): when one saves a move, the others load it at once instead of keeping the old category and overwriting it later */
 window.addEventListener("storage",function(e){
   if(e.key!==LEADS_KEY||!e.newValue)return;
@@ -3619,7 +3654,7 @@ function hierLoad(){
   try{var j=localStorage.getItem(HIER_KEY);if(j)hier=JSON.parse(j);}catch(e){}
   if(!hier||typeof hier!=="object")hier=JSON.parse(JSON.stringify(HIER_DEFAULT));
   return hier;}
-function hierSave(){try{localStorage.setItem(HIER_KEY,JSON.stringify(hier));}catch(e){toast("Could not save hierarchy in this browser");}}
+function hierSave(){try{localStorage.setItem(HIER_KEY,JSON.stringify(hier));}catch(e){toast("Could not save hierarchy in this browser");}try{if(window.CRM_SYNC)window.CRM_SYNC.pushHier(hier);}catch(e){}}
 function hierGet(k){hierLoad();var c=hier[k];if(!c||typeof c!=="object")c=hier[k]={all:false,see:[]};if(!Array.isArray(c.see))c.see=[];return c;}
 /* ---- category access: which categories of files each user can open (empty setting = all) ---- */
 var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","Login"],["Approval Pending","Approval Pending"],["Approved","Approved"],["Hold","Hold"],["Disbursed","Disbursement"],["Rejected","Reject"],["pdd","PDD Status"]];
@@ -4178,6 +4213,7 @@ document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="chann
 if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
 })();
 </script>
+<script type="module" src="crm-sync.js"></script>
 <script type="module" src="firebase-connector.js"></script>
 <script>
 /* live clock in the footer and on the sign-in page (India time), updates every second */
