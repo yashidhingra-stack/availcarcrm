@@ -704,6 +704,8 @@ if(!PERSIST){leads=[];PERSIST=true;nextId=1001;try{localStorage.setItem(LEADS_KE
 (function(){var m={"Keshav Sood":"Keshav","Ashish Rana":"Ashish"};leads.forEach(function(l){if(m[l.owner])l.owner=m[l.owner];});})(); /* rename already-saved leads */
 var saveT=null;
 function saveLeads(){if(!PERSIST)return true;try{localStorage.setItem(LEADS_KEY,JSON.stringify(fullLeads()));return true;}catch(e){return false;}}
+/* keep every saved lead in exactly one stage: stage always follows its status, so nothing stays behind in Login after a move (fixes old data saved in users' browsers) */
+(function(){var ch=0;leads.forEach(function(l){if(l.cat)return;var sg=statusStage[l.status];if(sg&&l.stage!==sg){l.stage=sg;ch++;}});if(ch)saveLeads();})();
 function saveLeadsSoon(){if(!PERSIST)return;clearTimeout(saveT);saveT=setTimeout(saveLeads,800);}
 var ALLTO=""; var ALLFROM=leads.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY)); ALLTO=leads.reduce(function(m,l){return l.date>m?l.date:m;},"");
 
@@ -1067,7 +1069,7 @@ function bizImportFile(file){
         var dt=String(get("Date","Entry Date")||"");if(/^\d{4}-\d{2}-\d{2}/.test(dt))l.date=dt.slice(0,10);
         count++;
       });
-      render();toast(count+" lead records imported from Excel");
+      purgeAllCopies();render();toast(count+" lead records imported from Excel");
     }catch(err){toast("Could not read this Excel file. Check the column headings.");}
   };
   reader.readAsArrayBuffer(file);
@@ -1641,13 +1643,36 @@ function importFile(file,replace){
     PERSIST=true;
     leads.sort(function(a,b){return a.ts<b.ts?1:-1;});
     ALLFROM=leads.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY)); ALLTO=leads.reduce(function(m,l){return l.date>m?l.date:m;},"");
-    var ok=saveLeads();fitRange();
+    purgeAllCopies();var ok=saveLeads();fitRange();
     state.page=1;state.sel=[];render();
     toast(res.count+" lead"+(res.count===1?"":"s")+(replace?" loaded (old data cleared)":" imported")+(res.skipped?", "+res.skipped+" rows skipped (no name)":"")+(res.dups?", "+res.dups+" duplicates skipped":"")+(ok?"":". Too large to keep after reload"));
   });
 }
 function leadKey(l){var ph=String(l.phone||"").replace(/\D/g,"").slice(-10);return ph?ph+"|"+String(l.name||"").trim().toLowerCase():"";}
 function dedupeLeads(){var seen={},out=[],removed=0;leads.forEach(function(l){var k=l.seedId?"seed|"+l.seedId:leadKey(l);if(k&&!l.seedId)k+="|"+[l.stage,l.status,l.date,l.amount,l.owner,l.vehicle,l.reg,l.lender,l.dealer,l.note].join("|");if(k&&seen[k]){removed++;return;}if(k)seen[k]=1;out.push(l);});if(removed){leads=out;saveLeads();}return removed;}
+/* one lead = one record. When a lead is at a later stage (Login, Hold, Disbursed, Rejected) every earlier-stage copy of it
+   (Audience, and Login once it has moved on) is removed - whatever its date or owner - from the visible list AND from the
+   hidden master list used by own-leads-only users, so nobody keeps seeing the same lead twice. */
+function stageRank(l){var g=l.stage;return g==="Audience"?0:g==="Login"?1:2;}
+function phone10(l){var p=String(l.phone||"").replace(/\D/g,"");return p.length>=10?p.slice(-10):"";}
+function firstTok(l){var m=String(l.name||"").trim().toLowerCase().match(/[a-z0-9]+/);return m?m[0]:"";}
+function sameLead(a,b){var x=firstTok(a),y=firstTok(b);return !x||!y||x===y;} /* same mobile and same first name (spelling/surname differences do not hide a copy) */
+function copyPurgeGroups(list){
+  var g={};list.forEach(function(l){if(l.cat)return;var k=phone10(l);if(k)(g[k]=g[k]||[]).push(l);});return g;}
+function dropCopies(drop){
+  if(!drop.size)return 0;
+  leads=leads.filter(function(x){return !drop.has(x);});
+  if(MASTER)MASTER=MASTER.filter(function(x){return !drop.has(x);});
+  return drop.size;}
+function purgeEarlierCopies(l){
+  if(!l||l.cat||stageRank(l)===0)return 0;var k=phone10(l);if(!k)return 0;var r=stageRank(l),drop=new Set();
+  (MASTER?fullLeads():leads).forEach(function(o){if(o!==l&&!o.cat&&stageRank(o)<r&&phone10(o)===k&&sameLead(l,o))drop.add(o);});
+  return dropCopies(drop);}
+function purgeAllCopies(){
+  var g=copyPurgeGroups(MASTER?fullLeads():leads),drop=new Set();
+  Object.keys(g).forEach(function(k){var a=g[k];if(a.length<2)return;
+    a.forEach(function(l){var r=stageRank(l);if(!r)return;a.forEach(function(o){if(o!==l&&stageRank(o)<r&&sameLead(l,o))drop.add(o);});});});
+  return dropCopies(drop);}
 function fitRange(){var m=leads.reduce(function(a,l){return l.date<a?l.date:a;},ymd(TODAY));state.lrange={from:m,to:ymd(TODAY)};}
 
 /* ---------- PDD file import (columns of PDD_for_Total_CRM.csv) ---------- */
@@ -1712,7 +1737,7 @@ function importPddRows(data,silent){
   leads.sort(function(a,b){return a.ts<b.ts?1:-1;});
   ALLFROM=leads.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));
   ALLTO=leads.reduce(function(m,l){return l.date>m?l.date:m;},"");
-  var ok=saveLeads();fitRange();
+  purgeAllCopies();var ok=saveLeads();fitRange();
   if(!silent){
     state.page=1;state.sel=[];render();
     toast("PDD file: "+added+" added"+(updated?", "+updated+" matched to existing leads":"")+(removed?" (earlier PDD import replaced)":"")+(skipped?", "+skipped+" rows skipped (no name)":"")+(ok?"":". Too large to keep after reload"));
@@ -2052,7 +2077,7 @@ function moveCats(){
   cats.forEach(function(c){
     if(c.key==="Disbursed"&&!canDo("Leads","Move to Disbursement"))return;
     if(c.key==="pdd"&&!canDo("Leads","Move to PDD"))return;
-    if(c.built){if(map[c.key])out.push({key:c.key,name:c.name,stage:c.key==="pdd"?"Disbursed":c.key,built:true});}
+    if(c.built){if(map[c.key])out.push({key:c.key,name:c.name,stage:c.key==="pdd"?"Disbursed":c.key,built:true});else out.push({key:c.key,name:c.name,stage:null,built:false});} /* Channel List and Data are listed too, like the reference */
     else out.push({key:c.key,name:c.name,stage:null,built:false});
   });
   return out;
@@ -2060,6 +2085,7 @@ function moveCats(){
 function moveStatuses(key){
   var c=moveCats().filter(function(x){return x.key===key;})[0]; if(!c)return [];
   if(key==="pdd")return PDD_ST.slice();
+  if(key==="Disbursed")return ["Open","Disbursed","Disbursement Pending"];
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage);}).map(function(x){return x[0];});
 }
 function openMoveCat(id){
@@ -2083,13 +2109,15 @@ function submitMoveCat(){
     l.status="Disburse"; l.stage="Disbursed"; l.pddSt=ns; ns="Disburse";
     if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
     l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" (PDD status "+l.pddSt+")",type:"status"});
-    saveLeads();
+    purgeEarlierCopies(l);saveLeads();
     closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);return;
   }
+  var shown=ns; /* Disbursement Business: Open / Disbursed / Disbursement Pending all keep the lead in that stage */
+  if(ck==="Disbursed"&&(ns==="Open"||ns==="Disbursed")){ns="Disburse";if(shown==="Open")l.pddSt="Open";}
   l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
   l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" ("+(old!==ns?"status "+old+" to "+ns:"status "+ns)+")",type:"status"});
-  saveLeads();
+  purgeEarlierCopies(l);saveLeads();
   closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);
 }
 document.addEventListener("change",function(e){
@@ -2133,7 +2161,7 @@ function submitLeadStatus(){
     l.hist.unshift({ts:stamp(),text:"Status changed from "+old+" to "+ns,type:"status"});
   }
   l.hist.unshift({ts:stamp(),text:tx,type:"note"});
-  saveLeads();
+  purgeEarlierCopies(l);saveLeads();
   renderLead();toast(ns!==old?"Status updated":"Note added");
 }
 document.addEventListener("change",function(e){
@@ -2147,7 +2175,7 @@ function changeStatus(ns){
   l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"?"Pending":l.pdd):"—";
   l.hist.unshift({ts:stamp(),text:"Status changed from "+old+" to "+ns,type:"status"});
-  saveLeads();
+  purgeEarlierCopies(l);saveLeads();
   renderLead(); toast("Status updated");
 }
 function saveDetails(){
@@ -3822,7 +3850,7 @@ document.addEventListener("click",function(e){
     var l=leads.filter(function(x){return x.id===+d.save;})[0], ns=document.getElementById("dStatus").value;
     l.status=ns;l.stage=statusStage[ns];l.note=document.getElementById("dNote").value;
     l.pdd=l.stage==="Disbursed"?(l.pdd==="—"?"Pending":l.pdd):"—";
-    saveLeads();
+    purgeEarlierCopies(l);saveLeads();
     closeAll();renderTable();toast("Lead updated");return;}
   if(d.tool){
     var card=t.closest("[data-w]"),w=state.widgets.filter(function(x){return x.id===card.dataset.w;})[0],a=d.tool;
@@ -4018,7 +4046,7 @@ function loginSeedRows(){try{var j=JSON.parse(document.getElementById("loginSeed
     localStorage.setItem(SK2,"1");
   }catch(e){}
 })();
-dedupeLeads();fitRange();
+dedupeLeads();if(purgeAllCopies())saveLeads();fitRange();
 document.addEventListener("change",function(e){var t=e.target;if(t.id==="channelPeriod"){state.channelPeriod=t.value;renderChannelBusinessReport();}else if(t.id==="channelDealer"){state.channelDealer=t.value;renderChannelBusinessReport();}else if(t.id==="channelFrom"||t.id==="channelTo"){state.channelPeriod="custom";state.channelFrom=document.getElementById("channelFrom").value;state.channelTo=document.getElementById("channelTo").value;renderChannelBusinessReport();}});
 document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="channelReset"){state.channelPeriod="month";state.channelDealer="";state.channelFrom="";state.channelTo="";renderChannelBusinessReport();}});
 if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
