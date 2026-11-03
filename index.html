@@ -1664,7 +1664,17 @@ function dropCopies(drop){
   leads=leads.filter(function(x){return !drop.has(x);});
   if(MASTER)MASTER=MASTER.filter(function(x){return !drop.has(x);});
   return drop.size;}
+/* Sapna and Ashish: when they shift a lead, the same lead held under Anu Kaushal is shifted out of her list too (one record only, still visible to Anu through her team view) */
+function shiftFromAnu(l){
+  var who=String(window.CRM_USER||"").trim().toLowerCase().match(/^[a-z]+/);who=who?who[0]:"";
+  if(who!=="sapna"&&who!=="ashish")return 0;
+  var k=phone10(l);if(!k||l.cat)return 0;var drop=new Set();
+  (MASTER?fullLeads():leads).forEach(function(o){if(o!==l&&!o.cat&&phone10(o)===k&&sameLead(l,o)&&/^anu\b/i.test(String(o.owner||"").trim()))drop.add(o);});
+  if(!drop.size)return 0;
+  if(l.hist)l.hist.unshift({ts:stamp(),text:"Shifted from Anu Kaushal by "+window.CRM_USER,type:"status"});
+  return dropCopies(drop);}
 function purgeEarlierCopies(l){
+  if(l)shiftFromAnu(l);
   if(!l||l.cat||stageRank(l)===0)return 0;var k=phone10(l);if(!k)return 0;var r=stageRank(l),drop=new Set();
   (MASTER?fullLeads():leads).forEach(function(o){if(o!==l&&!o.cat&&stageRank(o)<r&&phone10(o)===k&&sameLead(l,o))drop.add(o);});
   return dropCopies(drop);}
