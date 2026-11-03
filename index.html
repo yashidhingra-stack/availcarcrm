@@ -725,7 +725,7 @@ var state={route:"dashboard",range:{from:ymd(new Date(TODAY.getTime()-29*864e5))
   widgets:[
    {id:"w1",title:"Leads pending – Audience",kind:"stack",stage:"Audience"},
    {id:"w2",title:"Disbursement business",kind:"stack",stage:"Disbursed"},
-   {id:"w3",title:"Login business",kind:"stack",stages:["Login","Hold","Rejected"]},
+   {id:"w3",title:"Login business",kind:"stack",stages:["Login"]},
    {id:"w4",title:"PDD status",kind:"pdd"}],
   removed:[]};
 state.arange={from:"2026-09-12",to:"2026-10-11"};state.rprod="";
@@ -846,8 +846,7 @@ var PDD_ST=["Open","Fee Done File At Inward","Pending At Verification Stage","Pe
 function pddSt(l){return l.pddSt||(l.status===RTO_ST?"File Approved In RTO":"Open");}
 function inPddCtx(l){return state.leadCtx==="pdd"&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST);}
 function pageStages(key){
-  if(key==="Login")return ["Login","Hold","Rejected"];
-  if(stages.indexOf(key)>-1)return [key];
+  if(stages.indexOf(key)>-1)return [key]; /* Login shows only files still at Login; once moved to any other stage they leave it */
   if(key==="pdd")return ["Disbursed"];
   return stages.slice();
 }
@@ -1815,7 +1814,6 @@ function firmList(){var m={};leads.forEach(function(l){var v=ldx(l).caseBooked;i
 function leadCatKeys(l){
   if(l.cat)return [l.cat];
   var ks=[l.stage];
-  if(l.stage==="Hold"||l.stage==="Rejected")ks.push("Login");
   if(l.stage==="Disbursed"&&(l.status==="Disburse"||l.status===RTO_ST))ks.push("pdd");
   return ks;
 }
