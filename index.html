@@ -293,6 +293,9 @@ a.btn{text-decoration:none;display:inline-block}
 .fu-add input[type=text]{flex:1;min-width:150px;width:auto}
 .fu-add input[type=date]{width:auto}
 .fu-empty{color:var(--muted);margin:0}
+.remark-cell{display:block;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-name-remark{margin:6px 0 10px;padding:7px 10px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:5px;font-size:12px;line-height:1.45;max-width:100%;overflow-wrap:anywhere}
+.ld-name-remark strong{font-weight:700}
 .noteform{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .timeline{list-style:none;margin:16px 0 0;padding:0 0 0 14px;border-left:2px solid var(--line);display:grid;gap:14px}
 .timeline li{position:relative;padding-left:14px}
@@ -464,6 +467,9 @@ a.ld-link:hover,button.ld-link:hover{text-decoration:underline}
 .ld-grid dt{font-weight:600;font-size:14px;margin-bottom:6px}
 .ld-grid dd{margin:0;font-size:13px;color:var(--muted)}
 .ld-grid dd.acc{color:var(--accent);font-weight:600}
+.ld-grid .ld-summary-wide{grid-column:1/-1;min-width:0;padding-top:8px;border-top:1px solid var(--line)}
+.ld-grid .ld-summary-text{display:block;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45;max-height:110px;overflow:auto}
+.ld-grid .ld-history-text{max-height:150px}
 .ld-ico{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
 .ld-body{margin-top:14px}
 .ld-sub{margin-bottom:14px}
@@ -913,7 +919,7 @@ function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,t
 function setRange(key,r){state.lrangeBy[key]=r;}
 var HIDDEN={Disbursed:["ts"],pdd:["pdd"],data:["ts","status","owner"]};
 var PAGELABEL={pdd:{ts:"Disbursed Date"}};
-var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddSt","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","remark","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","remark","audId"]};
+var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddSt","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","audId"]};
 function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];}).concat(attrsForPage(key).map(function(a){return ["a_"+a.key,a.label];}));}
 function colState(key){
   var k=PAGECOLS[key]?key:"def"; state.colsBy=state.colsBy||{};
@@ -970,7 +976,10 @@ function cell(l,k,i){
   if(k==="audId")return esc(audOf(l));
   if(k==="year")return esc(l.year||"");
   if(k==="bankExec")return esc(ldx(l).bankExec||"");
-  if(k==="remark"){var ln=String(l.note||"").split(/\n/).filter(Boolean);return '<span title="'+esc(String(l.note||""))+'">'+esc(ln.length?ln[ln.length-1]:"")+'</span>';}
+  if(k==="remark"){
+    var full=leadRemarkText(l), ln=String(full||"").replace(/<br\s*\/?\s*>/gi,"\n").split(/\n/).filter(Boolean);
+    return '<span class="remark-cell" title="'+esc(String(full||""))+'">'+esc(ln.length?ln[ln.length-1]:"")+'</span>';
+  }
   if(k==="caseBooked")return '<input class="cb-in" data-cb="'+l.id+'" list="firmListT" value="'+esc(ldx(l).caseBooked||"")+'" placeholder="Select firm" aria-label="Case booked in for '+esc(l.name)+'">';
   if(k==="amount")return l.amount?money(l.amount):"";
   if(k==="status")return dotted(l.status)+esc(l.status);
@@ -1856,19 +1865,67 @@ var DETAIL=[["name","Name"],["phone","Mobile"],["product","Product"],["amount","
 function lead(id){return leads.filter(function(x){return x.id===id;})[0];}
 function curLead(){return lead(+state.route.split("/")[1]);}
 function stamp(){var n=new Date();return ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds());}
+function leadRemarkText(l){
+  if(!l)return "";
+  var v=l.note;
+  if(v==null||String(v).trim()==="")v=l.remarks!=null?l.remarks:(l.Remarks!=null?l.Remarks:(l.Notes!=null?l.Notes:""));
+  if(v==null||String(v).trim()===""){
+    var hn=(Array.isArray(l.hist)?l.hist:[]).filter(function(e){return e&&e.type==="note";});
+    if(hn.length){hn.sort(function(a,b){return String(a.ts||"").localeCompare(String(b.ts||""));});v=hn.map(function(e){return (e.ts?e.ts+" :- ":"")+String(e.text||"");}).join("\n");}
+  }
+  return String(v==null?"":v);
+}
+function recoverLegacyFollowups(l){
+  if(Array.isArray(l.fu)&&l.fu.length)return;
+  var src=l.followups||l.followUps||l.follow_up||l.followUp||l.followup||l.nextFollowup||l.next_follow_up||l.next_followup;
+  var arr=Array.isArray(src)?src:(src?[src]:[]), out=[];
+  arr.forEach(function(f){
+    if(typeof f==="string"){
+      var m=f.match(/^(\d{4}-\d{2}-\d{2})\s*[-:]?\s*(.*)$/);
+      out.push({date:m?m[1]:ymd(TODAY),text:m?m[2]:f,done:false});
+    }else if(f&&typeof f==="object"){
+      var dt=f.date||f.followupDate||f.follow_up_date||f.nextDate||f.dueDate||f.when||f.time||"";
+      var tx=f.text||f.note||f.remarks||f.title||f.description||f.task||"";
+      dt=toYmd(dt)||ymd(TODAY);if(String(tx).trim())out.push({date:dt,text:String(tx),done:!!(f.done||f.completed)});
+    }
+  });
+  var singleDate=l.followUpDate||l.followupDate||l.follow_up_date||l.nextFollowupDate||l.next_follow_up_date||"";
+  var singleText=l.followUpNote||l.followupNote||l.follow_up_note||l.nextFollowupText||l.next_follow_up_text||"";
+  if(singleText&&!out.length)out.push({date:toYmd(singleDate)||ymd(TODAY),text:String(singleText),done:false});
+  l.fu=out;
+}
 function ensure(l){
   if(l.lastStatus===undefined)l.lastStatus=l.status; /* remembers the status before a move so Login Pending / Login / Approval Pending / Approved moves are detected */
-  if(l.hist)return l;
-  l.hist=[];
-  if(l.status!=="Open")l.hist.push({ts:l.ts,text:"Status set to "+l.status,type:"status"});
-  l.hist.push({ts:l.ts,text:"Lead created from "+l.source,type:"system"});
-  l.docs={};
-  DOCS.forEach(function(n,i){l.docs[n]=l.stage==="Audience"?(i===0&&l.id%2===0):((l.id*7+i*3)%5)<(l.stage==="Disbursed"?5:3);});
-  l.fu=[];
-  if(l.stage==="Login"||l.stage==="Hold"||l.id%3===0){
+  if(!Array.isArray(l.hist)){
+    l.hist=[];
+    if(l.status!=="Open")l.hist.push({ts:l.ts,text:"Status set to "+l.status,type:"status"});
+    l.hist.push({ts:l.ts,text:"Lead created from "+l.source,type:"system"});
+  }
+  if(!l.docs||typeof l.docs!=="object"){
+    l.docs={};
+    DOCS.forEach(function(n,i){l.docs[n]=l.stage==="Audience"?(i===0&&l.id%2===0):((l.id*7+i*3)%5)<(l.stage==="Disbursed"?5:3);});
+  }
+  recoverLegacyFollowups(l);
+  if(!l.fu.length&&(l.stage==="Login"||l.stage==="Hold"||l.id%3===0)){
     var dt=new Date(TODAY);dt.setDate(dt.getDate()+(l.id%2?-1-(l.id%3):1+(l.id%4)));
     l.fu.push({date:ymd(dt),text:l.stage==="Hold"?"Call customer about the hold reason":"Call customer for pending documents",done:false});
   }
+  /* Restore the old imported Remarks/Notes field into the Notes timeline without deleting or replacing it. */
+  var legacy=leadRemarkText(l);
+  if(legacy.trim()&&!l.legacyRemarksRecovered){
+    var lines=legacy.replace(/<br\s*\/?\s*>/gi,"\n").split(/\n+/).filter(function(x){return x.trim();});
+    var existing={};l.hist.forEach(function(e){if(e&&e.type==="note")existing[String(e.text||"").trim()]=1;});
+    lines.forEach(function(line){
+      var raw=line.trim();if(existing[raw])return;
+      var m=raw.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*:-\s*(.*)$/);
+      l.hist.push({ts:m?m[1]:(l.ts||""),text:m?m[2]:raw,type:"note"});
+      existing[raw]=1;
+    });
+    l.legacyRemarksRecovered=true;
+  }
+  if(!Array.isArray(l.fu))l.fu=[];
+  /* Persist restored legacy remarks/follow-ups so they remain available across user sessions. */
+  saveLeadsSoon();
   return l;
 }
 function openLead(id){
@@ -2083,6 +2140,11 @@ function renderDisbLead(l){
   var nf=(l.fu||[]).filter(function(f){return !f.done;})[0];
   var fdt=nf?nf.date+" 19:05:00":"—", rep=(typeof PH!=="undefined"&&PH[l.phone])||1;
   var upd=l.hist&&l.hist.length?l.hist[0].ts:l.ts, tel=/^\d{10}$/.test(l.phone), aud=audOf(l);
+  var remarkRaw=leadRemarkText(l), remarkLines=String(remarkRaw||"").replace(/<br\s*\/?\s*>/gi,"\n").split(/\n+/).filter(function(z){return z.trim();});
+  var latestRemark=remarkLines.length?remarkLines[remarkLines.length-1]:"—";
+  var allFollowups=(l.fu||[]).slice().sort(function(a,b){return String(b.date||"").localeCompare(String(a.date||""));});
+  var followupHistory=allFollowups.length?allFollowups.map(function(f){return (f.date?fmtDate(f.date)+" — ":"")+(f.text||"")+(f.done?" (Completed)":" (Pending)");}).join("\n"):"—";
+  var followupNote=nf?(nf.text||"—"):"—";
   function sm(t,val,cls){return '<div><dt>'+t+'</dt><dd'+(cls?' class="'+cls+'"':'')+'>'+val+'</dd></div>';}
   function bxe(k,raw,kind){return ldEditor(k,raw,kind).replace('id="ldE"','data-bx="'+k+'"');}
   function sme(t,k,raw,kind,shown){return sm(t,state.ldBox?bxe(k,raw,kind):shown);}
@@ -2103,6 +2165,9 @@ function renderDisbLead(l){
      sme("Vehicle","vehicle",l.vehicle||"","text",esc(l.vehicle||"—"))+sme("Product","product",l.product,"product",esc(l.product||"—"))+
      sme("Lender","lender",l.lender||"","lender",esc(l.lender||"—"))+
      sme("Lead Source","source",l.source,"source",esc(l.source))+
+     sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
+     sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
+     sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide')+
    '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-lmove="'+l.id+'"','Move lead by category','swap')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
   var tabs=[["details","Lead Details"],["more","Additional Details"],["followups","Follow up"],["docs","Documents"]];
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
@@ -2182,20 +2247,32 @@ function moveStatuses(key){
   if(key==="Disbursed")return ["Open","Disbursed","Disbursement Pending"];
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
 }
+function moveOwnerOptions(){
+  var out=[],seen={};
+  function add(n){n=String(n||"").trim();var k=n.toLowerCase();if(n&&!seen[k]){seen[k]=1;out.push(n);}}
+  (owners||[]).forEach(add);
+  (users||[]).forEach(function(u){var r=roleById(u.roleId);if(r&&r.owner)add(u.name);});
+  return out.sort(function(a,b){return a.localeCompare(b);});
+}
 function openMoveCat(id){
   var l=id?lead(+id):curLead(); if(!l)return; state.mvId=l.id;
-  var m=document.getElementById("modal");
+  var m=document.getElementById("modal"), ownerOpts=moveOwnerOptions();
   m.innerHTML='<div class="eu-head"><h2>Move Lead By Category</h2><button class="icon-btn" data-close aria-label="Close">'+ldi("close")+'</button></div>'+
+   '<div class="field"><label for="mvOwner">Lead Owner<span style="color:#d6103c">*</span></label><select id="mvOwner"><option value="">Select Lead Owner</option>'+ownerOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===l.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
    '<div class="field"><label for="mvCat">Category<span style="color:#d6103c">*</span></label><select id="mvCat"><option value="">Select Category</option>'+moveCats().map(function(c){return '<option value="'+c.key+'">'+esc(c.name)+'</option>';}).join("")+'</select></div>'+
    '<div class="field"><label for="mvStatus">Status<span style="color:#d6103c">*</span></label><select id="mvStatus"><option value="">Select Status</option></select></div>'+
    '<div class="actions"><button class="btn primary" id="mvSubmit">Submit</button></div>';
-  m.classList.add("show");showOverlay(true);document.getElementById("mvCat").focus();
+  m.classList.add("show");showOverlay(true);document.getElementById("mvOwner").focus();
 }
 function submitMoveCat(){
   var l=lead(state.mvId); if(!l)return; ensure(l);
-  var ck=document.getElementById("mvCat").value, ns=document.getElementById("mvStatus").value;
+  var no=document.getElementById("mvOwner"), ck=document.getElementById("mvCat").value, ns=document.getElementById("mvStatus").value;
+  var newOwner=no?no.value:"";
+  if(!newOwner){toast("Select a lead owner");if(no)no.focus();return;}
   if(!ck){toast("Select a category");document.getElementById("mvCat").focus();return;}
   if(!ns){toast("Select a status");document.getElementById("mvStatus").focus();return;}
+  var priorOwner=l.owner;
+  if(priorOwner!==newOwner){l.owner=newOwner;l.hist.unshift({ts:stamp(),text:"Lead owner changed from "+(priorOwner||"Unassigned")+" to "+newOwner,type:"owner"});}
   var c=moveCats().filter(function(x){return x.key===ck;})[0], old=l.status, oldCat=l.cat;
   if(!c){toast(DENY);return;}
   if(c.built)delete l.cat; else l.cat=ck;
@@ -2295,7 +2372,9 @@ function addNote(){
   var l=curLead(); if(!l)return; ensure(l);
   var el=document.getElementById("noteText"), tx=el.value.trim();
   if(!tx){toast("Write a note first");el.focus();return;}
-  l.hist.unshift({ts:stamp(),text:tx,type:"note"});
+  var nts=stamp();
+  l.hist.unshift({ts:nts,text:tx,type:"note"});
+  l.note=(l.note?String(l.note)+"\n":"")+nts+" :- "+tx;
   renderLead(); toast("Note added");
 }
 function addFu(){
