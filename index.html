@@ -484,7 +484,7 @@ a.ld-link:hover,button.ld-link:hover{text-decoration:underline}
 .ld-tbl td{padding:9px 12px;border:1px solid var(--line);vertical-align:middle}
 .ld-tbl td.k{width:38%;background:var(--bg);color:var(--muted)}
 .ld-tbl .req{color:var(--bad);margin-left:1px}
-.ld-tbl .rv{display:flex;justify-content:flex-start;align-items:center;gap:8px;flex-wrap:wrap}.ld-tbl .rv .btn.sm{padding:4px 8px;font-size:12px}.ld-boxbar{min-height:28px}
+.ld-tbl .rv{display:flex;justify-content:flex-start;align-items:center;gap:8px}
 .ld-tbl .rv-click{cursor:text;border-bottom:1px dashed transparent;min-width:40px}
 .ld-tbl .rv-click:hover{border-bottom-color:var(--muted)}
 .ld-tbl textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--surface);resize:vertical}
@@ -2151,11 +2151,10 @@ function ldEditor(k,raw,kind){
   return '<input id="ldE" type="'+(kind==="num"?"number":"text")+'" value="'+esc(raw)+'" aria-label="Edit '+k+'"'+(k==="caseBooked"?' list="firmList2"><datalist id="firmList2">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist':'')+'>';
 }
 function ldRow(r){
-  var editing=state.ldEdit===r[0], val;
-  if(editing&&r[4])val=ldEditor(r[0],r[2],r[4]).replace('id="ldE"','id="ldRowEditor"');
+  var val;
+  if(state.ldBox&&r[4])val=ldEditor(r[0],r[2],r[4]).replace('id="ldE"','data-bx="'+r[0]+'"');
   else val='<span>'+esc(r[3])+(r[3]===""||r[3]==null?"&nbsp;":"")+'</span>';
-  var act=editing?'<button class="btn primary sm" data-rowsave="'+esc(r[0])+'">Save</button><button class="btn sm" data-rowcancel>Cancel</button>':(r[4]?'<button class="icon-btn" data-rowedit="'+esc(r[0])+'" title="Edit '+esc(r[1])+'" aria-label="Edit '+esc(r[1])+'">'+ldi("pencil")+'</button>':"");
-  return '<tr data-edit-row="'+esc(r[0])+'"><td class="k">'+r[1]+'</td><td><div class="rv">'+val+act+'</div></td></tr>';
+  return '<tr><td class="k">'+r[1]+'</td><td><div class="rv">'+val+'</div></td></tr>';
 }
 function ldArea(k,label,val){return '<tr><td class="k">'+label+'<span class="req">*</span></td><td><textarea data-ldarea="'+k+'" aria-label="'+label+'">'+esc(val)+'</textarea></td></tr>';}
 function ldTable(rows){return '<table class="ld-tbl"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>'+rows+'</tbody></table>';}
@@ -2252,7 +2251,7 @@ function renderDisbLead(l){
   var emailHtml=state.ldBox?bxe("email",l.email||"","text"):(l.email?'<span>'+esc(l.email)+'</span>':'&mdash;');
   var mob=state.ldBox?bxe("phone",l.phone||"","text"):(tel?'<a class="ld-link" href="tel:+91'+l.phone+'">'+esc(l.phone)+'</a>':esc(l.phone))+ldBtn('data-ldcopy="'+esc(l.phone)+'"','Copy number','copy')+
     (tel?'<a class="icon-btn" href="tel:+91'+l.phone+'" aria-label="Call" title="Call">'+ldi("phone")+'</a><a class="icon-btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">'+ldi("chat")+'</a>':'');
-  var editBar='';
+  var editBar=state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
   var h='<div class="ld-bar">'+editBar+'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
    '<div class="ld-top"><section class="ld-prof" aria-label="Lead summary"><div class="ld-who"><span class="ld-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span>'+nameHtml+'</div>'+
    '<div class="ld-ids"><div><small>Audience ID</small><span class="ld-link">'+aud+'</span></div><div><small>Lead Stage:</small>'+stageHtml+'</div></div>'+
@@ -2296,7 +2295,7 @@ function renderDisbLead(l){
       var all=A.concat(ex), half=Math.ceil(all.length/2);
       colL=all.slice(0,half).map(ldRow); colR=all.slice(half).map(ldRow);
     }
-    var boxBar='<div class="ld-boxbar"><span class="note">Use the pencil beside a field to edit only that field.</span></div>';
+    var boxBar='<div class="ld-boxbar">'+(state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit '+(state.ldTab==="more"?"additional details":"lead details")+'" title="Edit">'+ldi("pencil")+' Edit</button>')+'</div>';
     h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div></section>';
   } else if(state.ldTab==="docs"){ h+=ldDocsTab(l); } else { h+=ldFollow(l,today,tom); }
   h+='</div>';
@@ -2304,9 +2303,6 @@ function renderDisbLead(l){
   v.innerHTML=h;
   var q=function(s,fn){v.querySelectorAll(s).forEach(fn);};
   q("[data-ldtab]",function(b){b.onclick=function(){state.ldTab=b.getAttribute("data-ldtab");state.ldEdit=null;state.ldBox=false;renderLead();};});
-  q("[data-rowedit]",function(b){b.onclick=function(){state.ldEdit=b.getAttribute("data-rowedit");renderLead();var e=document.getElementById("ldRowEditor");if(e){e.focus();var row=e.closest("tr");if(row)row.scrollIntoView({behavior:"smooth",block:"center"});}};});
-  q("[data-rowsave]",function(b){b.onclick=function(){var k=b.getAttribute("data-rowsave"),e=document.getElementById("ldRowEditor");if(!e)return;if(ldSave(l,k,e.value)===false)e.focus();};});
-  q("[data-rowcancel]",function(b){b.onclick=function(){state.ldEdit=null;renderLead();};});
   q("[data-ldbox]",function(b){b.onclick=function(){state.ldBox=true;state.ldEdit=null;renderLead();};});
   q("[data-ldboxcancel]",function(b){b.onclick=function(){state.ldBox=false;renderLead();};});
   q("[data-ldboxsave]",function(b){b.onclick=function(){var bad=false;v.querySelectorAll("[data-bx]").forEach(function(f){if(ldSave(l,f.getAttribute("data-bx"),f.value,true)===false)bad=true;});if(!bad)state.ldBox=false;renderLead();};});
