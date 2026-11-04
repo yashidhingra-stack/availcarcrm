@@ -484,7 +484,7 @@ a.ld-link:hover,button.ld-link:hover{text-decoration:underline}
 .ld-tbl td{padding:9px 12px;border:1px solid var(--line);vertical-align:middle}
 .ld-tbl td.k{width:38%;background:var(--bg);color:var(--muted)}
 .ld-tbl .req{color:var(--bad);margin-left:1px}
-.ld-tbl .rv{display:flex;justify-content:flex-start;align-items:center;gap:8px}
+.ld-tbl .rv{display:flex;justify-content:flex-start;align-items:center;gap:8px;flex-wrap:wrap}.ld-tbl .rv .btn.sm{padding:4px 8px;font-size:12px}.ld-boxbar{min-height:28px}
 .ld-tbl .rv-click{cursor:text;border-bottom:1px dashed transparent;min-width:40px}
 .ld-tbl .rv-click:hover{border-bottom-color:var(--muted)}
 .ld-tbl textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--surface);resize:vertical}
@@ -1379,7 +1379,7 @@ function renderLeads(){
     opts.map(function(s){return '<label class="chk"><input type="checkbox" data-status="'+s+'"'+(state.sel.indexOf(s)>-1?" checked":"")+'>'+dotted(s)+s+'</label>';}).join("")+'</div></div></div>';
   h+='<div class="searchbox pw"><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
-  if(canDo("Leads","Add lead")||canDo("Leads","Import leads"))h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Add lead")?'<button class="menu-item" data-addlead>Add lead</button>':"")+(canDo("Leads","Import leads")?(key==="pdd"?'<button class="menu-item" data-importpdd>Import PDD file (CSV / Excel)</button>':"")+'<button class="menu-item" data-importcsv>Import CSV / Excel</button><button class="menu-item" data-replacecsv>Clear all and upload fresh file</button><button class="menu-item" data-clearall>Clear all data</button><button class="menu-item" data-template>Download template</button>':"")+'</div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden>';
+  if(canDo("Leads","Add lead")||canDo("Leads","Import leads"))h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Add lead")?'<button class="menu-item" data-addlead>Add lead</button>':"")+(canDo("Leads","Import leads")?(key==="pdd"?'<button class="menu-item" data-importpdd>Import PDD file (CSV / Excel)</button>':"")+'<button class="menu-item" data-importcsv>Import CSV / Excel</button><button class="menu-item" data-replacecsv>Clear all and upload fresh file</button><button class="menu-item" data-clearall>Clear all data</button>'+(canDownloadLeadCategory()?'<button class="menu-item" data-template>Download template</button>':"")+'':"")+'</div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Hold"?"Upload Hold Excel":"Upload Reject Excel")+'</button><input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
@@ -1484,9 +1484,9 @@ function renderReportCard(key){
   var csv="\ufeff"+[[first,"Files","Total amount"].concat(cfg.cols.map(function(c){return c+" amount";}))].concat(list.map(function(o){return [o.name,o.n,o.total].concat(cfg.cols.map(function(c){return o.s[c]||0;}));})).concat([["Total",tot.n,tot.total].concat(cfg.cols.map(function(c){return tot.s[c]||0;}))]).map(function(r){return r.map(q).join(",");}).join("\r\n");
   state.repCsv=csv; state.repName=cfg.slug+"-by-"+by+"-"+rg.from+"-to-"+rg.to+".xlsx";
   box.innerHTML='<h3 class="card-title">Report: '+esc(lbl)+' <small>'+tot.n+' file'+(tot.n===1?"":"s")+', '+money(tot.total)+'</small></h3>'+
-   '<div class="repbar"><div class="seg" role="group" aria-label="Group report by"><button class="seg-btn" data-reptab="owner" aria-pressed="'+(by==="owner")+'">Lead owner</button><button class="seg-btn" data-reptab="dealer" aria-pressed="'+(by==="dealer")+'">Dealer</button><button class="seg-btn" data-reptab="lender" aria-pressed="'+(by==="lender")+'">Lender</button><button class="seg-btn" data-reptab="firm" aria-pressed="'+(by==="firm")+'">Case booked in</button></div><input type="search" id="repQ" class="repq" placeholder="Search name, mobile, vehicle no., owner, dealer, lender, firm" value="'+esc(state.repQ||"")+'" aria-label="Search leads in this report" autocomplete="off"><button class="btn" id="repDl">Download Excel</button></div>'+
+   '<div class="repbar"><div class="seg" role="group" aria-label="Group report by"><button class="seg-btn" data-reptab="owner" aria-pressed="'+(by==="owner")+'">Lead owner</button><button class="seg-btn" data-reptab="dealer" aria-pressed="'+(by==="dealer")+'">Dealer</button><button class="seg-btn" data-reptab="lender" aria-pressed="'+(by==="lender")+'">Lender</button><button class="seg-btn" data-reptab="firm" aria-pressed="'+(by==="firm")+'">Case booked in</button></div><input type="search" id="repQ" class="repq" placeholder="Search name, mobile, vehicle no., owner, dealer, lender, firm" value="'+esc(state.repQ||"")+'" aria-label="Search leads in this report" autocomplete="off">'+(canDownloadLeadCategory()?'<button class="btn" id="repDl">Download Excel</button>':"")+'</div>'+
    (list.length?'<div class="repscroll"><table class="center striped" style="min-width:'+(420+cfg.cols.length*140)+'px"><thead><tr><th class="l">'+first+'</th><th>Files</th><th>Total amount</th>'+cfg.cols.map(function(c){return '<th>'+c+' amount</th>';}).join("")+'</tr></thead><tbody>'+
-     list.map(function(o){var firstCell=key==="pdd"?'<button class="name-link" data-pdd-group-download="'+by+'|'+esc(o.name)+'" title="Download Excel for '+esc(o.name)+'">'+esc(o.name)+'</button>':nameLink(by,o.name,"disb");return '<tr><td class="l">'+firstCell+'</td><td>'+o.n+'</td><td>'+money(o.total)+'</td>'+cfg.cols.map(function(c){return '<td>'+money(o.s[c]||0)+'</td>';}).join("")+'</tr>';}).join("")+
+     list.map(function(o){var firstCell=key==="pdd"?(canDownloadLeadCategory()?'<button class="name-link" data-pdd-group-download="'+by+'|'+esc(o.name)+'" title="Download Excel for '+esc(o.name)+'">'+esc(o.name)+'</button>':esc(o.name)):nameLink(by,o.name,"disb");return '<tr><td class="l">'+firstCell+'</td><td>'+o.n+'</td><td>'+money(o.total)+'</td>'+cfg.cols.map(function(c){return '<td>'+money(o.s[c]||0)+'</td>';}).join("")+'</tr>';}).join("")+
      '</tbody><tfoot><tr><td class="l"><b>Total</b></td><td><b>'+tot.n+'</b></td><td><b>'+money(tot.total)+'</b></td>'+cfg.cols.map(function(c){return '<td><b>'+money(tot.s[c]||0)+'</b></td>';}).join("")+'</tr></tfoot></table></div>':'<p class="dlnote">'+cfg.empty+'</p>')+
    (rq?(found.length?'<h4 class="card-title" style="margin-top:14px">Matching leads <small>'+found.length+(found.length>100?' (showing first 100)':'')+'</small></h4><div class="repscroll" style="max-height:340px"><table class="center striped" style="min-width:860px"><thead><tr><th class="l">Name</th><th>Mobile</th><th>Lead owner</th><th>Dealer</th><th>Lender</th><th>Case booked in</th><th>Status</th><th>Amount</th></tr></thead><tbody>'+found.slice(0,100).map(function(l){return '<tr><td class="l"><button class="name-link" data-view="'+l.id+'">'+esc(l.name)+'</button></td><td>'+esc(l.phone||"")+'</td><td>'+esc(l.owner||"Not set")+'</td><td>'+esc(l.dealer||"Not set")+'</td><td>'+esc(l.lender||"Not set")+'</td><td>'+esc(ldx(l).caseBooked||"Not set")+'</td><td>'+esc(l.status)+'</td><td>'+money(l.amount)+'</td></tr>';}).join("")+'</tbody></table></div>':'<p class="dlnote">No leads match "'+esc(state.repQ)+'".</p>'):"")+
    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Report Excel data"></textarea>';
@@ -2151,10 +2151,11 @@ function ldEditor(k,raw,kind){
   return '<input id="ldE" type="'+(kind==="num"?"number":"text")+'" value="'+esc(raw)+'" aria-label="Edit '+k+'"'+(k==="caseBooked"?' list="firmList2"><datalist id="firmList2">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist':'')+'>';
 }
 function ldRow(r){
-  var val;
-  if(state.ldBox&&r[4])val=ldEditor(r[0],r[2],r[4]).replace('id="ldE"','data-bx="'+r[0]+'"');
+  var editing=state.ldEdit===r[0], val;
+  if(editing&&r[4])val=ldEditor(r[0],r[2],r[4]).replace('id="ldE"','id="ldRowEditor"');
   else val='<span>'+esc(r[3])+(r[3]===""||r[3]==null?"&nbsp;":"")+'</span>';
-  return '<tr><td class="k">'+r[1]+'</td><td><div class="rv">'+val+'</div></td></tr>';
+  var act=editing?'<button class="btn primary sm" data-rowsave="'+esc(r[0])+'">Save</button><button class="btn sm" data-rowcancel>Cancel</button>':(r[4]?'<button class="icon-btn" data-rowedit="'+esc(r[0])+'" title="Edit '+esc(r[1])+'" aria-label="Edit '+esc(r[1])+'">'+ldi("pencil")+'</button>':"");
+  return '<tr data-edit-row="'+esc(r[0])+'"><td class="k">'+r[1]+'</td><td><div class="rv">'+val+act+'</div></td></tr>';
 }
 function ldArea(k,label,val){return '<tr><td class="k">'+label+'<span class="req">*</span></td><td><textarea data-ldarea="'+k+'" aria-label="'+label+'">'+esc(val)+'</textarea></td></tr>';}
 function ldTable(rows){return '<table class="ld-tbl"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>'+rows+'</tbody></table>';}
@@ -2251,7 +2252,7 @@ function renderDisbLead(l){
   var emailHtml=state.ldBox?bxe("email",l.email||"","text"):(l.email?'<span>'+esc(l.email)+'</span>':'&mdash;');
   var mob=state.ldBox?bxe("phone",l.phone||"","text"):(tel?'<a class="ld-link" href="tel:+91'+l.phone+'">'+esc(l.phone)+'</a>':esc(l.phone))+ldBtn('data-ldcopy="'+esc(l.phone)+'"','Copy number','copy')+
     (tel?'<a class="icon-btn" href="tel:+91'+l.phone+'" aria-label="Call" title="Call">'+ldi("phone")+'</a><a class="icon-btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">'+ldi("chat")+'</a>':'');
-  var editBar=state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
+  var editBar='';
   var h='<div class="ld-bar">'+editBar+'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
    '<div class="ld-top"><section class="ld-prof" aria-label="Lead summary"><div class="ld-who"><span class="ld-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span>'+nameHtml+'</div>'+
    '<div class="ld-ids"><div><small>Audience ID</small><span class="ld-link">'+aud+'</span></div><div><small>Lead Stage:</small>'+stageHtml+'</div></div>'+
@@ -2295,7 +2296,7 @@ function renderDisbLead(l){
       var all=A.concat(ex), half=Math.ceil(all.length/2);
       colL=all.slice(0,half).map(ldRow); colR=all.slice(half).map(ldRow);
     }
-    var boxBar='<div class="ld-boxbar">'+(state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit '+(state.ldTab==="more"?"additional details":"lead details")+'" title="Edit">'+ldi("pencil")+' Edit</button>')+'</div>';
+    var boxBar='<div class="ld-boxbar"><span class="note">Use the pencil beside a field to edit only that field.</span></div>';
     h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div></section>';
   } else if(state.ldTab==="docs"){ h+=ldDocsTab(l); } else { h+=ldFollow(l,today,tom); }
   h+='</div>';
@@ -2303,6 +2304,9 @@ function renderDisbLead(l){
   v.innerHTML=h;
   var q=function(s,fn){v.querySelectorAll(s).forEach(fn);};
   q("[data-ldtab]",function(b){b.onclick=function(){state.ldTab=b.getAttribute("data-ldtab");state.ldEdit=null;state.ldBox=false;renderLead();};});
+  q("[data-rowedit]",function(b){b.onclick=function(){state.ldEdit=b.getAttribute("data-rowedit");renderLead();var e=document.getElementById("ldRowEditor");if(e){e.focus();var row=e.closest("tr");if(row)row.scrollIntoView({behavior:"smooth",block:"center"});}};});
+  q("[data-rowsave]",function(b){b.onclick=function(){var k=b.getAttribute("data-rowsave"),e=document.getElementById("ldRowEditor");if(!e)return;if(ldSave(l,k,e.value)===false)e.focus();};});
+  q("[data-rowcancel]",function(b){b.onclick=function(){state.ldEdit=null;renderLead();};});
   q("[data-ldbox]",function(b){b.onclick=function(){state.ldBox=true;state.ldEdit=null;renderLead();};});
   q("[data-ldboxcancel]",function(b){b.onclick=function(){state.ldBox=false;renderLead();};});
   q("[data-ldboxsave]",function(b){b.onclick=function(){var bad=false;v.querySelectorAll("[data-bx]").forEach(function(f){if(ldSave(l,f.getAttribute("data-bx"),f.value,true)===false)bad=true;});if(!bad)state.ldBox=false;renderLead();};});
@@ -4031,6 +4035,7 @@ function hierGet(k){hierLoad();var c=hier[k];if(!c||typeof c!=="object")c=hier[k
 var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","Login"],["Approval Pending","Approval Pending"],["Approved","Approved"],["Hold","Hold"],["Disbursed","Disbursement"],["Rejected","Reject"],["pdd","PDD Status"]];
 var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
 function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&((r&&r.name==="Admin")||u.name==="Umesh Dhingra");}
+function canDownloadLeadCategory(){return hierIsAdmin(userById(state.meUser));}
 function isPartHold(l){return !l.cat&&["Finally Hold","Partially Hold","Approved But Hold","Postponed"].indexOf(l.status)>-1;} /* all Hold files (Finally, Partially, Approved But Hold, Postponed): visible to every user on the Hold page, whoever owns them */
 var HOLD_PEND=["Hold","Login Pending","Approval Pending"]; /* Hold (incl. Partially Hold) and pending files: always open for every user */
 function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;c=c.slice();HOLD_PEND.forEach(function(x){if(c.indexOf(x)<0)c.push(x);});return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
@@ -4360,9 +4365,9 @@ document.addEventListener("click",function(e){
   if(d.confirmgrp){var gi=+d.confirmgrp;attrGroups=attrGroups.filter(function(g){return g.id!==gi;});closeAll();renderIntegration();toast("Group deleted");return;}
   if(t.id==="apiKit"){openApiKit();return;}
   if(d.reptab){state.repTab=d.reptab;renderTable();return;}
-  if(t.id==="repDl"){saveCsv(state.repName,state.repCsv);return;}
-  if(d.pddGroupDownload!==undefined){var pddParts=String(d.pddGroupDownload).split("|");downloadPddGroupExcel(pddParts[0],pddParts.slice(1).join("|"));return;}
-  if(d.pddLenderDownload!==undefined){downloadPddGroupExcel("lender",d.pddLenderDownload);return;}
+  if(t.id==="repDl"){if(!canDownloadLeadCategory()){toast("Only Admin can download category reports");return;}saveCsv(state.repName,state.repCsv);return;}
+  if(d.pddGroupDownload!==undefined){if(!canDownloadLeadCategory()){toast("Only Admin can download category reports");return;}var pddParts=String(d.pddGroupDownload).split("|");downloadPddGroupExcel(pddParts[0],pddParts.slice(1).join("|"));return;}
+  if(d.pddLenderDownload!==undefined){if(!canDownloadLeadCategory()){toast("Only Admin can download category reports");return;}downloadPddGroupExcel("lender",d.pddLenderDownload);return;}
   if(d.sum){
     state.sel=d.sum==="all"?(CALC[pageKey()]?CALC[pageKey()].cols.slice():[]):[d.sum];
     var sc=document.querySelectorAll("[data-status]"),q2;for(q2=0;q2<sc.length;q2++)sc[q2].checked=state.sel.indexOf(sc[q2].dataset.status)>-1;
