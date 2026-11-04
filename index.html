@@ -805,13 +805,12 @@ var NAV=[
  {id:"major",label:"Major Reports",icon:"chart",kids:[]},
  {id:"dealer-details",label:"Dealer Details",icon:"db",perm:"Major Reports"},
  {id:"data",label:"Data",icon:"db",merged:true,kids:[["data/report","Leads report"],["data/analysis","Analysis"],["data/download","Download data"]]},
- {id:"report",label:"Report",icon:"chart"},
  {id:"payments",label:"Payments",icon:"card"},
  {id:"integration",label:"Custom attributes",icon:"plug",kids:[["integration/custom","Custom"]]},
  {id:"users",label:"User management",icon:"users"},
  {id:"hierarchy",label:"Hierarchy",icon:"users"},
  {id:"backup",label:"Backup",icon:"db"},
- {id:"settings",label:"Settings",icon:"sliders",kids:[["settings/general","General"],["settings/category","Category"]]},
+ {id:"settings/category",label:"Category",icon:"sliders"},
  {id:"invoice",label:"Invoice & Quotations",icon:"doc"}];
 var titles={backup:"Backup",channelwise:"Channel details","settings/category":"Category","integration/forms":"Forms","integration/marketplace":"Marketplace","integration/social":"Social media","integration/api":"API","integration/bulk":"Bulk","integration/custom":"Custom","integration/telephony":"Telephony","integration/ivr":"IVR","integration/generic":"Generic",invoice:"Invoice & Quotations",waba:"WABA",ivr:"IVR report",callassist:"Call assist",data:"Data",catalogue:"Catalogue",announcement:"Announcement",url:"URL shortener",assets:"Asset library",integration:"Custom attributes",subscription:"Subscription"};
 var blurbs={teamwise:"Team-wise business, completed and pending amounts.",leadowner:"Individual lead-owner-wise business, completed and pending amounts.",channelwise:"Dealer-wise business, completed and pending amounts.","settings/category":"Group your leads, products and campaigns into categories.","integration/forms":"Build lead capture forms and embed them on your website.","integration/marketplace":"Connect lead sources from outside marketplaces and listing sites.","integration/social":"Bring in leads from Facebook and Instagram ads.","integration/api":"Create API keys and send leads in from your own systems.","integration/bulk":"Upload many leads at once from a spreadsheet.","integration/custom":"Set up your own integration with custom fields and webhooks.","integration/telephony":"Connect your calling provider to log calls against leads.","integration/ivr":"Connect your IVR number and route callers to your team.","integration/generic":"Send leads in from any tool that can call a web link.",invoice:"Create quotations and invoices for customers and track which are paid.",waba:"Connect your WhatsApp Business account and manage message templates.",ivr:"See call volumes and outcomes from your IVR number.",callassist:"Place calls from a lead page, record the outcome and schedule the next follow-up.",data:"Import contact files and map columns to lead fields.",catalogue:"Keep your loan products, rates and eligibility rules in one place.",announcement:"Post updates that every team member sees on login.",url:"Create short, trackable links for your campaigns.",assets:"Store images, PDFs and message templates.",integration:"Manage custom attributes for your leads.",subscription:"View your plan, active contact limit and billing history."};
@@ -2716,17 +2715,17 @@ function isSharedHRLead(l,u){
   }catch(e){console.warn("Hold/Reject seed import failed",e);}
 })();
 var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;});
-var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes","Settings","Invoice & Quotations"];
+var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes","Category","Invoice & Quotations"];
 var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
 var PERM={
  "Dashboard":[["Actions",DASH_ACTS]],
  "Leads":[["Pages",["Audience","Login Business","Hold","Disbursement Business","Reject Business","PDD Status"]],["Actions",["View lead","Add lead","Import leads","Delete lead","Move to Disbursement","Move to PDD"]],["Features",["Login Business Calculator"]]],
  "Major Reports":[["Pages",["Channel List","Data","Leads report","Analysis","Download data","Staff details","Dealer details"]]],
  "Custom attributes":[["Pages",["Custom"]]],
- "Settings":[["Pages",["General","Category"]]]};
+ "Category":[["Pages",["Category"]]]};
 state.utab="roles";state.uf={role:"",status:""};state.uq="";state.userEdit=null;state.roleEdit=null;state.teamEdit=null;state.teamParent=null;state.perm={};state.permRole=1;state.permDraft={};
 function defPerm(id){
-  var set={1:["Dashboard"],2:["Dashboard","Leads","Data","Catalogue","Announcement","Campaign","Segments","Report"],3:["Dashboard","Leads","Data","Campaign","Segments","Report"],4:["Dashboard","Leads"]}[id]||["Dashboard","Leads"], o={m:{},i:{},land:"Dashboard"};
+  var set={1:["Dashboard"],2:["Dashboard","Leads","Data","Catalogue","Announcement","Campaign","Segments"],3:["Dashboard","Leads","Data","Campaign","Segments"],4:["Dashboard","Leads"]}[id]||["Dashboard","Leads"], o={m:{},i:{},land:"Dashboard"};
   if(id===13)set=MODULES.slice();
   if(set.indexOf("Leads")>-1||set.indexOf("Data")>-1)set=set.filter(function(m){return m!=="Data";}).concat(["Major Reports"]);
   MODULES.forEach(function(m){var on=set.indexOf(m)>-1;o.m[m]=on;(PERM[m]||[]).forEach(function(sec){sec[1].forEach(function(it){o.i[m+"::"+it]=on;});});});
@@ -2801,7 +2800,7 @@ function routeOk(r){
   if(r==="major/dealers")return canDo("Major Reports","Dealer details");
   if(r==="dealer-details")return canMod("Major Reports");
   if(h==="integration")return INTEG[k]?canDo("Custom attributes",INTEG[k]):canMod("Custom attributes");
-  if(h==="settings"){if(k==="general")return canDo("Settings","General");if(k==="category")return canDo("Settings","Category");return canMod("Settings");}
+  if(h==="settings"){if(k==="category")return canDo("Category","Category");return canMod("Category");}
   var n=NAV.filter(function(x){return x.id===h;})[0];
   if(!n)return false;
   return canMod(n.merged?"Major Reports":(n.perm||n.label));
@@ -2937,21 +2936,21 @@ function teamsTab(){
   return '<div class="tm-tree">'+roots.map(teamNode).join("")+'</div>';
 }
 function renderUsers(){
-  var tabs=[["roles","Roles"],["users","Users"],["perm","Permission"],["teams","Teams"]], right="";
+  var tabs=[["roles","Roles"],["users","Users"],["perm","Permission"]], right="";
   if(state.utab==="users"){
     right='<div class="tb"><span class="total" id="uTotal"></span><button class="btn" id="uAdd">'+ic("plusS")+' Add</button><button class="btn" id="uExport">Export users</button><button class="btn" id="uImport">Import users</button>'+
      '<div class="pw"><button class="btn" data-pop="ufilter" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+' <span id="ufLabel">Filter By</span></button><div class="pop r" id="pop-ufilter" hidden>'+
      '<div class="field"><label for="ufRole">Role</label><select id="ufRole"><option value="">All roles</option>'+roles.map(function(x){return '<option value="'+x.id+'"'+(+state.uf.role===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
      '<div class="field"><label for="ufStatus">Status</label><select id="ufStatus"><option value="">All</option><option value="active"'+(state.uf.status==="active"?" selected":"")+'>Active</option><option value="inactive"'+(state.uf.status==="inactive"?" selected":"")+'>Inactive</option></select></div><button class="btn" id="ufClear">Clear filters</button></div></div>'+
      '<div class="searchbox"><input type="search" id="uQ" placeholder="Search" value="'+esc(state.uq)+'" aria-label="Search users"><span class="icon-btn" aria-hidden="true">'+ic("search")+'</span></div></div>';
-  } else if(state.utab!=="perm")right='<button class="btn" id="uAdd">'+ic("plusS")+(state.utab==="teams"?" Add team":" Add")+'</button>';
+  } else if(state.utab!=="perm")right='<button class="btn" id="uAdd">'+ic("plusS")+" Add"+'</button>';
   document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><h1>User Management</h1></div>'+right+'</div>'+
    '<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.utab===t[0])+'" data-utab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div id="uBody" style="margin-top:14px"></div>';
   renderUBody();
 }
 function renderUBody(){
   var box=document.getElementById("uBody"); if(!box)return;
-  box.innerHTML=state.utab==="users"?usersTab():state.utab==="perm"?permTab():state.utab==="teams"?teamsTab():rolesTab();
+  box.innerHTML=state.utab==="users"?usersTab():state.utab==="perm"?permTab():rolesTab();
   var t=document.getElementById("uTotal"); if(t)t.textContent="Total Users: "+users.length;
   var f=document.getElementById("ufLabel"); if(f){var n=(state.uf.role?1:0)+(state.uf.status?1:0);f.textContent=n?"Filter By ("+n+")":"Filter By";}
 }
@@ -3976,18 +3975,20 @@ function renderStub(){
 }
 
 /* ---------- staff and dealer master imports ---------- */
-var MASTER_KEY="avail_crm_master_records_v1", masterData={staff:[],dealers:[]};
-try{var _md=JSON.parse(localStorage.getItem(MASTER_KEY)||"null");if(_md){masterData.staff=Array.isArray(_md.staff)?_md.staff:[];masterData.dealers=Array.isArray(_md.dealers)?_md.dealers:[];}}catch(_e){}
+var MASTER_KEY="avail_crm_master_records_v1", STAFF_DEFAULT_COLUMNS=["Staff Name","Employee ID","Mobile Number","Email","Designation","Department","Branch","Date of Joining","Address","Salary","Status","Remarks"], masterData={staff:[],dealers:[],staffColumns:STAFF_DEFAULT_COLUMNS.slice()};
+try{var _md=JSON.parse(localStorage.getItem(MASTER_KEY)||"null");if(_md){masterData.staff=Array.isArray(_md.staff)?_md.staff:[];masterData.dealers=Array.isArray(_md.dealers)?_md.dealers:[];if(Array.isArray(_md.staffColumns))masterData.staffColumns=_md.staffColumns.filter(function(c){return typeof c==="string"&&c.trim();});}}catch(_e){}
 function saveMasterData(){try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));return true;}catch(e){toast("Storage is full; records could not be saved");return false;}}
+function staffIsAdmin(){return hierIsAdmin(userById(state.meUser));}
 function renderMasterDirectory(kind){
   var staff=kind==="staff", title=staff?"Staff details":"Dealer details", key=staff?"staff":"dealers", rows=masterData[key]||[], all=[];
+  if(staff)(masterData.staffColumns||[]).forEach(function(k){if(all.indexOf(k)<0)all.push(k);});
   rows.forEach(function(r){Object.keys(r).forEach(function(k){if(all.indexOf(k)<0)all.push(k);});});
-  if(!all.length)all=staff?["Staff Name","Mobile Number","Email","Designation","Branch"]:["Dealer Name","Mobile Number","City","Address","Contact Person"];
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>'+title+'</h1><p class="note" style="margin:0">Import and maintain '+(staff?"staff":"dealer")+' records using Excel or CSV.</p></div></div><div class="tb"><span class="total">Total records: '+rows.length+'</span><button class="btn" id="masterTemplate">Download template</button><button class="btn primary" id="masterImport">'+ic("upload")+' Import</button><input type="file" id="masterFile" accept=".xlsx,.xls,.csv" hidden></div></div>';
-  h+='<div class="table-wrap"><table><thead><tr>'+all.map(function(k){return '<th>'+esc(k)+'</th>';}).join("")+'</tr></thead><tbody>';
-  if(rows.length)h+=rows.map(function(r){return '<tr>'+all.map(function(k){return '<td>'+esc(r[k]===undefined?"":String(r[k]))+'</td>';}).join("")+'</tr>';}).join("");
-  else h+='<tr><td colspan="'+all.length+'" class="empty">No '+(staff?"staff":"dealer")+' records imported yet. Click Import to upload an Excel or CSV file.</td></tr>';
-  h+='</tbody></table></div><p class="note">The first row of your file must contain column headings. Imported records are saved in this browser.</p>';
+  if(!all.length)all=staff?STAFF_DEFAULT_COLUMNS.slice():["Dealer Name","Mobile Number","City","Address","Contact Person"];
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>'+title+'</h1><p class="note" style="margin:0">'+(staff?'Manually add employees and edit every detail directly in the table.':'Import and maintain dealer records using Excel or CSV.')+'</p></div></div><div class="tb"><span class="total">Total records: '+rows.length+'</span>'+(staff?'<button class="btn" id="staffAddRow">+ Add employee</button>'+(staffIsAdmin()?'<button class="btn" id="staffAddColumn">+ Add column</button>':''):'')+'<button class="btn" id="masterTemplate">Download template</button><button class="btn primary" id="masterImport">'+ic("upload")+' Import</button><input type="file" id="masterFile" accept=".xlsx,.xls,.csv" hidden></div></div>';
+  h+='<div class="table-wrap"><table><thead><tr>'+all.map(function(k){return '<th>'+esc(k)+'</th>';}).join("")+(staff?'<th>Action</th>':'')+'</tr></thead><tbody>';
+  if(rows.length)h+=rows.map(function(r,i){return '<tr>'+all.map(function(k){return staff?'<td><input type="text" class="staff-edit-field" data-staff-index="'+i+'" data-staff-field="'+esc(k)+'" value="'+esc(r[k]===undefined?"":String(r[k]))+'" style="min-width:130px;width:100%;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text)"></td>':'<td>'+esc(r[k]===undefined?"":String(r[k]))+'</td>';}).join("")+(staff?'<td><button class="btn danger" data-staff-delete="'+i+'">Delete</button></td>':'')+'</tr>';}).join("");
+  else h+='<tr><td colspan="'+(all.length+(staff?1:0))+'" class="empty">'+(staff?'No employees added yet. Click “Add employee” to enter details manually, or Import an Excel/CSV file.':'No dealer records imported yet. Click Import to upload an Excel or CSV file.')+'</td></tr>';
+  h+='</tbody></table></div><p class="note">'+(staff?'Click any employee field and type. Every change is saved automatically in this browser. Use Add employee to create a blank employee record.':'The first row of your file must contain column headings. Imported records are saved in this browser.')+'</p>';
   document.getElementById("view").innerHTML=h;
 }
 function importMasterFile(file,kind){
@@ -3996,7 +3997,7 @@ function importMasterFile(file,kind){
   reader.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}), data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!data.length){toast("No data rows found in this file");return;}masterData[key]=data.map(function(r){var o={};Object.keys(r).forEach(function(k){o[String(k).trim()]=r[k] instanceof Date?ymd(r[k]):r[k];});return o;});if(saveMasterData()){renderMasterDirectory(key);toast(data.length+" "+(key==="staff"?"staff":"dealer")+" records imported successfully");}}catch(err){toast("Could not read this file. Please check the Excel/CSV format.");}};
   reader.readAsArrayBuffer(file);
 }
-function downloadMasterTemplate(kind){var staff=kind==="staff", cols=staff?["Staff Name","Mobile Number","Email","Designation","Branch"]:["Dealer Name","Mobile Number","City","Address","Contact Person"];if(!window.XLSX){toast("Excel template download unavailable. Please enable internet and try again.");return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([cols]),"Template");XLSX.writeFile(wb,(staff?"Staff":"Dealer")+"_Template.xlsx");}
+function downloadMasterTemplate(kind){var staff=kind==="staff", cols=staff?(masterData.staffColumns&&masterData.staffColumns.length?masterData.staffColumns:STAFF_DEFAULT_COLUMNS):["Dealer Name","Mobile Number","City","Address","Contact Person"];if(!window.XLSX){toast("Excel template download unavailable. Please enable internet and try again.");return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([cols]),"Template");XLSX.writeFile(wb,(staff?"Staff":"Dealer")+"_Template.xlsx");}
 
 /* ---------- Dealer Details spreadsheet upload, column filters and Excel export ---------- */
 var DEALER_DETAILS_KEY="avail_crm_dealer_details_v1", dealerDetailsRows=[], dealerDetailsFilters={};
@@ -4222,7 +4223,6 @@ function render(){
   else if(r==="campaign")renderCampaign();
   else if(r==="segments")renderSegments();
   else if(r==="segments/edit")renderSegForm();
-  else if(r==="report")renderReport();
   else renderStub();
   document.getElementById("mainScroll").scrollTop=0;
 }
@@ -4289,6 +4289,9 @@ document.addEventListener("click",function(e){
   if(t.hasAttribute("data-importcsv")){closePops();if(!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("csvIn").click();return;}
   if(d.bizgroup!==undefined){state.bizDetail={mode:"dealer",name:d.bizgroup};renderBusinessGroupDetails(state.bizDetail.mode,state.bizDetail.name);return;}
   if(t.hasAttribute("data-bizback")){state.bizDetail=null;render();return;}
+  if(t.id==="staffAddColumn"){if(!staffIsAdmin()){toast("Only Admin can add Staff Details columns");return;}var col=prompt("Enter the new Staff Details column name:");if(col===null)return;col=col.trim();if(!col){toast("Please enter a column name");return;}if((masterData.staffColumns||[]).some(function(c){return c.toLowerCase()===col.toLowerCase();})||masterData.staff.some(function(r){return Object.keys(r).some(function(k){return k.toLowerCase()===col.toLowerCase();});})){toast("This column already exists");return;}masterData.staffColumns=masterData.staffColumns||STAFF_DEFAULT_COLUMNS.slice();masterData.staffColumns.push(col);masterData.staff.forEach(function(r){r[col]="";});if(saveMasterData()){renderMasterDirectory("staff");toast("Column added successfully");}return;}
+  if(t.id==="staffAddRow"){var cols=(masterData.staffColumns&&masterData.staffColumns.length?masterData.staffColumns:STAFF_DEFAULT_COLUMNS);var row={};cols.forEach(function(c){row[c]="";});masterData.staff.push(row);if(saveMasterData()){renderMasterDirectory("staff");var first=document.querySelector("[data-staff-index=\""+(masterData.staff.length-1)+"\"]");if(first)first.focus();}return;}
+  if(t.hasAttribute("data-staff-delete")){var si=+t.getAttribute("data-staff-delete");if(!confirm("Delete this employee record?"))return;masterData.staff.splice(si,1);if(saveMasterData()){renderMasterDirectory("staff");toast("Employee record deleted");}return;}
   if(t.id==="masterImport"){var mf=document.getElementById("masterFile");if(mf)mf.click();return;}
   if(t.id==="masterTemplate"){downloadMasterTemplate(state.route==="major/staff"?"staff":"dealers");return;}
   if(t.id==="bizImport"){var bf=document.getElementById("bizFile");if(bf)bf.click();return;}
@@ -4539,6 +4542,7 @@ document.addEventListener("change",function(e){
 });
 document.addEventListener("input",function(e){
   var t=e.target;
+  if(t.classList&&t.classList.contains("staff-edit-field")){var si=+t.getAttribute("data-staff-index"),sf=t.getAttribute("data-staff-field");if(masterData.staff[si]){masterData.staff[si][sf]=t.value;saveMasterData();}return;}
   if(t.id==="bizQ"){state.bizQ=t.value;var pos=t.selectionStart;renderBusinessBreakdown("dealer");var nq=document.getElementById("bizQ");if(nq){nq.focus();nq.setSelectionRange(pos,pos);}return;}
    if(t.id==="uQ"){state.uq=t.value;renderUBody();return;}
   if(t.id==="segQ"){state.segQ=t.value;renderSegTable();return;}
