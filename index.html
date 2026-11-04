@@ -579,9 +579,9 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
   <form class="login-card" id="loginForm" novalidate>
     <div class="login-brand"><span class="mark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20 12 4l7 16M8.5 14h7"/></svg></span><strong id="loginBrand"></strong></div>
     <h1>Sign in</h1>
-    <p class="login-sub">Enter your email id and password. What you can see and do depends on your role's permissions.</p>
-    <label for="loginEmail">Email id</label>
-    <input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com" spellcheck="false">
+    <p class="login-sub">Enter your user name and password. What you can see and do depends on your role's permissions.</p>
+    <label for="loginEmail">User name</label>
+    <input id="loginEmail" type="text" autocomplete="username" placeholder="Your name" spellcheck="false">
     <label for="loginPass">Password</label>
     <input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
     <p class="login-err" id="loginErr" role="alert"></p>
@@ -2546,7 +2546,7 @@ var teams=[
 var userNext=17;
 var users=[["Harjot Singh",3],["Puneet Kundra",4],["Anil Gill",4],["Anu Kaushal",2],["Nitin Narula",2],["Kiranpreet Kaur",4],["Ashish",2],["Rohit Bhalla",4],["Sapna Jindal",3],["Keshav",3],["Kapil Kharb",4],["Nisha Verma",4],["Rahul Mahant",4],["Meena Arora",1],["Umesh Dhingra",13],["Ravi Bhardwaj",2]].map(function(x,i){
   var pending=x[0]==="Nisha Verma";
-  return {id:i+1,name:x[0],email:(x[0]==="Umesh Dhingra"?"admin":x[0]==="Ravi Bhardwaj"?"ravi":x[0]==="Kapil Kharb"?"kapil.kharb":x[0].toLowerCase().replace(/[^a-z]+/g,"."))+"@example.com",roleId:x[1],active:!pending,verified:!pending,ownOnly:(x[0]==="Kapil Kharb"||x[0]==="Ravi Bhardwaj")};});
+  return {id:i+1,name:x[0],email:(x[0]==="Umesh Dhingra"?"admin":x[0]==="Ravi Bhardwaj"?"ravi":x[0]==="Kapil Kharb"?"kapil.kharb":x[0].toLowerCase().replace(/[^a-z]+/g,"."))+"@example.com",roleId:x[1],active:true,verified:true,ownOnly:(x[0]==="Kapil Kharb"||x[0]==="Ravi Bhardwaj")};});
 if(owners.indexOf("Ravi Bhardwaj")<0)owners.push("Ravi Bhardwaj");
 var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;});
 var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes","Settings","Invoice & Quotations"];
@@ -2623,7 +2623,7 @@ function applyChrome(){
   var w=document.getElementById("who");
   if(w)w.innerHTML='<strong>'+esc(u.name)+'</strong><span>'+esc(r?r.name:"")+'</span>';
   var av=document.getElementById("avatar");
-  if(av){av.textContent=u.name.split(/\s+/).map(function(x){return x.charAt(0);}).join("").slice(0,2).toUpperCase();av.title=u.email;}
+  if(av){av.textContent=u.name.split(/\s+/).map(function(x){return x.charAt(0);}).join("").slice(0,2).toUpperCase();av.title=u.name;}
   b.classList.toggle("no-view",!canDo("Leads","View lead"));
   b.classList.toggle("no-del",!canDo("Leads","Delete lead"));
   var sb=document.getElementById("searchBtn");if(sb)sb.style.display=routeOk("leads/data")?"":"none";
@@ -2637,12 +2637,12 @@ function showLogin(msg){
 }
 function loginErr(m){document.getElementById("loginErr").textContent=m;document.getElementById("loginEmail").focus();return false;}
 var LOGIN_PW="1313";
-function doLogin(em,pw){
-  em=String(em||"").trim().toLowerCase();
-  if(!em)return loginErr("Enter your email id.");
-  var u=users.filter(function(x){return x.email.toLowerCase()===em;})[0];
-  if(!u)return loginErr("No user found with this email id.");
-  if(!u.verified)return loginErr("This email id isn't verified yet. Ask an admin to resend the verification link.");
+function doLogin(nm,pw){
+  nm=String(nm||"").trim().toLowerCase().replace(/\s+/g," ");
+  if(!nm)return loginErr("Enter your user name.");
+  var u=users.filter(function(x){return x.name.toLowerCase()===nm;})[0];
+  if(!u){var fm=users.filter(function(x){return hierarchyFirst(x.name)===nm;});if(fm.length===1)u=fm[0];}
+  if(!u)return loginErr("No user found with this name.");
   if(!u.active)return loginErr("This user is deactivated. Ask an admin to activate it.");
   if(!roleById(u.roleId))return loginErr("No role is assigned to this user.");
   if(String(pw||"")!==LOGIN_PW)return loginErr("Incorrect password.");
@@ -2691,13 +2691,13 @@ function usersTab(){
     if(f.role&&u.roleId!==+f.role)return false;
     if(f.status==="active"&&!u.active)return false;
     if(f.status==="inactive"&&u.active)return false;
-    return !q||(u.name+" "+u.email).toLowerCase().indexOf(q)>-1;
+    return !q||u.name.toLowerCase().indexOf(q)>-1;
   });
   if(!rows.length)return '<div class="stub"><h2>No users found</h2>Try a different search, or clear the filters.</div>';
-  return '<div class="tcard"><div class="tscroll"><table class="center striped"><thead><tr><th>Sr No.</th><th class="l">Name</th><th>Email</th><th>Role</th><th>Level</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
+  return '<div class="tcard"><div class="tscroll"><table class="center striped"><thead><tr><th>Sr No.</th><th class="l">Name</th><th>Role</th><th>Level</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
    rows.map(function(u,i){
      var r=roleById(u.roleId);
-     return '<tr><td>'+(i+1)+'</td><td class="l">'+esc(u.name)+(u.verified?"":' <button class="badge-btn" data-resend="'+u.id+'">Resend verification link</button>')+'</td><td>'+esc(u.email)+'</td><td>'+(r?esc(r.name):"")+'</td><td>'+(r?roleLevel(r):"")+'</td><td><span class="'+(u.active?"st-active":"st-inactive")+'">'+(u.active?"Active":"Inactive")+'</span></td><td><button class="icon-btn seg-edit" data-uedit="'+u.id+'" aria-label="Edit '+esc(u.name)+'">'+ic("pencil")+'</button></td></tr>';}).join("")+'</tbody></table></div></div>';
+     return '<tr><td>'+(i+1)+'</td><td class="l">'+esc(u.name)+'</td><td>'+(r?esc(r.name):"")+'</td><td>'+(r?roleLevel(r):"")+'</td><td><span class="'+(u.active?"st-active":"st-inactive")+'">'+(u.active?"Active":"Inactive")+'</span></td><td><button class="icon-btn seg-edit" data-uedit="'+u.id+'" aria-label="Edit '+esc(u.name)+'">'+ic("pencil")+'</button></td></tr>';}).join("")+'</tbody></table></div></div>';
 }
 function permTab(){
   if(!roleById(state.permRole))state.permRole=roles[0].id;
@@ -2827,7 +2827,7 @@ function openUserView(id){
   var u=userById(id); if(!u)return;
   var r=roleById(u.roleId), rt=r&&r.rt?roleById(r.rt):null, tm=teamOfMember(u.id)||teamHeadOf(u.id), n=leads.filter(function(l){return l.owner===u.name;}).length;
   var m=document.getElementById("modal");
-  m.innerHTML='<h2>'+esc(u.name)+'</h2><dl class="kv"><dt>Email</dt><dd>'+esc(u.email)+'</dd><dt>Role</dt><dd>'+(r?esc(r.name):"")+'</dd><dt>Level</dt><dd>'+(r?roleLevel(r):"")+'</dd><dt>Reports to</dt><dd>'+(rt?esc(rt.name):"No one")+'</dd><dt>Team</dt><dd>'+(tm?esc(tm.name):"None")+'</dd><dt>Status</dt><dd>'+(u.active?"Active":"Inactive")+(u.verified?"":" (email not verified)")+'</dd><dt>Leads owned</dt><dd>'+n+'</dd></dl>'+
+  m.innerHTML='<h2>'+esc(u.name)+'</h2><dl class="kv"><dt>Role</dt><dd>'+(r?esc(r.name):"")+'</dd><dt>Level</dt><dd>'+(r?roleLevel(r):"")+'</dd><dt>Reports to</dt><dd>'+(rt?esc(rt.name):"No one")+'</dd><dt>Team</dt><dd>'+(tm?esc(tm.name):"None")+'</dd><dt>Status</dt><dd>'+(u.active?"Active":"Inactive")+'</dd><dt>Leads owned</dt><dd>'+n+'</dd></dl>'+
    '<div class="actions"><button class="btn" data-uedit="'+u.id+'">Edit</button><button class="btn primary" data-close>Done</button></div>';
   m.classList.add("show");showOverlay(true);
 }
@@ -2858,18 +2858,16 @@ function openRoleDelete(id){
 function openAddUser(id){
   var u=id?users.filter(function(x){return x.id===id;})[0]:null, m=document.getElementById("modal"); state.userEdit=u?u.id:null;
   if(u){openEditUser(u,m);return;}
-  m.innerHTML='<h2>'+(u?"Edit user":"Add user")+'</h2><div class="field"><label for="uName">Full name</label><input id="uName" value="'+esc(u?u.name:"")+'"></div><div class="field"><label for="uEmail">Email</label><input id="uEmail" type="email" value="'+esc(u?u.email:"")+'"></div>'+
+  m.innerHTML='<h2>'+(u?"Edit user":"Add user")+'</h2><div class="field"><label for="uName">Full name</label><input id="uName" value="'+esc(u?u.name:"")+'"></div>'+
    '<div class="field"><label for="uRole">Role</label><select id="uRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+(u&&u.roleId===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
-   '<label class="inline-chk"><input type="checkbox" id="uActive"'+(u&&u.active?" checked":"")+'> Active</label>'+(u?"":'<p class="dlnote">New users show as unverified until they confirm their email.</p>')+
+   '<label class="inline-chk"><input type="checkbox" id="uActive"'+(u&&u.active?" checked":"")+'> Active</label>'+
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveUser">'+(u?"Save changes":"Add user")+'</button></div>';
   m.classList.add("show");showOverlay(true);document.getElementById("uName").focus();
 }
 function saveUser(){
-  var nm=document.getElementById("uName").value.trim(),em=document.getElementById("uEmail").value.trim(),rid=+document.getElementById("uRole").value,act=document.getElementById("uActive").checked,edit=state.userEdit;
-  if(!nm){document.getElementById("uName").focus();toast("Enter the user's name");return;}
-  if(em.indexOf("@")<1){document.getElementById("uEmail").focus();toast("Enter a valid email");return;}
+  var nm=document.getElementById("uName").value.trim(),rid=+document.getElementById("uRole").value,act=document.getElementById("uActive").checked,edit=state.userEdit;
+  if(!nm){document.getElementById("uName").focus();toast("Enter the user's full name");return;}
   if(users.some(function(u){return u.id!==edit&&u.name.toLowerCase()===nm.toLowerCase();})){toast("A user with this name already exists");return;}
-  if(users.some(function(u){return u.id!==edit&&u.email.toLowerCase()===em.toLowerCase();})){toast("A user with this email already exists");return;}
   if(users.some(function(u){return u.id!==edit&&hierarchyFirst(u.name)&&hierarchyFirst(u.name)===hierarchyFirst(nm);})){toast("Another user already has the first name \""+nm.split(/\s+/)[0]+"\". Use a different first name so Hierarchy access stays separate.");return;}
   if(edit){
     var u=users.filter(function(x){return x.id===edit;})[0], old=u.name;
@@ -2878,8 +2876,8 @@ function saveUser(){
       leads.forEach(function(l){if(l.owner===old)l.owner=nm;});
       segments.forEach(function(sg){sg.f.forEach(function(f){if(f.field==="owner"&&f.vals)f.vals=f.vals.map(function(v){return v===old?nm:v;});});});
     }
-    u.name=nm;u.email=em;u.roleId=rid;u.active=act;
-  } else users.push({id:userNext++,name:nm,email:em,roleId:rid,active:act,verified:state.route==="hierarchy"});
+    u.name=nm;u.roleId=rid;u.active=act;
+  } else users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true});
   state.userEdit=null;syncOwners();closeAll();if(state.route==="hierarchy")render();else renderUsers();toast(edit?"User updated":"User added");
 }
 function userPick(selected,t){
@@ -3826,7 +3824,7 @@ function renderHierarchy(){
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
     var roleSel='<select data-hrole="'+u.id+'" aria-label="Role for '+esc(u.name)+'">'+roles.map(function(x){return '<option value="'+x.id+'"'+(x.id===u.roleId?' selected':'')+'>'+esc(x.name)+'</option>';}).join("")+'</select><br><button type="button" class="btn" style="margin-top:6px" data-hperm="'+u.roleId+'">Permissions</button>';
-     h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(u.email)+'</small></td><td>'+roleSel+'</td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
+     h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td>'+roleSel+'</td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
   });
   h+='</tbody></table></div>';
   document.getElementById("view").innerHTML=h;
