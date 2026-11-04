@@ -2548,6 +2548,12 @@ var users=[["Harjot Singh",3],["Puneet Kundra",4],["Anil Gill",4],["Anu Kaushal"
   var pending=x[0]==="Nisha Verma";
   return {id:i+1,name:x[0],email:(x[0]==="Umesh Dhingra"?"admin":x[0]==="Ravi Bhardwaj"?"ravi":x[0]==="Kapil Kharb"?"kapil.kharb":x[0].toLowerCase().replace(/[^a-z]+/g,"."))+"@example.com",roleId:x[1],active:true,verified:true,ownOnly:(x[0]==="Kapil Kharb"||x[0]==="Ravi Bhardwaj")};});
 if(owners.indexOf("Ravi Bhardwaj")<0)owners.push("Ravi Bhardwaj");
+/* ---- persist users so added/edited/removed users survive a page reload ---- */
+var USERS_KEY="avail_crm_users_v1";
+function saveUsers(){try{localStorage.setItem(USERS_KEY,JSON.stringify({users:users,next:userNext}));}catch(e){}}
+(function(){try{var j=JSON.parse(localStorage.getItem(USERS_KEY)||"null");
+  if(j&&Array.isArray(j.users)&&j.users.length){users=j.users;userNext=Math.max(+j.next||0,Math.max.apply(null,users.map(function(u){return u.id;}))+1);
+    users.forEach(function(u){if(owners.indexOf(u.name)<0&&u.roleId){var r=roles.filter(function(x){return x.id===u.roleId;})[0];if(r&&r.owner)owners.push(u.name);}});}}catch(e){}})();
 var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;});
 var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes","Settings","Invoice & Quotations"];
 var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
@@ -2784,7 +2790,7 @@ function sw(id,on,label){return '<button type="button" class="sw" id="'+id+'" ro
 function openEditUser(u,m){
   m.className="modal eu";
   m.innerHTML='<div class="eu-head"><h2>Edit User ('+esc(u.name)+')</h2><button class="icon-btn" data-close aria-label="Close">'+ldi("close")+'</button></div>'+
-   '<div class="eu-body"><div class="eu-row"><button class="eu-link" id="euToggle" data-eutoggle>'+(u.active?"Deactivate User":"Activate User")+'</button>'+
+   '<div class="eu-body"><div class="eu-sel" style="margin-bottom:12px"><label for="euName" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">User name (login ID)</label><input id="euName" value="'+esc(u.name)+'" style="width:100%" spellcheck="false" autocomplete="off"></div><div class="eu-row"><button class="eu-link" id="euToggle" data-eutoggle>'+(u.active?"Deactivate User":"Activate User")+'</button>'+
    '<span class="eu-tg">Waba user: '+sw("euWaba",u.waba,"Waba user")+'</span></div>'+
    '<div class="eu-sel"><label class="sr" for="euRole" style="position:absolute;left:-9999px">Role</label><select id="euRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+(u.roleId===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
    '<div class="eu-sel"><label class="sr" for="euPlugin" style="position:absolute;left:-9999px">Plugin</label><select id="euPlugin"><option value="">Select Plugin</option>'+PLUGINS.map(function(p){return '<option'+(u.plugin===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div>'+
@@ -2798,13 +2804,24 @@ function openEditUser(u,m){
 function euUpdate(){
   var u=users.filter(function(x){return x.id===state.userEdit;})[0]; if(!u)return;
   var m=document.getElementById("modal");
+  var nm=document.getElementById("euName").value.trim().replace(/\s+/g," ");
+  if(!nm){document.getElementById("euName").focus();toast("Enter the user name");return;}
+  if(users.some(function(x){return x.id!==u.id&&x.name.toLowerCase()===nm.toLowerCase();})){toast("A user with this name already exists");return;}
+  if(users.some(function(x){return x.id!==u.id&&hierarchyFirst(x.name)&&hierarchyFirst(x.name)===hierarchyFirst(nm);})){toast("Another user already has the first name \""+nm.split(/\s+/)[0]+"\". Use a different first name.");return;}
+  var old=u.name;
+  if(old!==nm){
+    var oi=owners.indexOf(old); if(oi>-1)owners[oi]=nm;
+    leads.forEach(function(l){if(l.owner===old)l.owner=nm;});
+    segments.forEach(function(sg){sg.f.forEach(function(f){if(f.field==="owner"&&f.vals)f.vals=f.vals.map(function(v){return v===old?nm:v;});});});
+    u.name=nm;if(state.meUser===u.id)window.CRM_USER=nm;
+  }
   u.roleId=+document.getElementById("euRole").value;
   u.plugin=document.getElementById("euPlugin").value;
   u.waba=document.getElementById("euWaba").getAttribute("aria-checked")==="true";
   u.leadAssign=document.getElementById("euLead").getAttribute("aria-checked")==="true";
   u.ownOnly=document.getElementById("euOwn").getAttribute("aria-checked")==="true";
   u.active=m.dataset.active==="1";
-  state.userEdit=null;syncOwners();closeAll();renderUsers();toast("User updated");
+  state.userEdit=null;syncOwners();saveUsers();closeAll();renderUsers();toast("User updated");
 }
 function userBlock(u){
   var n=leads.filter(function(l){return l.owner===u.name;}).length;
@@ -2816,7 +2833,7 @@ function userBlock(u){
 function removeUser(u){
   var b=userBlock(u); if(b){toast(b);return false;}
   teams.forEach(function(x){var i=x.members.indexOf(u.id);if(i>-1)x.members.splice(i,1);});
-  users.splice(users.indexOf(u),1);state.userEdit=null;syncOwners();closeAll();renderUsers();toast("User removed");
+  users.splice(users.indexOf(u),1);state.userEdit=null;syncOwners();saveUsers();closeAll();renderUsers();toast("User removed");
   return true;
 }
 function euRemove(){
@@ -2860,7 +2877,7 @@ function openAddUser(id){
   if(u){openEditUser(u,m);return;}
   m.innerHTML='<h2>'+(u?"Edit user":"Add user")+'</h2><div class="field"><label for="uName">Full name</label><input id="uName" value="'+esc(u?u.name:"")+'"></div>'+
    '<div class="field"><label for="uRole">Role</label><select id="uRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+(u&&u.roleId===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
-   '<label class="inline-chk"><input type="checkbox" id="uActive"'+(u&&u.active?" checked":"")+'> Active</label>'+
+   '<label class="inline-chk"><input type="checkbox" id="uActive" checked> Active</label>'+
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveUser">'+(u?"Save changes":"Add user")+'</button></div>';
   m.classList.add("show");showOverlay(true);document.getElementById("uName").focus();
 }
@@ -2878,7 +2895,7 @@ function saveUser(){
     }
     u.name=nm;u.roleId=rid;u.active=act;
   } else users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true});
-  state.userEdit=null;syncOwners();closeAll();if(state.route==="hierarchy")render();else renderUsers();toast(edit?"User updated":"User added");
+  state.userEdit=null;syncOwners();saveUsers();closeAll();if(state.route==="hierarchy")render();else renderUsers();toast(edit?"User updated":"User added");
 }
 function userPick(selected,t){
   return '<div class="tm-pick" role="group" aria-labelledby="tmMemLbl">'+users.map(function(u){
