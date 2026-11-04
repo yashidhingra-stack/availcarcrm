@@ -997,6 +997,21 @@ function cell(l,k,i){
   if(k==="name")return '<button class="name-link" data-view="'+l.id+'">'+esc(l.name)+'</button>';
   return esc(l[k]||"");
 }
+function dealerFilterOptions(){
+  /* Keep dealer filters complete for every account and for Login, Login Business,
+     and Disbursement. The current user's visible lead scope must not trim the
+     dealer master/dropdown choices. */
+  var out=[],seen={};
+  function add(v){v=String(v==null?"":v).trim();if(!v)return;var k=v.toLowerCase();if(!seen[k]){seen[k]=1;out.push(v);}}
+  (dealers||[]).forEach(add);
+  (Array.isArray(channelMaster)?channelMaster:[]).forEach(function(d){
+    var firm=String(d.firmName||"").trim(),name=String(d.name||"").trim();
+    add(firm&&name?firm+" - "+name:(name||firm||d.dealerId||""));
+  });
+  var allRows=(typeof fullLeads==="function"?fullLeads():(leads||[]));
+  (allRows||[]).forEach(function(l){add(l.dealer);});
+  return out.sort(function(a,b){return a.localeCompare(b,undefined,{sensitivity:"base"});});
+}
 function selectField(k,label,list){
   return '<div class="field"><label for="f_'+k+'">'+label+'</label><select id="f_'+k+'" data-f="'+k+'"><option value="">All</option>'+list.map(function(o){return '<option'+(state.f[k]===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div>';
 }
@@ -1382,7 +1397,7 @@ function renderLeads(){
   h+='</div></div>';
   if(calcOn(key))h+='<div class="sumbar" id="sumbar"></div><section class="card repcard" id="repbox"></section>';
   if(!NOFILTER[key])h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'"><span id="fpLabel">Filter</span> '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
-    selectField("product","Product",products)+selectField("lender","Lender",lenderOptions())+selectField("dealer","Dealer",dealers)+selectField("owner","Lead owner",owners)+selectField("team","Team",roleNames())+selectField("year","Year",Array.from(new Set((leads||[]).map(function(l){return String(l.year||"").trim();}).filter(Boolean))).sort().reverse())+selectField("source","Source",sources)+
+    selectField("product","Product",products)+selectField("lender","Lender",lenderOptions())+selectField("dealer","Dealer",dealerFilterOptions())+selectField("owner","Lead owner",owners)+selectField("team","Team",roleNames())+selectField("year","Year",Array.from(new Set((leads||[]).map(function(l){return String(l.year||"").trim();}).filter(Boolean))).sort().reverse())+selectField("source","Source",sources)+
     (key==="Disbursed"?"":'<div class="field"><label for="f_min">Loan amount from (₹)</label><input type="number" id="f_min" data-f="min" min="0" step="50000" value="'+esc(state.f.min)+'"></div>'+
     '<div class="field"><label for="f_max">Loan amount to (₹)</label><input type="number" id="f_max" data-f="max" min="0" step="50000" value="'+esc(state.f.max)+'"></div>')+
     '<div class="field"><button class="btn" data-clearf>Clear filters</button></div></div></section>';
