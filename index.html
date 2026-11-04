@@ -1421,6 +1421,23 @@ function calcValue(l,cfg){return cfg.field==="pddSt"?pddSt(l):l.status;}
 function calcRows(key){var cfg=CALC[key],r=leadRows(key,true);return cfg?r.filter(function(l){return cfg.cols.indexOf(calcValue(l,cfg))>-1;}):r;}
 function pbLabel(kind,key){return kind==="all"?CALC[key].total:kind;}
 function sumAmt(a){return a.reduce(function(x,l){return x+l.amount;},0);}
+function downloadPddGroupExcel(kind,value){
+  if(!window.XLSX){toast("Excel download unavailable. Please enable internet and try again.");return;}
+  var field=kind==="firm"?function(l){return ldx(l).caseBooked||"Not set";}:function(l){return l[kind]||"Not set";};
+  var rows=calcRows("pdd").filter(function(l){return String(field(l))===String(value);});
+  if(!rows.length){toast("No PDD files found for this "+(PKIND[kind]||kind)+" in the selected filters.");return;}
+  var data=rows.map(function(l){return {
+    "Customer Name":l.name||"", "Mobile":l.phone||"", "Lead Owner":l.owner||"", "Dealer":l.dealer||"",
+    "Lender":l.lender||"", "Case Booked In":ldx(l).caseBooked||"", "Vehicle":l.vehicle||"", "Vehicle Number":l.reg||"", "Loan Amount":l.amount||0,
+    "Product":l.product||"", "Lead Status":l.status||"", "PDD Status":l.pdd||"", "PDD Stage":pddSt(l),
+    "Disbursement Date":l.date||"", "Latest Remarks":leadRemarkText(l), "Follow-up Notes":(Array.isArray(l.fu)?l.fu:[]).map(function(f){return [f.date||"",f.text||"",f.done?"Done":"Pending"].join(" - ");}).join(" | ")
+  };});
+  var wb=XLSX.utils.book_new(),ws=XLSX.utils.json_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb,ws,"PDD - "+String(value).slice(0,20));
+  var safe=String(value||"Not_set").replace(/[^a-z0-9_-]+/gi,"_");
+  XLSX.writeFile(wb,"PDD_"+kind+"_"+safe+"_"+getRange("pdd").from+"_to_"+getRange("pdd").to+".xlsx");
+  toast("Excel download started for "+value);
+}
 function renderReportCard(key){
   var box=document.getElementById("repbox"), cfg=CALC[key]; if(!box||!cfg)return;
   var rows=calcRows(key), by=state.repTab, map={}, rq=(state.repQ||"").trim().toLowerCase();
@@ -1440,7 +1457,7 @@ function renderReportCard(key){
   box.innerHTML='<h3 class="card-title">Report: '+esc(lbl)+' <small>'+tot.n+' file'+(tot.n===1?"":"s")+', '+money(tot.total)+'</small></h3>'+
    '<div class="repbar"><div class="seg" role="group" aria-label="Group report by"><button class="seg-btn" data-reptab="owner" aria-pressed="'+(by==="owner")+'">Lead owner</button><button class="seg-btn" data-reptab="dealer" aria-pressed="'+(by==="dealer")+'">Dealer</button><button class="seg-btn" data-reptab="lender" aria-pressed="'+(by==="lender")+'">Lender</button><button class="seg-btn" data-reptab="firm" aria-pressed="'+(by==="firm")+'">Case booked in</button></div><input type="search" id="repQ" class="repq" placeholder="Search name, mobile, vehicle no., owner, dealer, lender, firm" value="'+esc(state.repQ||"")+'" aria-label="Search leads in this report" autocomplete="off"><button class="btn" id="repDl">Download Excel</button></div>'+
    (list.length?'<div class="repscroll"><table class="center striped" style="min-width:'+(420+cfg.cols.length*140)+'px"><thead><tr><th class="l">'+first+'</th><th>Files</th><th>Total amount</th>'+cfg.cols.map(function(c){return '<th>'+c+' amount</th>';}).join("")+'</tr></thead><tbody>'+
-     list.map(function(o){return '<tr><td class="l">'+nameLink(by,o.name,"disb")+'</td><td>'+o.n+'</td><td>'+money(o.total)+'</td>'+cfg.cols.map(function(c){return '<td>'+money(o.s[c]||0)+'</td>';}).join("")+'</tr>';}).join("")+
+     list.map(function(o){var firstCell=key==="pdd"?'<button class="name-link" data-pdd-group-download="'+by+'|'+esc(o.name)+'" title="Download Excel for '+esc(o.name)+'">'+esc(o.name)+'</button>':nameLink(by,o.name,"disb");return '<tr><td class="l">'+firstCell+'</td><td>'+o.n+'</td><td>'+money(o.total)+'</td>'+cfg.cols.map(function(c){return '<td>'+money(o.s[c]||0)+'</td>';}).join("")+'</tr>';}).join("")+
      '</tbody><tfoot><tr><td class="l"><b>Total</b></td><td><b>'+tot.n+'</b></td><td><b>'+money(tot.total)+'</b></td>'+cfg.cols.map(function(c){return '<td><b>'+money(tot.s[c]||0)+'</b></td>';}).join("")+'</tr></tfoot></table></div>':'<p class="dlnote">'+cfg.empty+'</p>')+
    (rq?(found.length?'<h4 class="card-title" style="margin-top:14px">Matching leads <small>'+found.length+(found.length>100?' (showing first 100)':'')+'</small></h4><div class="repscroll" style="max-height:340px"><table class="center striped" style="min-width:860px"><thead><tr><th class="l">Name</th><th>Mobile</th><th>Lead owner</th><th>Dealer</th><th>Lender</th><th>Case booked in</th><th>Status</th><th>Amount</th></tr></thead><tbody>'+found.slice(0,100).map(function(l){return '<tr><td class="l"><button class="name-link" data-view="'+l.id+'">'+esc(l.name)+'</button></td><td>'+esc(l.phone||"")+'</td><td>'+esc(l.owner||"Not set")+'</td><td>'+esc(l.dealer||"Not set")+'</td><td>'+esc(l.lender||"Not set")+'</td><td>'+esc(ldx(l).caseBooked||"Not set")+'</td><td>'+esc(l.status)+'</td><td>'+money(l.amount)+'</td></tr>';}).join("")+'</tbody></table></div>':'<p class="dlnote">No leads match "'+esc(state.repQ)+'".</p>'):"")+
    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Report Excel data"></textarea>';
@@ -2075,11 +2092,11 @@ function ldSave(l,k,val,q){
     if(val!==String(cxo[ck]||"")){cxo[ck]=val;l.hist.unshift({ts:stamp(),text:(ca?ca.label:ck)+" updated",type:"system"});toast("Saved");}
     rl();return;
   }
-  var x=ldx(l), names={phone:"Mobile",lender:"Lender",prevOwner:"Previous lead owner",mgr:"Reporting manager",name:"Name",email:"Email",owner:"Lead owner",bankExec:"Bank Executive",caseBooked:"Case booked in",dob:"DOB",dealer:"Dealer",rtoSet:"RTO Set Status",amount:"Loan amount",product:"Product",vehicle:"Vehicle",reg:"Vehicle number",source:"Lead source"};
+  var x=ldx(l), names={phone:"Mobile",lender:"Lender",prevOwner:"Previous lead owner",mgr:"Reporting manager",name:"Name",email:"Email",owner:"Lead owner",year:"Year of manufacturing",bankExec:"Bank Executive",caseBooked:"Case booked in",dob:"DOB",dealer:"Dealer",rtoSet:"RTO Set Status",amount:"Loan amount",product:"Product",vehicle:"Vehicle",reg:"Vehicle number",source:"Lead source"};
   if(k==="status"){state.ldEdit=null;if(val&&val!==l.status)changeStatus(val);else rl();return;}
   if(k==="name"&&!val){toast("Enter a name");return false;}
   if(k==="phone"){val=val.replace(/[\s\-()]/g,"");if(!/^\+?\d{10,13}$/.test(val)){toast("Enter a valid mobile number (10 digits)");return false;}}
-  var inL={phone:1,name:1,email:1,owner:1,dealer:1,amount:1,product:1,vehicle:1,reg:1,source:1,lender:1}[k];
+  var inL={year:1,phone:1,name:1,email:1,owner:1,dealer:1,amount:1,product:1,vehicle:1,reg:1,source:1,lender:1}[k];
   if(k==="rtoSet"){l.px=l.px||{};}
   var old=inL?l[k]:(k==="rtoSet"?l.px.rtoSet:x[k]);
   if(k==="amount")val=+val||0;
@@ -2180,10 +2197,10 @@ function renderDisbLead(l){
     var LG=leadGroups(l), seen={}, nk=function(t){return String(t).toLowerCase().replace(/<[^>]*>/g,"").replace(/[^a-z0-9]/g,"");};
     var colL, colR;
     if(state.ldTab==="details"){
-      var L=[["bankExec","Bank Executive",x.bankExec,x.bankExec,"text"],["caseBooked","Case booked in",x.caseBooked,x.caseBooked,"text"],["dob","DOB",x.dob,x.dob,"text"],
+      var L=[["owner","Lead Owner",l.owner,l.owner,"owner"],["bankExec","Bank Executive",x.bankExec,x.bankExec,"text"],["caseBooked","Case booked in",x.caseBooked,x.caseBooked,"text"],["dob","DOB",x.dob,x.dob,"text"],
              ["dealer","Dealer Name",l.dealer,"["+(l.dealer||"Direct Source Banker")+"]","dealer"],["entry","Entry Date",l.ts,l.ts,null],["count","Lead Count",1,"1",null],
              ["fdate","Lead Follow Date",fdt,fdt,null],["lfd","Lead Last Follow Date","",nf?nf.date+"T12:00:00.000Z":"—",null]];
-      var R=[["amount","Loan Amount",l.amount,l.amount,"num"],["rtoSet","RTO Set Status",(l.px||{}).rtoSet||"",(l.px||{}).rtoSet||"—","text"]], Rb=[["prevOwner","Previous Lead Owner",x.prevOwner||"",x.prevOwner,"text"],["product","Product",l.product,"["+l.product+"]","product"]], Rc=[["mgr","Reporting Manager",x.mgr||"",x.mgr,"text"]];
+      var R=[["amount","Loan Amount",l.amount,l.amount,"num"],["rtoSet","RTO Set Status",(l.px||{}).rtoSet||"",(l.px||{}).rtoSet||"—","text"]], Rb=[["prevOwner","Previous Lead Owner",x.prevOwner||"",x.prevOwner,"text"],["product","Product",l.product,"["+l.product+"]","product"],["year","Year of Manufacturing",l.year||"",l.year||"—","text"]], Rc=[["mgr","Reporting Manager",x.mgr||"",x.mgr,"text"]];
       colL=L.map(function(r){return ldRow(r);});
       colR=[R.map(ldRow).join("")];
       if(l.stage==="Disbursed")colR.push(ldArea("net","Net Disbursement To Client",x.net));
@@ -2195,7 +2212,7 @@ function renderDisbLead(l){
       if(l.stage==="Disbursed")A.push(["pdd","PDD status","",l.pdd,null]);
       /* names already shown in Lead Details or in the lead header: never repeated */
       ["bankexecutive","casebookedin","dob","dealername","entrydate","leadcount","leadfollowdate","leadlastfollowdate","vehicle","vehiclenumber","loanamount","netdisbursementtoclient","previousleadowner","product","rtochargestocustomer","reportingmanager","lender","pddstatus",
-       "dealer","amount","leadowner","owner","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec"].forEach(function(k){seen[k]=1;});
+       "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec"].forEach(function(k){seen[k]=1;});
       var ex=[];
       LG.forEach(function(G){G.attrs.forEach(function(a){var k=nk(a.label);if(seen[k]||seen["cx"+a.key])return;seen[k]=1;seen["cx"+a.key]=1;ex.push(cxRow(l,a));});});
       var all=A.concat(ex), half=Math.ceil(all.length/2);
@@ -4058,6 +4075,8 @@ document.addEventListener("click",function(e){
   if(t.id==="apiKit"){openApiKit();return;}
   if(d.reptab){state.repTab=d.reptab;renderTable();return;}
   if(t.id==="repDl"){saveCsv(state.repName,state.repCsv);return;}
+  if(d.pddGroupDownload!==undefined){var pddParts=String(d.pddGroupDownload).split("|");downloadPddGroupExcel(pddParts[0],pddParts.slice(1).join("|"));return;}
+  if(d.pddLenderDownload!==undefined){downloadPddGroupExcel("lender",d.pddLenderDownload);return;}
   if(d.sum){
     state.sel=d.sum==="all"?(CALC[pageKey()]?CALC[pageKey()].cols.slice():[]):[d.sum];
     var sc=document.querySelectorAll("[data-status]"),q2;for(q2=0;q2<sc.length;q2++)sc[q2].checked=state.sel.indexOf(sc[q2].dataset.status)>-1;
