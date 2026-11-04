@@ -586,7 +586,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
     <input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
     <p class="login-err" id="loginErr" role="alert"></p>
     <button class="btn primary login-btn" type="submit">Sign in</button>
-    <p class="login-powered" style="margin-bottom:0">Build: users-fix-7</p><p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
+    <p class="login-powered" style="margin-bottom:0">Build: users-hold-assign-8</p><p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
   </form>
 </div>
 
@@ -796,6 +796,7 @@ var NAV=[
  {id:"dashboard",label:"Dashboard",icon:"grid"},
  {id:"leads",label:"Leads",icon:"users",kids:[["leads/Audience","Audience"],["leads/Login","Login business"],["leads/Hold","Hold"],["leads/Disbursed","Disbursement business"],["leads/Rejected","Reject business"],["leads/pdd","PDD status"],["leads/data","Data"]]},
  {id:"major",label:"Major Reports",icon:"chart",kids:[]},
+ {id:"dealer-details",label:"Dealer Details",icon:"db",perm:"Major Reports"},
  {id:"data",label:"Data",icon:"db",merged:true,kids:[["data/report","Leads report"],["data/analysis","Analysis"],["data/download","Download data"]]},
  {id:"report",label:"Report",icon:"chart"},
  {id:"payments",label:"Payments",icon:"card"},
@@ -813,9 +814,9 @@ function renderNav(){
   var dataKids=NAV.filter(function(x){return x.id==="data";})[0].kids;
   NAV.forEach(function(n){
     if(n.merged)return;
-    if(!canMod(n.label))return;
+    if(!canMod(n.perm||n.label))return;
     var LEADS_MAIN=["Audience","Login","Hold","Disbursed","Rejected","pdd"];
-    var kids=n.id==="leads"?LEADS_MAIN.map(function(k){return ["leads/"+k,catName(k)];}):n.id==="major"?catKids().filter(function(k){return LEADS_MAIN.indexOf(k[0].slice(6))<0;}).concat(dataKids).concat([["major/staff","Staff details"],["major/dealers","Dealer details"]]):n.kids;
+    var kids=n.id==="leads"?LEADS_MAIN.map(function(k){return ["leads/"+k,catName(k)];}):n.id==="major"?catKids().filter(function(k){return LEADS_MAIN.indexOf(k[0].slice(6))<0;}).concat(dataKids).concat([["major/staff","Staff details"]]):n.kids;
     if(kids){kids=kids.filter(function(k){return routeOk(k[0]);});if(!kids.length)return;}
     if(kids){
       var open=state.open[n.id]||cur.indexOf(n.id+"/")===0||kids.some(function(k){return k[0]===cur;});
@@ -2623,7 +2624,13 @@ var INTEG={forms:"Forms",marketplace:"Marketplace",social:"Social Media",api:"AP
 var CH_ACT={"Push notification":"Create Push","SMS campaign":"Create SMS","Email campaign":"Create Email","WhatsApp campaign":"Create Whatsapp","In-app notification":"In-App Campaign","Journey campaign":"Create Journey","Auto call campaign":"IVR Campaign"};
 function canChannel(i){return canDo("Dashboard",CH_ACT[channels[i][0]]);}
 function routeOk(r){
-  var h=r.split("/")[0],k=r.split("/")[1];
+  var h=r.split("/")[0],k=r.split("/")[1],cu=userById(state.meUser);
+  if(cu&&cu.holdOnly&&!hierIsAdmin(cu)){
+    if(r==="dashboard")return canMod("Dashboard");
+    if(r==="leads/Hold")return canDo("Leads","Hold");
+    if(h==="lead"){var target=leads.filter(function(x){return String(x.id)===String(k);})[0];return !!target&&isPartHold(target)&&(cu.holdLeadIds||[]).map(String).indexOf(String(target.id))>-1&&canDo("Leads","View lead");}
+    return false;
+  }
   if(r==="dashboard")return canMod("Dashboard");
   if(r==="channelwise"||r==="leads/channel")return canDo("Major Reports","Channel List");
   if(h==="lead")return canDo("Leads","View lead");
@@ -2638,6 +2645,7 @@ function routeOk(r){
   if(r==="data/download")return canDo("Major Reports","Download data");
   if(r==="major/staff")return canDo("Major Reports","Staff details");
   if(r==="major/dealers")return canDo("Major Reports","Dealer details");
+  if(r==="dealer-details")return canMod("Major Reports");
   if(h==="integration")return INTEG[k]?canDo("Custom attributes",INTEG[k]):canMod("Custom attributes");
   if(h==="settings"){if(k==="general")return canDo("Settings","General");if(k==="category")return canDo("Settings","Category");return canMod("Settings");}
   var n=NAV.filter(function(x){return x.id===h;})[0];
@@ -2647,11 +2655,14 @@ function routeOk(r){
 function modRoutes(n){
   if(n.id==="leads")return ["Audience","Login","Hold","Disbursed","Rejected","pdd"].map(function(k){return "leads/"+k;});
   if(n.id==="major")return ["leads/channel","leads/data","data/report","data/analysis","data/download","major/staff","major/dealers"];
+  if(n.id==="dealer-details")return ["dealer-details"];
   if(n.kids&&n.kids.length)return n.kids.map(function(k){return k[0];});
   return [n.id];
 }
 function firstOk(n){var rs=modRoutes(n),i;for(i=0;i<rs.length;i++)if(routeOk(rs[i]))return rs[i];return null;}
 function landingRoute(){
+  var cu=userById(state.meUser);
+  if(cu&&cu.holdOnly&&!hierIsAdmin(cu))return routeOk("leads/Hold")?"leads/Hold":"dashboard";
   var p=permNow();if(!p)return null;
   var pref=NAV.filter(function(n){return !n.merged&&n.label===p.land&&canMod(n.label);})[0];
   var r=pref?firstOk(pref):null;if(r)return r;
@@ -2685,7 +2696,7 @@ function doLogin(nm,pw){
   if(!u)return loginErr("No user found with this name.");
   if(!u.active)return loginErr("This user is deactivated. Ask an admin to activate it.");
   if(!roleById(u.roleId))return loginErr("No role is assigned to this user.");
-  if(String(pw||"")!==LOGIN_PW)return loginErr("Incorrect password.");
+  if(String(pw||"")!==String(u.password||LOGIN_PW))return loginErr("Incorrect password.");
   signIn(u);return true;
 }
 function signIn(u){
@@ -2737,7 +2748,7 @@ function usersTab(){
   return '<div class="tcard"><div class="tscroll"><table class="center striped"><thead><tr><th>Sr No.</th><th class="l">Name</th><th>Role</th><th>Level</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
    rows.map(function(u,i){
      var r=roleById(u.roleId);
-     return '<tr><td>'+(i+1)+'</td><td class="l">'+esc(u.name)+'</td><td>'+(r?esc(r.name):"")+'</td><td>'+(r?roleLevel(r):"")+'</td><td><span class="'+(u.active?"st-active":"st-inactive")+'">'+(u.active?"Active":"Inactive")+'</span></td><td><button class="icon-btn seg-edit" data-uedit="'+u.id+'" aria-label="Edit '+esc(u.name)+'">'+ic("pencil")+'</button></td></tr>';}).join("")+'</tbody></table></div></div>';
+     return '<tr><td>'+(i+1)+'</td><td class="l">'+esc(u.name)+'</td><td>'+(r?esc(r.name):"")+'</td><td>'+(r?roleLevel(r):"")+'</td><td><span class="'+(u.active?"st-active":"st-inactive")+'">'+(u.active?"Active":"Inactive")+'</span></td><td><button class="icon-btn seg-edit" data-uedit="'+u.id+'" aria-label="Edit '+esc(u.name)+'">'+ic("pencil")+'</button><button class="icon-btn seg-del" data-udel="'+u.id+'" aria-label="Remove '+esc(u.name)+'">'+ic("trash")+'</button></td></tr>';}).join("")+'</tbody></table></div></div>';
 }
 function permTab(){
   if(!roleById(state.permRole))state.permRole=roles[0].id;
@@ -2827,8 +2838,12 @@ function openEditUser(u,m){
    '<div class="eu-body"><div class="eu-sel" style="margin-bottom:12px"><label for="euName" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">User name (login ID)</label><input id="euName" value="'+esc(u.name)+'" style="width:100%" spellcheck="false" autocomplete="off"></div><div class="eu-row"><button class="eu-link" id="euToggle" data-eutoggle>'+(u.active?"Deactivate User":"Activate User")+'</button>'+
    '<span class="eu-tg">Waba user: '+sw("euWaba",u.waba,"Waba user")+'</span></div>'+
    '<div class="eu-sel"><label class="sr" for="euRole" style="position:absolute;left:-9999px">Role</label><select id="euRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+(u.roleId===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
+   '<div class="eu-sel"><label for="euPassword" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Login password</label><input id="euPassword" type="text" value="'+esc(u.password||LOGIN_PW)+'" style="width:100%" autocomplete="off"></div>'+
    '<div class="eu-sel"><label class="sr" for="euPlugin" style="position:absolute;left:-9999px">Plugin</label><select id="euPlugin"><option value="">Select Plugin</option>'+PLUGINS.map(function(p){return '<option'+(u.plugin===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div>'+
    '<div class="eu-row" style="margin-top:14px"><span class="eu-tg">Own leads only: '+sw("euOwn",!!u.ownOnly,"Own leads only")+'</span></div>'+
+   '<div class="eu-sel"><label class="inline-chk"><input type="checkbox" id="euHoldOnly"'+(u.holdOnly?" checked":"")+'> Hold leads only</label><label for="euHoldLeads" style="display:block;font-size:12px;color:var(--muted);margin:5px 0">Assign Hold leads (select one or more)</label><select id="euHoldLeads" multiple size="7" style="width:100%;min-height:150px">'+
+   leads.filter(function(l){return isPartHold(l);}).sort(function(a,b){return String(a.name).localeCompare(String(b.name));}).map(function(l){return '<option value="'+l.id+'"'+((u.holdLeadIds||[]).map(String).indexOf(String(l.id))>-1?" selected":"")+'>'+esc(l.name)+' · '+esc(l.phone)+' · '+esc(l.status)+' · #'+l.id+'</option>';}).join("")+
+   '</select><small style="color:var(--muted)">Use Ctrl (Windows) to select multiple leads. Hold-only users can see only these assigned files.</small></div>'+
    '<div class="eu-row" style="margin-top:18px"><button class="eu-link" data-euremove>Remove User</button>'+
    '<span class="eu-tg">Lead Assignment: '+sw("euLead",u.leadAssign!==false,"Lead assignment")+'</span>'+
    '<button class="eu-link" style="color:var(--ink)" id="euUpdate" data-euupdate>Update</button></div></div>';
@@ -2850,6 +2865,9 @@ function euUpdate(){
     u.name=nm;if(state.meUser===u.id)window.CRM_USER=nm;
   }
   u.roleId=+document.getElementById("euRole").value;
+  u.password=(document.getElementById("euPassword").value||LOGIN_PW);
+  u.holdOnly=document.getElementById("euHoldOnly").checked;
+  u.holdLeadIds=[].slice.call(document.getElementById("euHoldLeads").selectedOptions).map(function(o){return +o.value;});
   u.plugin=document.getElementById("euPlugin").value;
   u.waba=document.getElementById("euWaba").getAttribute("aria-checked")==="true";
   u.leadAssign=document.getElementById("euLead").getAttribute("aria-checked")==="true";
@@ -2886,14 +2904,23 @@ function userBlock(u){
   return "";
 }
 function removeUser(u){
-  var b=userBlock(u); if(b){toast(b);return false;}
-  teams.forEach(function(x){var i=x.members.indexOf(u.id);if(i>-1)x.members.splice(i,1);});
-  usersGone.push(uKey(u.name));users.splice(users.indexOf(u),1);state.userEdit=null;syncOwners();saveUsers();closeAll();renderUsers();toast("User removed");
+  if(!u)return false;
+  var rr=roleById(u.roleId);
+  if(rr&&rr.name==="Admin"){toast("The Admin account cannot be removed here.");return false;}
+  var admin=users.filter(function(x){var r=roleById(x.roleId);return r&&r.name==="Admin";})[0]||users.filter(function(x){return x.name==="Umesh Dhingra";})[0];
+  var newOwner=admin?admin.name:"Unassigned";
+  leads.forEach(function(l){if(l.owner===u.name)l.owner=newOwner;});
+  teams.forEach(function(x){
+    var i=x.members.indexOf(u.id);if(i>-1)x.members.splice(i,1);
+    if(x.head===u.id)x.head=admin?admin.id:0;
+  });
+  usersGone.push(uKey(u.name));users.splice(users.indexOf(u),1);
+  state.userEdit=null;syncOwners();saveUsers();saveLeads();closeAll();renderUsers();toast("User removed; their leads were reassigned to "+newOwner);
   return true;
 }
 function euRemove(){
   var u=users.filter(function(x){return x.id===state.userEdit;})[0]; if(!u)return;
-  removeUser(u);
+  closeAll();openUserDelete(u.id);
 }
 function openUserView(id){
   var u=userById(id); if(!u)return;
@@ -2905,9 +2932,9 @@ function openUserView(id){
 }
 function openUserDelete(id){
   var u=userById(id); if(!u)return;
-  var b=userBlock(u); if(b){toast(b);return;}
   var m=document.getElementById("modal");
-  m.innerHTML='<h2>Delete user?</h2><p>'+esc(u.name)+' will be removed from the team and can no longer sign in.</p><div class="actions"><button class="btn" data-close>Keep user</button><button class="btn primary" data-confirmudel="'+u.id+'">Delete user</button></div>';
+  var owned=leads.filter(function(l){return l.owner===u.name;}).length;
+  m.innerHTML='<h2>Remove user?</h2><p>'+esc(u.name)+' will no longer be able to sign in. '+(owned?owned+' owned lead(s) will be reassigned to the Admin account. ':'')+'This action cannot be undone.</p><div class="actions"><button class="btn" data-close>Keep user</button><button class="btn primary" data-confirmudel="'+u.id+'">Delete user</button></div>';
   m.classList.add("show");showOverlay(true);
 }
 function openRoleView(id){
@@ -2930,14 +2957,17 @@ function openRoleDelete(id){
 function openAddUser(id){
   var u=id?users.filter(function(x){return x.id===id;})[0]:null, m=document.getElementById("modal"); state.userEdit=u?u.id:null;
   if(u){openEditUser(u,m);return;}
-  m.innerHTML='<h2>'+(u?"Edit user":"Add user")+'</h2><div class="field"><label for="uName">Full name</label><input id="uName" value="'+esc(u?u.name:"")+'"></div>'+
-   '<div class="field"><label for="uRole">Role</label><select id="uRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+(u&&u.roleId===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
+  m.innerHTML='<h2>'+(u?"Edit user":"Add user")+'</h2><div class="field"><label for="uName">Full name (login ID)</label><input id="uName" value="'+esc(u?u.name:"")+'"></div>'+
+   '<div class="field"><label for="uRole">Role</label><select id="uRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+((u&&u.roleId===x.id)||(!u&&x.id===4)?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
+   '<div class="field"><label for="uPassword">Login password</label><input id="uPassword" type="text" value="'+esc(u?(u.password||LOGIN_PW):LOGIN_PW)+'" autocomplete="off"></div>'+
    '<label class="inline-chk"><input type="checkbox" id="uActive" checked> Active</label>'+
+   '<label class="inline-chk"><input type="checkbox" id="uHoldOnly"'+(u? (u.holdOnly?" checked":""):" checked")+' > Hold leads only (admin assigns leads)</label>'+
+   '<p class="note">New users can sign in with their login ID and password. Default password is 1313; change it here if required.</p>'+
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveUser">'+(u?"Save changes":"Add user")+'</button></div>';
   m.classList.add("show");showOverlay(true);document.getElementById("uName").focus();
 }
 function saveUser(){
-  var nm=document.getElementById("uName").value.trim().replace(/\s+/g," "),rid=+document.getElementById("uRole").value,act=document.getElementById("uActive").checked,edit=state.userEdit;
+  var nm=document.getElementById("uName").value.trim().replace(/\s+/g," "),rid=+document.getElementById("uRole").value,act=document.getElementById("uActive").checked,edit=state.userEdit,pw=(document.getElementById("uPassword").value||LOGIN_PW),holdOnly=document.getElementById("uHoldOnly").checked;
   if(!nm){document.getElementById("uName").focus();toast("Enter the user's full name");return;}
   if(users.some(function(u){return u.id!==edit&&u.name.toLowerCase()===nm.toLowerCase();})){toast("A user with this name already exists");return;}
   if(users.some(function(u){return u.id!==edit&&hierarchyFirst(u.name)&&hierarchyFirst(u.name)===hierarchyFirst(nm);})){toast("Another user already has the first name \""+nm.split(/\s+/)[0]+"\". Use a different first name so Hierarchy access stays separate.");return;}
@@ -2948,8 +2978,9 @@ function saveUser(){
       leads.forEach(function(l){if(l.owner===old)l.owner=nm;});
       segments.forEach(function(sg){sg.f.forEach(function(f){if(f.field==="owner"&&f.vals)f.vals=f.vals.map(function(v){return v===old?nm:v;});});});
     }
-    u.name=nm;u.roleId=rid;u.active=act;
-  } else {usersGone=usersGone.filter(function(g){return g!==uKey(nm);});users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true});}
+    u.name=nm;u.roleId=rid;u.active=act;u.password=pw;u.holdOnly=holdOnly;
+    if(!Array.isArray(u.holdLeadIds))u.holdLeadIds=[];
+  } else {usersGone=usersGone.filter(function(g){return g!==uKey(nm);});users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true,password:pw,holdOnly:holdOnly,holdLeadIds:[]});}
   state.userEdit=null;syncOwners();saveUsers();closeAll();if(state.route==="hierarchy")render();else renderUsers();toast(edit?"User updated":"User added");
 }
 function userPick(selected,t){
@@ -3285,7 +3316,7 @@ var MAXCAT=15, catNext=20;
 var cats=[[1,"Audience","Audience"],[2,"Login Business","Login"],[3,"Hold","Hold"],[4,"Disbursement Business","Disbursed"],[5,"Reject Business","Rejected"],[6,"Channel List","channel"],[7,"PDD Status","pdd"],[8,"Data","data"]]
   .map(function(x){return {id:x[0],name:x[1],key:x[2],built:true};});
 state.catEdit=null;
-function catKids(){return cats.map(function(c){return ["leads/"+c.key,c.name];});}
+function catKids(){return cats.map(function(c){return ["leads/"+c.key,c.key==="channel"?"Business Reports":c.name];});}
 function catName(key){var c=cats.filter(function(x){return x.key===key;})[0];return c?c.name:"";}
 function catById(id){return cats.filter(function(c){return c.id===id;})[0];}
 function catCfg(c){if(!c.users)c.users=users.map(function(u){return u.id;});if(!c.rep)c.rep="sticky";return c;}
@@ -3813,6 +3844,25 @@ function importMasterFile(file,kind){
 }
 function downloadMasterTemplate(kind){var staff=kind==="staff", cols=staff?["Staff Name","Mobile Number","Email","Designation","Branch"]:["Dealer Name","Mobile Number","City","Address","Contact Person"];if(!window.XLSX){toast("Excel template download unavailable. Please enable internet and try again.");return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([cols]),"Template");XLSX.writeFile(wb,(staff?"Staff":"Dealer")+"_Template.xlsx");}
 
+/* ---------- Dealer Details spreadsheet upload, column filters and Excel export ---------- */
+var DEALER_DETAILS_KEY="avail_crm_dealer_details_v1", dealerDetailsRows=[], dealerDetailsFilters={};
+try{dealerDetailsRows=JSON.parse(localStorage.getItem(DEALER_DETAILS_KEY)||"[]");if(!Array.isArray(dealerDetailsRows))dealerDetailsRows=[];}catch(_e){dealerDetailsRows=[];}
+function saveDealerDetails(){try{localStorage.setItem(DEALER_DETAILS_KEY,JSON.stringify(dealerDetailsRows));return true;}catch(e){toast("Storage is full; the Dealer Details sheet could not be saved");return false;}}
+function dealerDetailColumns(){var cols=[];dealerDetailsRows.forEach(function(r){Object.keys(r).forEach(function(k){if(cols.indexOf(k)<0)cols.push(k);});});return cols;}
+function dealerDetailFiltered(){var cols=dealerDetailColumns();return dealerDetailsRows.filter(function(r){return cols.every(function(c){var f=dealerDetailsFilters[c];return !f||String(r[c]===undefined?"":r[c])===f;});});}
+function renderDealerDetails(){
+ var cols=dealerDetailColumns(), rows=dealerDetailFiltered(), h='<div class="page-head"><div><h1>Dealer Details</h1><p>Upload your Excel sheet, filter records by any column, and download the matching rows in Excel.</p></div><div class="tb"><span class="total">'+dealerDetailsRows.length+' records</span><button class="btn" id="dealerDetailsClearFilters">Clear filters</button><button class="btn" id="dealerDetailsExportAll">Download all Excel</button><button class="btn primary" id="dealerDetailsUpload">Upload Excel</button><input type="file" id="dealerDetailsFile" accept=".xlsx,.xls,.csv" hidden></div></div>';
+ if(!dealerDetailsRows.length){h+='<div class="stub"><h2>No Dealer Details uploaded</h2>Upload an Excel or CSV file. The first row should contain your column names. After upload, a filter will be available for every column.</div>';}
+ else{
+  h+='<div class="repbar" style="flex-wrap:wrap;align-items:end">'+cols.map(function(c){var vals=[];dealerDetailsRows.forEach(function(r){var v=String(r[c]===undefined?"":r[c]);if(v!==""&&vals.indexOf(v)<0)vals.push(v);});vals.sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"});});return '<label style="display:grid;gap:5px;min-width:160px"><span>'+esc(c)+'</span><select class="dealer-detail-filter" data-dd-filter="'+esc(c)+'"><option value="">All '+esc(c)+'</option>'+vals.map(function(v){return '<option value="'+esc(v)+'"'+(dealerDetailsFilters[c]===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select></label>';}).join('')+'<button class="btn primary" id="dealerDetailsExportFiltered">Download filtered Excel ('+rows.length+')</button></div>';
+  h+='<div class="table-wrap"><table><thead><tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>'+(rows.length?rows.slice(0,500).map(function(r){return '<tr>'+cols.map(function(c){return '<td>'+esc(r[c]===undefined?"":String(r[c]))+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+cols.length+'" class="empty">No records match the selected filters.</td></tr>')+'</tbody></table></div>'+(rows.length>500?'<p class="note">Showing first 500 of '+rows.length+' matching records. Excel download includes all matching records.</p>':'');
+ }
+ document.getElementById("view").innerHTML=h;
+}
+function importDealerDetailsFile(file){if(!file)return;if(!window.XLSX){toast("Excel reader unavailable. Please try again with internet enabled.");return;}var reader=new FileReader();reader.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(ws,{defval:""});if(!data.length){toast("No data rows found. Check the first sheet and column headings.");return;}dealerDetailsRows=data.map(function(r){var o={};Object.keys(r).forEach(function(k){var v=r[k];o[String(k).trim()]=v instanceof Date?ymd(v):v;});return o;});dealerDetailsFilters={};if(saveDealerDetails()){renderDealerDetails();toast(data.length+" Dealer Details records uploaded");}}catch(err){toast("Could not read this Excel file. Please check its format.");}};reader.readAsArrayBuffer(file);}
+function exportDealerDetails(filtered){if(!window.XLSX){toast("Excel download unavailable. Please enable internet and try again.");return;}var rows=filtered?dealerDetailFiltered():dealerDetailsRows;if(!rows.length){toast("No records to download");return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Dealer Details");XLSX.writeFile(wb,filtered?"Dealer_Details_Filtered.xlsx":"Dealer_Details_All.xlsx");toast(rows.length+" records exported to Excel");}
+
+
 /* ---------- own-leads-only scope (users flagged ownOnly see just the leads they own) ---------- */
 var MASTER=null, SCOPED=null;
 function fullLeads(){
@@ -3961,11 +4011,17 @@ function syncScope(){
      see their own leads/files and the explicitly assigned reporting tree. */
   var isAnu=hierUnrestricted(u); /* users ticked "See all leads" on the Hierarchy page (Anu Kaushal by default) */
   if(u&&!(role&&role.name==="Admin")&&u.name!=="Umesh Dhingra"){
-    var scope=isAnu?null:hierarchyScopeFor(u), cs=hierCats(u); /* cs = categories this user may open (null = all) */
-    if(scope||cs){
-      MASTER=leads;
-      leads=MASTER.filter(function(l){return isPartHold(l)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
+    MASTER=leads;
+    if(u.holdOnly){
+      var assigned={};(u.holdLeadIds||[]).forEach(function(id){assigned[String(id)]=1;});
+      leads=MASTER.filter(function(l){return isPartHold(l)&&!!assigned[String(l.id)];});
       SCOPED=new Set(leads);
+    }else{
+      var scope=isAnu?null:hierarchyScopeFor(u), cs=hierCats(u); /* cs = categories this user may open (null = all) */
+      if(scope||cs){
+        leads=MASTER.filter(function(l){return isPartHold(l)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
+        SCOPED=new Set(leads);
+      }
     }
   }
 }
@@ -4000,6 +4056,7 @@ function render(){
   else if(r==="users")renderUsers();
   else if(r==="major/staff")renderMasterDirectory("staff");
   else if(r==="major/dealers")renderMasterDirectory("dealers");
+  else if(r==="dealer-details")renderDealerDetails();
   else if(r==="config")renderConfig();
   else if(r==="settings/general")renderSettings();
   else if(r.indexOf("integration/")===0)renderIntegration();
@@ -4182,6 +4239,7 @@ document.addEventListener("click",function(e){
   if(t.hasAttribute("data-euupdate")){euUpdate();return;}
   if(t.hasAttribute("data-euremove")){euRemove();return;}
   if(d.uedit){openAddUser(+d.uedit);return;}
+  if(d.udel){openUserDelete(+d.udel);return;}
   if(d.resend){toast("Marked as resent. No email is sent in this prototype.");return;}
   if(t.id==="ufClear"){state.uf={role:"",status:""};document.getElementById("ufRole").value="";document.getElementById("ufStatus").value="";renderUBody();return;}
   if(t.id==="saveRole"){saveRole();return;}
@@ -4417,6 +4475,10 @@ function loginSeedRows(){try{var j=JSON.parse(document.getElementById("loginSeed
   }catch(e){}
 })();
 dedupeLeads();if(purgeAllCopies())saveLeads();fitRange();
+
+document.addEventListener("click",function(e){var t=e.target;if(!t)return;if(t.id==="dealerDetailsUpload"){var f=document.getElementById("dealerDetailsFile");if(f)f.click();}else if(t.id==="dealerDetailsExportAll")exportDealerDetails(false);else if(t.id==="dealerDetailsExportFiltered")exportDealerDetails(true);else if(t.id==="dealerDetailsClearFilters"){dealerDetailsFilters={};renderDealerDetails();}});
+document.addEventListener("change",function(e){var t=e.target;if(t&&t.id==="dealerDetailsFile"){importDealerDetailsFile(t.files&&t.files[0]);t.value="";}else if(t&&t.classList&&t.classList.contains("dealer-detail-filter")){dealerDetailsFilters[t.getAttribute("data-dd-filter")]=t.value;renderDealerDetails();}});
+
 document.addEventListener("change",function(e){var t=e.target;if(t.id==="channelPeriod"){state.channelPeriod=t.value;renderChannelBusinessReport();}else if(t.id==="channelDealer"){state.channelDealer=t.value;renderChannelBusinessReport();}else if(t.id==="channelFrom"||t.id==="channelTo"){state.channelPeriod="custom";state.channelFrom=document.getElementById("channelFrom").value;state.channelTo=document.getElementById("channelTo").value;renderChannelBusinessReport();}});
 document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="channelReset"){state.channelPeriod="month";state.channelDealer="";state.channelFrom="";state.channelTo="";renderChannelBusinessReport();}});
 if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
