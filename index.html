@@ -2649,6 +2649,7 @@ function doLogin(em,pw){
   signIn(u);return true;
 }
 function signIn(u){
+  hier=null; /* re-read the latest Hierarchy settings */
   state.meUser=u.id;state.meRole=u.roleId;window.CRM_USER=u.name;
   try{sessionStorage.setItem("crmUser",String(u.id));}catch(_){}
   document.getElementById("login").hidden=true;document.body.classList.remove("locked");
@@ -2869,6 +2870,7 @@ function saveUser(){
   if(em.indexOf("@")<1){document.getElementById("uEmail").focus();toast("Enter a valid email");return;}
   if(users.some(function(u){return u.id!==edit&&u.name.toLowerCase()===nm.toLowerCase();})){toast("A user with this name already exists");return;}
   if(users.some(function(u){return u.id!==edit&&u.email.toLowerCase()===em.toLowerCase();})){toast("A user with this email already exists");return;}
+  if(users.some(function(u){return u.id!==edit&&hierarchyFirst(u.name)&&hierarchyFirst(u.name)===hierarchyFirst(nm);})){toast("Another user already has the first name \""+nm.split(/\s+/)[0]+"\". Use a different first name so Hierarchy access stays separate.");return;}
   if(edit){
     var u=users.filter(function(x){return x.id===edit;})[0], old=u.name;
     if(old!==nm){
@@ -2877,8 +2879,8 @@ function saveUser(){
       segments.forEach(function(sg){sg.f.forEach(function(f){if(f.field==="owner"&&f.vals)f.vals=f.vals.map(function(v){return v===old?nm:v;});});});
     }
     u.name=nm;u.email=em;u.roleId=rid;u.active=act;
-  } else users.push({id:userNext++,name:nm,email:em,roleId:rid,active:act,verified:false});
-  state.userEdit=null;syncOwners();closeAll();renderUsers();toast(edit?"User updated":"User added");
+  } else users.push({id:userNext++,name:nm,email:em,roleId:rid,active:act,verified:state.route==="hierarchy"});
+  state.userEdit=null;syncOwners();closeAll();if(state.route==="hierarchy")render();else renderUsers();toast(edit?"User updated":"User added");
 }
 function userPick(selected,t){
   return '<div class="tm-pick" role="group" aria-labelledby="tmMemLbl">'+users.map(function(u){
@@ -3812,8 +3814,8 @@ function hierarchyScopeFor(u){
 }
 function renderHierarchy(){
   var P=hierPeople();
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><button class="btn" id="hierReset">Reset to default</button></div>';
-  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th><th>Also shift own copy when these people move a file</th></tr></thead><tbody>';
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><div class="tb"><button class="btn primary" id="hierAddUser">Add user</button><button class="btn" id="hierPerm">Roles &amp; permissions</button><button class="btn" id="hierReset">Reset to default</button></div></div>';
+  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>Role</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th><th>Also shift own copy when these people move a file</th></tr></thead><tbody>';
   users.filter(function(u){return u.active;}).forEach(function(u){
     var k=hierarchyFirst(u.name),c=hierGet(k),r=roleById(u.roleId),adm=(r&&r.name==="Admin")||u.name==="Umesh Dhingra";
     var cell,cc=Array.isArray(c.cats)?c.cats:null,catCell;
@@ -3823,7 +3825,8 @@ function renderHierarchy(){
     if(adm)cell='<em>Admin &ndash; always sees everything</em>';
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
-    h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
+    var roleSel='<select data-hrole="'+u.id+'" aria-label="Role for '+esc(u.name)+'">'+roles.map(function(x){return '<option value="'+x.id+'"'+(x.id===u.roleId?' selected':'')+'>'+esc(x.name)+'</option>';}).join("")+'</select><br><button type="button" class="btn" style="margin-top:6px" data-hperm="'+u.roleId+'">Permissions</button>';
+     h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(u.email)+'</small></td><td>'+roleSel+'</td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
   });
   h+='</tbody></table></div>';
   document.getElementById("view").innerHTML=h;
@@ -3849,6 +3852,21 @@ document.addEventListener("change",function(e){
   if(!Array.isArray(c.cats))c.cats=HCATS.map(function(x){return x[0];});
   var i=c.cats.indexOf(cat);if(t.checked&&i<0)c.cats.push(cat);if(!t.checked&&i>-1)c.cats.splice(i,1);
   hierSave();toast("Category access saved");
+});
+document.addEventListener("change",function(e){
+  var t=e.target,hr=t&&t.getAttribute?t.getAttribute("data-hrole"):null;if(!hr)return;
+  var u=userById(+hr);if(!u)return;u.roleId=+t.value;syncOwners();toast("Role updated – permissions follow the role");render();
+});
+document.addEventListener("click",function(e){
+  var b=e.target&&e.target.closest?e.target.closest("#hierAddUser,#hierPerm,[data-hperm]"):null;
+  if(b){
+    if(b.id==="hierAddUser"){openAddUser();return;}
+    if(b.id==="hierPerm"||b.getAttribute("data-hperm")){var rid=+b.getAttribute("data-hperm");if(rid)state.permRole=rid;state.utab="perm";state.route="users";render();return;}
+  }
+});
+window.addEventListener("storage",function(e){ /* Hierarchy changed in another tab of this browser: load it at once */
+  if(e.key!==HIER_KEY||!e.newValue)return;
+  try{var o=JSON.parse(e.newValue);if(o&&typeof o==="object"){hier=o;crmRerender();}}catch(_){}
 });
 document.addEventListener("click",function(e){
   if(e.target&&e.target.id==="hierReset"){hier=JSON.parse(JSON.stringify(HIER_DEFAULT));hierSave();toast("Hierarchy reset to default");render();}
