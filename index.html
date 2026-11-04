@@ -732,13 +732,18 @@ window.CRM_GET_HIER=function(){return hierLoad();};
 window.CRM_SYNC_STATUS=function(t){var el=document.getElementById("syncState");if(el)el.textContent=t?" · "+t:"";};
 window.CRM_APPLY_LEADS=function(up,rem,all){
   try{
-    var full;
+    var full, protectedSeed={}, currentSeed=leads.filter(function(x){return String(x.seedId||"").indexOf("holdreject_seed_v1_")===0;});
+    /* The shared CRM server may return an older full snapshot a few seconds after
+       page load. Never let that snapshot erase the embedded Hold/Reject import. */
+    currentSeed.forEach(function(x){protectedSeed[String(x.seedId)]=x;});
     if(all){full=up.slice();}
     else{
       full=fullLeads().slice();var ix={};full.forEach(function(x,i){ix[String(x.id)]=i;});
       up.forEach(function(x){var i=ix[String(x.id)];if(i===undefined){ix[String(x.id)]=full.length;full.push(x);}else full[i]=x;});
       if(rem.length){var rs={};rem.forEach(function(id){rs[String(id)]=1;});full=full.filter(function(x){return !rs[String(x.id)];});}
     }
+    var seedIx={};full.forEach(function(x){if(x.seedId)seedIx[String(x.seedId)]=1;});
+    Object.keys(protectedSeed).forEach(function(k){if(!seedIx[k]){full.push(protectedSeed[k]);seedIx[k]=1;}});
     leads=full;MASTER=null;SCOPED=null;
     nextId=Math.max(nextId,full.reduce(function(m,x){return Math.max(m,(+x.id||0)+1);},1001));
     try{localStorage.setItem(LEADS_KEY,JSON.stringify(full));}catch(e){}
