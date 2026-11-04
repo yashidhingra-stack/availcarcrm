@@ -2092,11 +2092,11 @@ function ldSave(l,k,val,q){
     if(val!==String(cxo[ck]||"")){cxo[ck]=val;l.hist.unshift({ts:stamp(),text:(ca?ca.label:ck)+" updated",type:"system"});toast("Saved");}
     rl();return;
   }
-  var x=ldx(l), names={phone:"Mobile",lender:"Lender",prevOwner:"Previous lead owner",mgr:"Reporting manager",name:"Name",email:"Email",owner:"Lead owner",year:"Year of manufacturing",bankExec:"Bank Executive",caseBooked:"Case booked in",dob:"DOB",dealer:"Dealer",rtoSet:"RTO Set Status",amount:"Loan amount",product:"Product",vehicle:"Vehicle",reg:"Vehicle number",source:"Lead source"};
+  var x=ldx(l), names={phone:"Mobile",lender:"Lender",prevOwner:"Previous lead owner",mgr:"Reporting manager",name:"Name",email:"Email",owner:"Lead owner",year:"Year of manufacturing",make:"Vehicle make",bankExec:"Bank Executive",caseBooked:"Case booked in",dob:"DOB",dealer:"Dealer",rtoSet:"RTO Set Status",amount:"Loan amount",product:"Product",vehicle:"Vehicle",reg:"Vehicle number",source:"Lead source"};
   if(k==="status"){state.ldEdit=null;if(val&&val!==l.status)changeStatus(val);else rl();return;}
   if(k==="name"&&!val){toast("Enter a name");return false;}
   if(k==="phone"){val=val.replace(/[\s\-()]/g,"");if(!/^\+?\d{10,13}$/.test(val)){toast("Enter a valid mobile number (10 digits)");return false;}}
-  var inL={year:1,phone:1,name:1,email:1,owner:1,dealer:1,amount:1,product:1,vehicle:1,reg:1,source:1,lender:1}[k];
+  var inL={make:1,year:1,phone:1,name:1,email:1,owner:1,dealer:1,amount:1,product:1,vehicle:1,reg:1,source:1,lender:1}[k];
   if(k==="rtoSet"){l.px=l.px||{};}
   var old=inL?l[k]:(k==="rtoSet"?l.px.rtoSet:x[k]);
   if(k==="amount")val=+val||0;
@@ -2208,11 +2208,11 @@ function renderDisbLead(l){
       if(l.stage==="Disbursed")colR.push(ldArea("rto","RTO Charges to Customer",x.rto));
       colR.push(Rc.map(ldRow).join(""));
     } else {
-      var A=[["vehicle","Vehicle",l.vehicle||"",l.vehicle||"—","text"],["reg","Vehicle number",l.reg||"",l.reg||"—","text"],["lender","Lender",l.lender||"",l.lender||"—","lender"]];
+      var mk=l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"";var A=[["make","Vehicle Make",mk,mk||"—","text"],["vehicle","Vehicle",l.vehicle||"",l.vehicle||"—","text"],["reg","Vehicle number",l.reg||"",l.reg||"—","text"],["lender","Lender",l.lender||"",l.lender||"—","lender"]];
       if(l.stage==="Disbursed")A.push(["pdd","PDD status","",l.pdd,null]);
       /* names already shown in Lead Details or in the lead header: never repeated */
       ["bankexecutive","casebookedin","dob","dealername","entrydate","leadcount","leadfollowdate","leadlastfollowdate","vehicle","vehiclenumber","loanamount","netdisbursementtoclient","previousleadowner","product","rtochargestocustomer","reportingmanager","lender","pddstatus",
-       "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec"].forEach(function(k){seen[k]=1;});
+       "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","vehiclemake","make","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec"].forEach(function(k){seen[k]=1;});
       var ex=[];
       LG.forEach(function(G){G.attrs.forEach(function(a){var k=nk(a.label);if(seen[k]||seen["cx"+a.key])return;seen[k]=1;seen["cx"+a.key]=1;ex.push(cxRow(l,a));});});
       var all=A.concat(ex), half=Math.ceil(all.length/2);
