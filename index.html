@@ -586,7 +586,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
     <input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
     <p class="login-err" id="loginErr" role="alert"></p>
     <button class="btn primary login-btn" type="submit">Sign in</button>
-    <p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
+    <p class="login-powered" style="margin-bottom:0">Build: users-fix-3</p><p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
   </form>
 </div>
 
@@ -2646,7 +2646,7 @@ var LOGIN_PW="1313";
 function doLogin(nm,pw){
   nm=String(nm||"").trim().toLowerCase().replace(/\s+/g," ");
   if(!nm)return loginErr("Enter your user name.");
-  var u=users.filter(function(x){return x.name.toLowerCase()===nm;})[0];
+  var u=users.filter(function(x){return String(x.name).toLowerCase().replace(/\s+/g," ").trim()===nm;})[0];
   if(!u){var fm=users.filter(function(x){return hierarchyFirst(x.name)===nm;});if(fm.length===1)u=fm[0];}
   if(!u)return loginErr("No user found with this name.");
   if(!u.active)return loginErr("This user is deactivated. Ask an admin to activate it.");
@@ -2882,7 +2882,7 @@ function openAddUser(id){
   m.classList.add("show");showOverlay(true);document.getElementById("uName").focus();
 }
 function saveUser(){
-  var nm=document.getElementById("uName").value.trim(),rid=+document.getElementById("uRole").value,act=document.getElementById("uActive").checked,edit=state.userEdit;
+  var nm=document.getElementById("uName").value.trim().replace(/\s+/g," "),rid=+document.getElementById("uRole").value,act=document.getElementById("uActive").checked,edit=state.userEdit;
   if(!nm){document.getElementById("uName").focus();toast("Enter the user's full name");return;}
   if(users.some(function(u){return u.id!==edit&&u.name.toLowerCase()===nm.toLowerCase();})){toast("A user with this name already exists");return;}
   if(users.some(function(u){return u.id!==edit&&hierarchyFirst(u.name)&&hierarchyFirst(u.name)===hierarchyFirst(nm);})){toast("Another user already has the first name \""+nm.split(/\s+/)[0]+"\". Use a different first name so Hierarchy access stays separate.");return;}
