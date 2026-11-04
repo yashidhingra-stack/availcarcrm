@@ -579,12 +579,13 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
   <form class="login-card" id="loginForm" novalidate>
     <div class="login-brand"><span class="mark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20 12 4l7 16M8.5 14h7"/></svg></span><strong id="loginBrand"></strong></div>
     <h1>Sign in</h1>
-    <p class="login-sub">Use the email id you were added with in User management. What you can see and do depends on your role's permissions.</p>
+    <p class="login-sub">Enter your email id and password. What you can see and do depends on your role's permissions.</p>
     <label for="loginEmail">Email id</label>
     <input id="loginEmail" type="email" autocomplete="username" placeholder="name@example.com" spellcheck="false">
+    <label for="loginPass">Password</label>
+    <input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
     <p class="login-err" id="loginErr" role="alert"></p>
     <button class="btn primary login-btn" type="submit">Sign in</button>
-    <details class="demo-wrap"><summary>Demo accounts (click one to sign in)</summary><div class="demo-list" id="demoList"></div></details>
     <p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
   </form>
 </div>
@@ -2563,7 +2564,8 @@ function defPerm(id){
   if(set.indexOf("Leads")>-1||set.indexOf("Data")>-1)set=set.filter(function(m){return m!=="Data";}).concat(["Major Reports"]);
   MODULES.forEach(function(m){var on=set.indexOf(m)>-1;o.m[m]=on;(PERM[m]||[]).forEach(function(sec){sec[1].forEach(function(it){o.i[m+"::"+it]=on;});});});
   var mvOk=[2,3,13].indexOf(id)>-1&&!!o.m.Leads; /* Senior Sales Manager, Sales Manager, Admin */
-  o.i["Leads::Move to Disbursement"]=mvOk; o.i["Leads::Move to PDD"]=mvOk;
+  if(o.m.Leads){o.i["Leads::Hold"]=true;o.i["Leads::Login Business"]=true;}
+   o.i["Leads::Move to Disbursement"]=mvOk; o.i["Leads::Move to PDD"]=mvOk;
   o.i["Leads::Login Business Calculator"]=!!o.m.Leads&&(id===2||id===3||id===13);
   return o;
 }
@@ -2631,11 +2633,11 @@ function showLogin(msg){
   document.getElementById("login").hidden=false;
   document.getElementById("loginBrand").textContent=document.getElementById("brandName").textContent;
   document.getElementById("loginErr").textContent=msg||"";
-  document.getElementById("demoList").innerHTML=users.filter(function(u){return u.active&&u.verified;}).map(function(u){var r=roleById(u.roleId);return '<button type="button" class="demo" data-fill="'+esc(u.email)+'"><span>'+esc(u.email)+'</span><small>'+esc(r?r.name:"")+'</small></button>';}).join("");
-  var i=document.getElementById("loginEmail");i.value="";setTimeout(function(){i.focus();},0);
+  var pwEl=document.getElementById("loginPass");if(pwEl)pwEl.value="";var i=document.getElementById("loginEmail");i.value="";setTimeout(function(){i.focus();},0);
 }
 function loginErr(m){document.getElementById("loginErr").textContent=m;document.getElementById("loginEmail").focus();return false;}
-function doLogin(em){
+var LOGIN_PW="1313";
+function doLogin(em,pw){
   em=String(em||"").trim().toLowerCase();
   if(!em)return loginErr("Enter your email id.");
   var u=users.filter(function(x){return x.email.toLowerCase()===em;})[0];
@@ -2643,6 +2645,7 @@ function doLogin(em){
   if(!u.verified)return loginErr("This email id isn't verified yet. Ask an admin to resend the verification link.");
   if(!u.active)return loginErr("This user is deactivated. Ask an admin to activate it.");
   if(!roleById(u.roleId))return loginErr("No role is assigned to this user.");
+  if(String(pw||"")!==LOGIN_PW)return loginErr("Incorrect password.");
   signIn(u);return true;
 }
 function signIn(u){
@@ -2659,10 +2662,8 @@ function signOut(msg){
   try{sessionStorage.removeItem("crmUser");}catch(_){}
   state.route="dashboard";showLogin(msg);
 }
-document.getElementById("loginForm").addEventListener("submit",function(e){e.preventDefault();doLogin(document.getElementById("loginEmail").value);});
+document.getElementById("loginForm").addEventListener("submit",function(e){e.preventDefault();doLogin(document.getElementById("loginEmail").value,document.getElementById("loginPass").value);});
 document.addEventListener("click",function(e){
-  var f=e.target.closest&&e.target.closest("[data-fill]");
-  if(f){var i=document.getElementById("loginEmail");i.value=f.getAttribute("data-fill");doLogin(i.value);return;}
   if(e.target.closest&&e.target.closest("#logout"))signOut();
 });
 
@@ -3774,7 +3775,9 @@ function hierGet(k){hierLoad();var c=hier[k];if(!c||typeof c!=="object")c=hier[k
 var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","Login"],["Approval Pending","Approval Pending"],["Approved","Approved"],["Hold","Hold"],["Disbursed","Disbursement"],["Rejected","Reject"],["pdd","PDD Status"]];
 var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
 function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&((r&&r.name==="Admin")||u.name==="Umesh Dhingra");}
-function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
+function isPartHold(l){return !l.cat&&["Finally Hold","Partially Hold","Approved But Hold","Postponed"].indexOf(l.status)>-1;} /* all Hold files (Finally, Partially, Approved But Hold, Postponed): visible to every user on the Hold page, whoever owns them */
+var HOLD_PEND=["Hold","Login Pending","Approval Pending"]; /* Hold (incl. Partially Hold) and pending files: always open for every user */
+function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;c=c.slice();HOLD_PEND.forEach(function(x){if(c.indexOf(x)<0)c.push(x);});return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
 function hierCatsMe(){var u=userById(state.meUser);return (!u||hierIsAdmin(u))?null:hierCats(u);}
 function hierPageOk(k){var cs=hierCatsMe(),need=HPAGE[k];if(!cs||!need)return true;return need.some(function(x){return cs.indexOf(x)>-1;});}
 function hierStatusOk(st){
@@ -3816,7 +3819,7 @@ function renderHierarchy(){
     var cell,cc=Array.isArray(c.cats)?c.cats:null,catCell;
     var fw=hierFollowOf(k),fwCell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hf="'+k+'" data-hfp="'+p.k+'"'+(fw.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
     if(adm)catCell='<em>Admin &ndash; all categories</em>';
-    else catCell=HCATS.map(function(x){return '<label class="hchip"><input type="checkbox" data-hc="'+k+'" data-hcat="'+x[0]+'"'+((!cc||cc.indexOf(x[0])>-1)?" checked":"")+'> '+esc(x[1])+'</label>';}).join("");
+    else catCell=HCATS.map(function(x){return '<label class="hchip"><input type="checkbox" data-hc="'+k+'" data-hcat="'+x[0]+'"'+((!cc||cc.indexOf(x[0])>-1||HOLD_PEND.indexOf(x[0])>-1)?" checked":"")+(HOLD_PEND.indexOf(x[0])>-1?' disabled title="Always allowed"':'')+'> '+esc(x[1])+'</label>';}).join("");
     if(adm)cell='<em>Admin &ndash; always sees everything</em>';
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
@@ -3873,7 +3876,7 @@ function syncScope(){
     var scope=isAnu?null:hierarchyScopeFor(u), cs=hierCats(u); /* cs = categories this user may open (null = all) */
     if(scope||cs){
       MASTER=leads;
-      leads=MASTER.filter(function(l){return (!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs));});
+      leads=MASTER.filter(function(l){return isPartHold(l)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
       SCOPED=new Set(leads);
     }
   }
