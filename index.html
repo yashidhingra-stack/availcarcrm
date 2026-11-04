@@ -817,7 +817,9 @@ function renderNav(){
     if(n.merged)return;
     if(!canMod(n.perm||n.label))return;
     var LEADS_MAIN=["Audience","Login","Hold","Disbursed","Rejected","pdd"];
-    var kids=n.id==="leads"?LEADS_MAIN.map(function(k){return ["leads/"+k,catName(k)];}):n.id==="major"?catKids().filter(function(k){return LEADS_MAIN.indexOf(k[0].slice(6))<0;}).concat(dataKids).concat([["major/staff","Staff details"]]):n.kids;
+    var hrMenu=!!hrUserKey(userById(state.meUser));
+    var hrLabels={Audience:"Login",Login:"Login Business",Hold:"Hold",Disbursed:"Disbursement Pending",Rejected:"Reject",pdd:"PDD Status"};
+    var kids=n.id==="leads"?LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:catName(k)];}):n.id==="major"?catKids().filter(function(k){return LEADS_MAIN.indexOf(k[0].slice(6))<0;}).concat(dataKids).concat([["major/staff","Staff details"]]):n.kids;
     if(kids){kids=kids.filter(function(k){return routeOk(k[0]);});if(!kids.length)return;}
     if(kids){
       var open=state.open[n.id]||cur.indexOf(n.id+"/")===0||kids.some(function(k){return k[0]===cur;});
@@ -2587,8 +2589,9 @@ var roles=[
  {id:10,name:"Demo 6",type:"Parent",rt:1,owner:true},
  {id:11,name:"Demo 7",type:"Parent",rt:1,owner:true},
  {id:12,name:"Demo 8",type:"Parent",rt:1,owner:true},
- {id:13,name:"Admin",type:"Parent",rt:null,owner:false}];
-var roleNext=14, teamNext=8;
+ {id:13,name:"Admin",type:"Parent",rt:null,owner:false},
+ {id:14,name:"HR Executive",type:"Child",rt:3,owner:true}];
+var roleNext=15, teamNext=8;
 var teams=[
  {id:1,name:"Sales",head:14,parent:null,members:[]},
  {id:2,name:"Anu Team",head:4,parent:1,members:[]},
@@ -2640,13 +2643,21 @@ function adoptUsers(j,replace){
   if(users.some(function(u){return uKey(u.name)===uKey(sd.name);})||usersGone.indexOf(uKey(sd.name))>-1)return;
   users.push({id:userNext++,name:sd.name,email:"",roleId:sd.roleId,active:true,verified:true});
   var r=roles.filter(function(x){return x.id===sd.roleId;})[0];if(r&&r.owner&&owners.indexOf(sd.name)<0)owners.push(sd.name);
-
-});})();
+});})(); 
+/* Rajinder and Kiran get their own menu permissions; other users on the same
+   Relationship Manager role are not affected. */
+(function(){
+  users.forEach(function(u){
+    var k=(String(u.name||"")+" "+String(u.email||"")).toLowerCase();
+    if(/\brajinder\b/.test(k)||/\bkiran(?:preet)?\b/.test(k))u.roleId=14;
+  });
+  try{saveUsers();}catch(e){}
+})();
 function hrUserKey(u){
   if(!u)return "";
   var z=(String(u.name||"")+" "+String(u.email||"")).toLowerCase().replace(/[^a-z0-9]+/g," ");
   if(/\brajinder\b/.test(z))return "rajinder";
-  if(/\bkiran\b/.test(z))return "kiran";
+  if(/\bkiran(?:preet)?\b/.test(z))return "kiran";
   return "";
 }
 function isSharedHRLead(l,u){
@@ -2661,8 +2672,10 @@ function isSharedHRLead(l,u){
     var seedEl=document.getElementById("holdRejectSeedData");
     var seedRows=seedEl?JSON.parse(seedEl.textContent||"[]"):[];
     var prefix="holdreject_seed_v1_";
-    if(!seedRows.length||leads.some(function(l){return String(l.seedId||"").indexOf(prefix)===0;}))return;
+    if(!seedRows.length)return;
+    var added=0;
     seedRows.forEach(function(o){
+      if(o.seedId&&leads.some(function(existing){return String(existing.seedId||"")===String(o.seedId);}))return;
       var l={id:nextId++,name:o.name||"",phone:o.phone||"",owner:o.owner||owners[0],
         product:o.product||"",amount:+o.amount||0,status:o.status,stage:o.stage,source:o.source||"Imported Hold/Reject",
         date:o.date||ymd(TODAY),ts:o.ts||ymd(TODAY)+" 12:00:00",vehicle:o.vehicle||"",make:o.make||"",
@@ -2673,9 +2686,11 @@ function isSharedHRLead(l,u){
       if(l.product&&products.indexOf(l.product)<0)products.push(l.product);
       if(l.lender&&lenders.indexOf(l.lender)<0)lenders.push(l.lender);
       if(l.dealer&&dealers.indexOf(l.dealer)<0)dealers.push(l.dealer);
+      added++;
     });
     leads.sort(function(a,b){return a.ts<b.ts?1:-1;});
-    saveLeads();
+    if(added)saveLeads();
+    console.info("Hold/Reject import: "+added+" missing records added; "+seedRows.length+" source records checked.");
   }catch(e){console.warn("Hold/Reject seed import failed",e);}
 })();
 var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;});
@@ -2702,6 +2717,15 @@ function defPerm(id){
 state.meUser=0;state.meRole=0; /* set by sign-in */
 function canLoginCalc(){var pp=state.perm[state.meRole];return !!(pp&&pp.m["Leads"]&&(pp.i["Leads::Login Business Calculator"]||pp.i["Leads::Login Business"]));}
 roles.forEach(function(r){state.perm[r.id]=defPerm(r.id);});
+(function(){
+  var p=state.perm[14];if(!p)return;
+  p.m["Dashboard"]=true;p.m["Leads"]=true;
+  (PERM["Leads"][0][1]||[]).forEach(function(it){p.i["Leads::"+it]=false;});
+  ["Audience","Login Business","Hold","Reject Business","Disbursement Business"].forEach(function(it){p.i["Leads::"+it]=true;});
+  ["View lead","Import leads","Add lead"].forEach(function(it){p.i["Leads::"+it]=true;});
+  p.i["Leads::Delete lead"]=false;
+  p.i["Leads::Move to Disbursement"]=false;p.i["Leads::Move to PDD"]=false;
+})();
 
 /* ---------- login and access control ---------- */
 var DENY="You don't have permission to do that";
@@ -3991,8 +4015,9 @@ function isPartHold(l){return !l.cat&&["Finally Hold","Partially Hold","Approved
 var HOLD_PEND=["Hold","Login Pending","Approval Pending"]; /* Hold (incl. Partially Hold) and pending files: always open for every user */
 function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;c=c.slice();HOLD_PEND.forEach(function(x){if(c.indexOf(x)<0)c.push(x);});return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
 function hierCatsMe(){var u=userById(state.meUser);return (!u||hierIsAdmin(u))?null:hierCats(u);}
-function hierPageOk(k){var cs=hierCatsMe(),need=HPAGE[k];if(!cs||!need)return true;return need.some(function(x){return cs.indexOf(x)>-1;});}
+function hierPageOk(k){if(hrUserKey(userById(state.meUser)))return true;var cs=hierCatsMe(),need=HPAGE[k];if(!cs||!need)return true;return need.some(function(x){return cs.indexOf(x)>-1;});}
 function hierStatusOk(st){
+  if(hrUserKey(userById(state.meUser)))return true;
   var cs=hierCatsMe();if(!cs)return true;var g=statusStage[st];
   if(g==="Login")return cs.indexOf(st)>-1;
   if(g==="Audience")return cs.indexOf("Audience")>-1;
