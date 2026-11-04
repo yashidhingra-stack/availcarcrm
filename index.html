@@ -586,7 +586,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
     <input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
     <p class="login-err" id="loginErr" role="alert"></p>
     <button class="btn primary login-btn" type="submit">Sign in</button>
-    <p class="login-powered" style="margin-bottom:0">Build: users-fix-3</p><p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
+    <p class="login-powered" style="margin-bottom:0">Build: users-fix-7</p><p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
   </form>
 </div>
 
@@ -749,6 +749,7 @@ window.CRM_APPLY_LEADS=function(up,rem,all){
 window.CRM_APPLY_HIER=function(o){
   if(!o||typeof o!=="object")return;
   hier=o;try{localStorage.setItem(HIER_KEY,JSON.stringify(o));}catch(e){}
+  if(o.__users){var ar=adoptUsers(o.__users);if(ar){syncOwners();if(ar==="push")saveUsers();}}
   crmRerender();
 };
 /* same browser, other tab or window (for example Sapna in one window and Anu in another): when one saves a move, the others load it at once instead of keeping the old category and overwriting it later */
@@ -2549,11 +2550,44 @@ var users=[["Harjot Singh",3],["Puneet Kundra",4],["Anil Gill",4],["Anu Kaushal"
   return {id:i+1,name:x[0],email:(x[0]==="Umesh Dhingra"?"admin":x[0]==="Ravi Bhardwaj"?"ravi":x[0]==="Kapil Kharb"?"kapil.kharb":x[0].toLowerCase().replace(/[^a-z]+/g,"."))+"@example.com",roleId:x[1],active:true,verified:true,ownOnly:(x[0]==="Kapil Kharb"||x[0]==="Ravi Bhardwaj")};});
 if(owners.indexOf("Ravi Bhardwaj")<0)owners.push("Ravi Bhardwaj");
 /* ---- persist users so added/edited/removed users survive a page reload ---- */
-var USERS_KEY="avail_crm_users_v1";
-function saveUsers(){try{localStorage.setItem(USERS_KEY,JSON.stringify({users:users,next:userNext}));}catch(e){}}
+var USERS_KEY="avail_crm_users_v1", usersGone=[];
+function saveUsers(){
+  var pl={users:users,next:userNext,gone:usersGone};
+  try{localStorage.setItem(USERS_KEY,JSON.stringify(pl));}catch(e){}
+  try{hierLoad().__users=pl;hierSave();}catch(e){} /* shared database: other devices receive the user list too */
+}
+function uKey(n){return String(n||"").toLowerCase().replace(/\s+/g," ").trim();}
+/* replace=true: take the saved list as is. Otherwise MERGE the list from the shared database with this browser's users,
+   so a stale copy from another device can never wipe out a newly added user. Removed users are remembered in "gone". */
+function adoptUsers(j,replace){
+  if(!j||!Array.isArray(j.users)||!j.users.length)return false;
+  var gone=(j.gone||[]).map(uKey);
+  if(!replace)usersGone.forEach(function(g){if(gone.indexOf(g)<0)gone.push(g);});
+  usersGone=gone;
+  var out=j.users.filter(function(u){return gone.indexOf(uKey(u.name))<0;}), extra=0;
+  if(!replace){
+    var have={};out.forEach(function(u){have[uKey(u.name)]=1;});
+    var mx=Math.max.apply(null,out.map(function(u){return u.id;}).concat([+j.next||0]));
+    users.forEach(function(u){
+      if(have[uKey(u.name)]||gone.indexOf(uKey(u.name))>-1)return;
+      var c=u;if(out.some(function(o){return o.id===c.id;})){mx++;c.id=mx;}
+      out.push(c);extra++;
+    });
+  }
+  users=out;userNext=Math.max(+j.next||0,Math.max.apply(null,users.map(function(u){return u.id;}))+1);
+  try{localStorage.setItem(USERS_KEY,JSON.stringify({users:users,next:userNext,gone:usersGone}));}catch(e){}
+  return extra?"push":true;
+}
 (function(){try{var j=JSON.parse(localStorage.getItem(USERS_KEY)||"null");
-  if(j&&Array.isArray(j.users)&&j.users.length){users=j.users;userNext=Math.max(+j.next||0,Math.max.apply(null,users.map(function(u){return u.id;}))+1);
+  if(!j){var h0=JSON.parse(localStorage.getItem("avail_crm_hierarchy_v1")||"null");if(h0&&h0.__users)j=h0.__users;}
+  if(j&&Array.isArray(j.users)&&j.users.length){adoptUsers(j,true);
     users.forEach(function(u){if(owners.indexOf(u.name)<0&&u.roleId){var r=roles.filter(function(x){return x.id===u.roleId;})[0];if(r&&r.owner)owners.push(u.name);}});}}catch(e){}})();
+/* Built-in users: always present on every computer (role can be changed later in User Management) */
+(function(){[{name:"Rajinder",roleId:4}].forEach(function(sd){
+  if(users.some(function(u){return uKey(u.name)===uKey(sd.name);})||usersGone.indexOf(uKey(sd.name))>-1)return;
+  users.push({id:userNext++,name:sd.name,email:"",roleId:sd.roleId,active:true,verified:true});
+  var r=roles.filter(function(x){return x.id===sd.roleId;})[0];if(r&&r.owner&&owners.indexOf(sd.name)<0)owners.push(sd.name);
+});})();
 var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;});
 var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes","Settings","Invoice & Quotations"];
 var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
@@ -2740,7 +2774,7 @@ function teamsTab(){
 function renderUsers(){
   var tabs=[["roles","Roles"],["users","Users"],["perm","Permission"],["teams","Teams"]], right="";
   if(state.utab==="users"){
-    right='<div class="tb"><span class="total" id="uTotal"></span><button class="btn" id="uAdd">'+ic("plusS")+' Add</button>'+
+    right='<div class="tb"><span class="total" id="uTotal"></span><button class="btn" id="uAdd">'+ic("plusS")+' Add</button><button class="btn" id="uExport">Export users</button><button class="btn" id="uImport">Import users</button>'+
      '<div class="pw"><button class="btn" data-pop="ufilter" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+' <span id="ufLabel">Filter By</span></button><div class="pop r" id="pop-ufilter" hidden>'+
      '<div class="field"><label for="ufRole">Role</label><select id="ufRole"><option value="">All roles</option>'+roles.map(function(x){return '<option value="'+x.id+'"'+(+state.uf.role===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
      '<div class="field"><label for="ufStatus">Status</label><select id="ufStatus"><option value="">All</option><option value="active"'+(state.uf.status==="active"?" selected":"")+'>Active</option><option value="inactive"'+(state.uf.status==="inactive"?" selected":"")+'>Inactive</option></select></div><button class="btn" id="ufClear">Clear filters</button></div></div>'+
@@ -2823,6 +2857,27 @@ function euUpdate(){
   u.active=m.dataset.active==="1";
   state.userEdit=null;syncOwners();saveUsers();closeAll();renderUsers();toast("User updated");
 }
+function openUserExport(){
+  var m=document.getElementById("modal");m.className="modal";
+  m.innerHTML='<h2>Export users</h2><p>Copy this code. On the other computer log in as an admin, open User Management \u2192 Users \u2192 Import users and paste it.</p><div class="field"><textarea id="uCode" rows="8" readonly style="width:100%;font-family:monospace;font-size:12px"></textarea></div><div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" id="uCodeCopy">Copy</button></div>';
+  document.getElementById("uCode").value=JSON.stringify({users:users,next:userNext,gone:usersGone});
+  document.getElementById("uCodeCopy").onclick=function(){var ta=document.getElementById("uCode");ta.select();try{if(navigator.clipboard)navigator.clipboard.writeText(ta.value);else document.execCommand("copy");}catch(e){try{document.execCommand("copy");}catch(_){}}toast("Copied");};
+  m.classList.add("show");showOverlay(true);
+}
+function openUserImport(){
+  var m=document.getElementById("modal");m.className="modal";
+  m.innerHTML='<h2>Import users</h2><p>Paste the code copied from "Export users" on the other computer. Users already here are kept; matching names are updated.</p><div class="field"><textarea id="uCode" rows="8" style="width:100%;font-family:monospace;font-size:12px" placeholder="Paste code here"></textarea></div><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="uCodeGo">Import</button></div>';
+  document.getElementById("uCodeGo").onclick=function(){
+    var j;try{j=JSON.parse(document.getElementById("uCode").value.trim());}catch(e){toast("That code is not valid");return;}
+    if(!j||!Array.isArray(j.users)){toast("That code is not valid");return;}
+    j.users=j.users.filter(function(u){return u&&u.name&&roleById(u.roleId);});
+    if(!j.users.length){toast("No valid users in that code");return;}
+    var n=j.users.length;
+    if(!adoptUsers(j)){toast("Nothing to import");return;}
+    syncOwners();saveUsers();closeAll();renderUsers();toast(n+" user"+(n===1?"":"s")+" imported");
+  };
+  m.classList.add("show");showOverlay(true);
+}
 function userBlock(u){
   var n=leads.filter(function(l){return l.owner===u.name;}).length;
   if(n)return u.name+" owns "+n+" lead"+(n===1?"":"s")+". Reassign them first.";
@@ -2833,7 +2888,7 @@ function userBlock(u){
 function removeUser(u){
   var b=userBlock(u); if(b){toast(b);return false;}
   teams.forEach(function(x){var i=x.members.indexOf(u.id);if(i>-1)x.members.splice(i,1);});
-  users.splice(users.indexOf(u),1);state.userEdit=null;syncOwners();saveUsers();closeAll();renderUsers();toast("User removed");
+  usersGone.push(uKey(u.name));users.splice(users.indexOf(u),1);state.userEdit=null;syncOwners();saveUsers();closeAll();renderUsers();toast("User removed");
   return true;
 }
 function euRemove(){
@@ -2894,7 +2949,7 @@ function saveUser(){
       segments.forEach(function(sg){sg.f.forEach(function(f){if(f.field==="owner"&&f.vals)f.vals=f.vals.map(function(v){return v===old?nm:v;});});});
     }
     u.name=nm;u.roleId=rid;u.active=act;
-  } else users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true});
+  } else {usersGone=usersGone.filter(function(g){return g!==uKey(nm);});users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true});}
   state.userEdit=null;syncOwners();saveUsers();closeAll();if(state.route==="hierarchy")render();else renderUsers();toast(edit?"User updated":"User added");
 }
 function userPick(selected,t){
@@ -3814,7 +3869,7 @@ function hierLeadAllowed(l,cs){
   if(g==="Disbursed"){var pd=l.status==="Disburse"||l.status===RTO_ST;return (!l.pddImp&&cs.indexOf("Disbursed")>-1)||(pd&&cs.indexOf("pdd")>-1);}
   return true;}
 function hierFollowOf(k){hierLoad();var c=hier[k];if(c&&Array.isArray(c.follow))return c.follow;return (HIER_DEFAULT[k]&&HIER_DEFAULT[k].follow)||[];}
-function hierFollowers(mover){var all={};Object.keys(HIER_DEFAULT).forEach(function(k){all[k]=1;});hierLoad();Object.keys(hier).forEach(function(k){all[k]=1;});
+function hierFollowers(mover){var all={};Object.keys(HIER_DEFAULT).forEach(function(k){all[k]=1;});hierLoad();Object.keys(hier).forEach(function(k){if(k.indexOf("__")!==0)all[k]=1;});
   return Object.keys(all).filter(function(k){return k!==mover&&hierFollowOf(k).indexOf(mover)>-1;});}
 function hierUnrestricted(u){return !!u&&!!hierGet(hierarchyFirst(u.name)).all;}
 function hierPeople(){
@@ -4038,6 +4093,8 @@ document.addEventListener("click",function(e){
   if(d.segdel){openSegDelete(d.segdel);return;}
   if(d.confirmseg){segments=segments.filter(function(x){return x.id!==d.confirmseg;});closeAll();renderSegTable();toast("Segment deleted");return;}
   if(t.id==="saveSeg"){saveSeg();return;}
+  if(t.id==="uExport"){openUserExport();return;}
+  if(t.id==="uImport"){openUserImport();return;}
   if(t.id==="uAdd"){if(state.utab==="roles")openRole();else if(state.utab==="users")openAddUser();else if(state.utab==="teams")openTeam();return;}
   if(d.utab){state.utab=d.utab;renderUsers();return;}
   if(d.ptab){state.ptab=d.ptab;renderPayments();return;}
