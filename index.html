@@ -2888,7 +2888,7 @@ document.addEventListener("click",function(e){
   if(e.target.closest&&e.target.closest("#logout"))signOut();
 });
 
-function permCur(){var id=state.permRole;if(!state.permDraft[id])state.permDraft[id]=JSON.parse(JSON.stringify(state.perm[id]));return state.permDraft[id];}
+function permCur(){var id=state.permRole;if(!state.perm[id])state.perm[id]=defPerm(id);if(!state.permDraft[id])state.permDraft[id]=JSON.parse(JSON.stringify(state.perm[id]));return state.permDraft[id];}
 function roleById(id){return roles.filter(function(r){return r.id===id;})[0];}
 function teamById(id){return teams.filter(function(x){return x.id===id;})[0];}
 function roleLevel(r){var n=1,x=r;while(x&&x.rt&&n<30){x=roleById(x.rt);n++;}return n;}
@@ -2921,7 +2921,7 @@ function usersTab(){
 }
 function permTab(){
   if(!roleById(state.permRole))state.permRole=roles[0].id;
-  var id=state.permRole, p=state.permDraft[id]||state.perm[id];
+  var id=state.permRole;if(!state.perm[id])state.perm[id]=defPerm(id);var p=state.permDraft[id]||state.perm[id];
   var left='<div class="perm-roles" role="tablist" aria-label="Roles">'+roles.map(function(r){return '<button role="tab" aria-selected="'+(r.id===id)+'" data-prole="'+r.id+'">'+esc(r.name)+'</button>';}).join("")+'</div>';
   var rows=MODULES.map(function(m){
     var on=!!p.m[m], canLand=NOLAND.indexOf(m)<0;
@@ -4150,7 +4150,7 @@ document.addEventListener("change",function(e){
 });
 document.addEventListener("change",function(e){
   var t=e.target,hr=t&&t.getAttribute?t.getAttribute("data-hrole"):null;if(!hr)return;
-  var u=userById(+hr);if(!u)return;u.roleId=+t.value;syncOwners();toast("Role updated – permissions follow the role");render();
+  var u=userById(+hr);if(!u)return;u.roleId=+t.value;syncOwners();try{saveUsers();}catch(_){}toast("Role updated – permissions follow the role");render();
 });
 document.addEventListener("click",function(e){
   var b=e.target&&e.target.closest?e.target.closest("#hierAddUser,#hierPerm,[data-hperm]"):null;
@@ -4423,7 +4423,7 @@ document.addEventListener("click",function(e){
     state.page=1;renderTable();openPending(d.sum);return;}
   if(d.pbtab){state.pbTab=d.pbtab;renderPending();return;}
   if(d.prole){state.permRole=+d.prole;renderUBody();return;}
-  if(t.id==="permSubmit"){Object.keys(state.permDraft).forEach(function(k){state.perm[k]=state.permDraft[k];});state.permDraft={};if(state.perm[13])state.perm[13].m["User management"]=true;permSaveAll();toast("Permissions saved");render();return;}
+  if(t.id==="permSubmit"){Object.keys(state.permDraft).forEach(function(k){state.perm[k]=state.permDraft[k];});state.permDraft={};if(state.perm[13])state.perm[13].m["User management"]=true;window.__pw=0;permSaveAll();toast("Permissions saved");render();return;}
   if(t.hasAttribute("data-sw")){t.setAttribute("aria-checked",String(t.getAttribute("aria-checked")!=="true"));return;}
   if(t.hasAttribute("data-eutoggle")){var mm=document.getElementById("modal"),on=mm.dataset.active!=="1";mm.dataset.active=on?"1":"0";t.textContent=on?"Deactivate User":"Activate User";return;}
   if(t.hasAttribute("data-euupdate")){euUpdate();return;}
@@ -4551,7 +4551,7 @@ document.addEventListener("change",function(e){
     if(!t.checked&&pd.land===d.pm)pd.land="";
     renderUBody();var fe=document.querySelector('[data-pm="'+d.pm+'"]');if(fe)fe.focus();return;}
   if(d.pl!==undefined){var pl=permCur();pl.land=t.checked?d.pl:(pl.land===d.pl?"":pl.land);renderUBody();var fl=document.querySelector('[data-pl="'+d.pl+'"]');if(fl)fl.focus();return;}
-  if(d.pi!==undefined){permCur().i[d.pi]=t.checked;return;}
+  if(d.pi!==undefined){permCur().i[d.pi]=t.checked;if(!window.__pw){window.__pw=1;toast("Press Submit at the bottom to save permission changes");}return;}
   if(d.uact!==undefined){users[+d.uact].active=t.checked;toast(t.checked?"User activated":"User deactivated");return;}
   if(t.id==="setTheme"){applyTheme(t.value);return;}
   if(t.id==="setSize"){state.size=+t.value;toast("Saved");return;}
