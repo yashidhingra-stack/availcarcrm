@@ -2685,26 +2685,6 @@ function adoptUsers(j,replace){
   users.push({id:userNext++,name:sd.name,email:"",roleId:sd.roleId,active:true,verified:true});
   var r=roles.filter(function(x){return x.id===sd.roleId;})[0];if(r&&r.owner&&owners.indexOf(sd.name)<0)owners.push(sd.name);
 });})(); 
-/* Restore lead-owner identities referenced by existing lead records.
-   These are created as inactive placeholders: an administrator must set
-   credentials/activate them before they can sign in. This prevents data
-   owners disappearing from Lead Owner selectors without granting access. */
-(function(){
-  var recovered=[];
-  function addName(v){
-    var n=String(v||"").replace(/\\s+/g," ").trim();
-    if(!n||/^(unassigned|none|null|undefined|-)$/i.test(n))return;
-    if(recovered.map(uKey).indexOf(uKey(n))<0)recovered.push(n);
-  }
-  (owners||[]).forEach(addName);
-  (Array.isArray(leads)?leads:[]).forEach(function(l){addName(l.owner);});
-  recovered.forEach(function(n){
-    if(owners.indexOf(n)<0)owners.push(n);
-    if(users.some(function(u){return uKey(u.name)===uKey(n);})||usersGone.indexOf(uKey(n))>-1)return;
-    users.push({id:userNext++,name:n,email:"",roleId:4,active:false,verified:false,password:"",holdOnly:false,holdLeadIds:[],restoredFromLeadOwner:true});
-  });
-  if(recovered.length)try{saveUsers();}catch(e){}
-})(); 
 /* Rajinder and Kiran get their own menu permissions; other users on the same
    Relationship Manager role are not affected. */
 (function(){
