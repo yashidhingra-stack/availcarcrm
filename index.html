@@ -2970,6 +2970,8 @@ function renderUBody(){
   var t=document.getElementById("uTotal"); if(t)t.textContent="Total Users: "+users.length;
   var f=document.getElementById("ufLabel"); if(f){var n=(state.uf.role?1:0)+(state.uf.status?1:0);f.textContent=n?"Filter By ("+n+")":"Filter By";}
 }
+function catBoxHtml(prefix,k){var c=k?hierGet(k).cats:null;return '<div class="eu-sel"><label style="display:block;font-size:12px;color:var(--muted);margin:5px 0">Lead categories this user can open</label>'+HCATS.map(function(x){return '<label class="hchip" style="display:inline-block;margin:2px 10px 2px 0"><input type="checkbox" data-ccat="'+prefix+'" value="'+x[0]+'"'+((!Array.isArray(c)||c.indexOf(x[0])>-1)?' checked':'')+'> '+esc(x[1])+'</label>';}).join('')+'</div>';}
+function catBoxSave(prefix,k){if(!k)return;var bx=[].slice.call(document.querySelectorAll('input[data-ccat="'+prefix+'"]'));if(!bx.length)return;hierGet(k).cats=bx.filter(function(b){return b.checked;}).map(function(b){return b.value;});hierSave();}
 function openRole(id){
   var r=id?roleById(id):null, m=document.getElementById("modal"); state.roleEdit=r?r.id:null;
   var opts=roles.filter(function(x){return x.type!=="Child"&&(!r||!isUnder(x.id,r.id));});
@@ -3010,9 +3012,9 @@ function openEditUser(u,m){
    '<div class="eu-sel"><label for="euPassword" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Login password</label><input id="euPassword" type="text" value="'+esc(u.password||LOGIN_PW)+'" style="width:100%" autocomplete="off"></div>'+
    '<div class="eu-sel"><label class="sr" for="euPlugin" style="position:absolute;left:-9999px">Plugin</label><select id="euPlugin"><option value="">Select Plugin</option>'+PLUGINS.map(function(p){return '<option'+(u.plugin===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div>'+
    '<div class="eu-row" style="margin-top:14px"><span class="eu-tg">Own leads only: '+sw("euOwn",!!u.ownOnly,"Own leads only")+'</span></div>'+
-   '<div class="eu-sel"><label class="inline-chk"><input type="checkbox" id="euHoldOnly"'+(u.holdOnly?" checked":"")+'> Hold leads only</label><label for="euHoldLeads" style="display:block;font-size:12px;color:var(--muted);margin:5px 0">Assign Hold leads (select one or more)</label><select id="euHoldLeads" multiple size="7" style="width:100%;min-height:150px">'+
+   '<div class="eu-sel"><label class="inline-chk"><input type="checkbox" id="euHoldOnly"'+(u.holdOnly?" checked":"")+'> Hold leads only</label><div style="display:none"><select id="euHoldLeads" multiple size="7">'+
    leads.filter(function(l){return isPartHold(l);}).sort(function(a,b){return String(a.name).localeCompare(String(b.name));}).map(function(l){return '<option value="'+l.id+'"'+((u.holdLeadIds||[]).map(String).indexOf(String(l.id))>-1?" selected":"")+'>'+esc(l.name)+' · '+esc(l.phone)+' · '+esc(l.status)+' · #'+l.id+'</option>';}).join("")+
-   '</select><small style="color:var(--muted)">Use Ctrl (Windows) to select multiple leads. Hold-only users can see only these assigned files.</small></div>'+
+   '</select></div></div>'+catBoxHtml("eu",hierarchyFirst(u.name))+
    '<div class="eu-row" style="margin-top:18px"><button class="eu-link" data-euremove>Remove User</button>'+
    '<span class="eu-tg">Lead Assignment: '+sw("euLead",u.leadAssign!==false,"Lead assignment")+'</span>'+
    '<button class="eu-link" style="color:var(--ink)" id="euUpdate" data-euupdate>Update</button></div></div>';
@@ -3037,6 +3039,7 @@ function euUpdate(){
   u.password=(document.getElementById("euPassword").value||LOGIN_PW);
   u.holdOnly=document.getElementById("euHoldOnly").checked;
   u.holdLeadIds=[].slice.call(document.getElementById("euHoldLeads").selectedOptions).map(function(o){return +o.value;});
+  catBoxSave("eu",hierarchyFirst(u.name));
   u.plugin=document.getElementById("euPlugin").value;
   u.waba=document.getElementById("euWaba").getAttribute("aria-checked")==="true";
   u.leadAssign=document.getElementById("euLead").getAttribute("aria-checked")==="true";
@@ -3130,7 +3133,7 @@ function openAddUser(id){
    '<div class="field"><label for="uRole">Role</label><select id="uRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+((u&&u.roleId===x.id)||(!u&&x.id===4)?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
    '<div class="field"><label for="uPassword">Login password</label><input id="uPassword" type="text" value="'+esc(u?(u.password||LOGIN_PW):LOGIN_PW)+'" autocomplete="off"></div>'+
    '<label class="inline-chk"><input type="checkbox" id="uActive" checked> Active</label>'+
-   '<label class="inline-chk"><input type="checkbox" id="uHoldOnly"'+(u? (u.holdOnly?" checked":""):" checked")+' > Hold leads only (admin assigns leads)</label>'+
+   '<label class="inline-chk"><input type="checkbox" id="uHoldOnly"'+(u? (u.holdOnly?" checked":""):"")+' > Hold leads only</label>'+catBoxHtml("add","")+
    '<p class="note">New users can sign in with their login ID and password. Default password is 1313; change it here if required.</p>'+
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveUser">'+(u?"Save changes":"Add user")+'</button></div>';
   m.classList.add("show");showOverlay(true);document.getElementById("uName").focus();
@@ -3149,7 +3152,7 @@ function saveUser(){
     }
     u.name=nm;u.roleId=rid;u.active=act;u.password=pw;u.holdOnly=holdOnly;
     if(!Array.isArray(u.holdLeadIds))u.holdLeadIds=[];
-  } else {usersGone=usersGone.filter(function(g){return g!==uKey(nm);});users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true,password:pw,holdOnly:holdOnly,holdLeadIds:[]});}
+  } else {usersGone=usersGone.filter(function(g){return g!==uKey(nm);});users.push({id:userNext++,name:nm,email:"",roleId:rid,active:act,verified:true,password:pw,holdOnly:holdOnly,holdLeadIds:[]});catBoxSave("add",hierarchyFirst(nm));}
   state.userEdit=null;syncOwners();saveUsers();closeAll();if(state.route==="hierarchy")render();else renderUsers();toast(edit?"User updated":"User added");
 }
 function userPick(selected,t){
