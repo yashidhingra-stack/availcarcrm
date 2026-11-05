@@ -2644,6 +2644,7 @@ function adoptUsers(j,replace){
   if(!j||!Array.isArray(j.users)||!j.users.length)return false;
   var gone=(j.gone||[]).map(uKey);
   if(!replace)usersGone.forEach(function(g){if(gone.indexOf(g)<0)gone.push(g);});
+  gone=gone.filter(function(g){return !j.users.some(function(u){return uKey(u.name)===g;});}); /* SAFETY: present in the list = not removed */
   usersGone=gone;
   var out=j.users.filter(function(u){return gone.indexOf(uKey(u.name))<0;}), extra=0;
   if(!replace){
@@ -2858,7 +2859,9 @@ function doLogin(nm,pw){
   if(!nm)return loginErr("Enter your user name.");
   var u=users.filter(function(x){return String(x.name).toLowerCase().replace(/\s+/g," ").trim()===nm;})[0];
   if(!u){var fm=users.filter(function(x){return hierarchyFirst(x.name)===nm;});if(fm.length===1)u=fm[0];}
-  if(!u)return loginErr("No user found with this name.");
+  if(!u){try{var h1=JSON.parse(localStorage.getItem("avail_crm_hierarchy_v1")||"null");if(h1&&h1.__users&&adoptUsers(h1.__users))u=users.filter(function(x){return uKey(x.name)===nm;})[0];}catch(e){}}
+  if(!u&&typeof fm!=="undefined"&&fm&&fm.length>1)return loginErr("More than one user has this first name. Type your full name.");
+  if(!u)return loginErr("No user found with this name. Check the spelling or ask Admin."+(window.CRM_SYNC&&window.CRM_SYNC.ready?"":" (This computer is not connected to the shared database yet.)"));
   anuEnsure(u);
   if(!u.active)return loginErr("This user is deactivated. Ask an admin to activate it.");
   if(!roleById(u.roleId))return loginErr("No role is assigned to this user.");
