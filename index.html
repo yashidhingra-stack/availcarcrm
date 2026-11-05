@@ -2767,7 +2767,15 @@ function permAdopt(j){
 (function(){try{permAdopt(JSON.parse(localStorage.getItem(PERM_KEY)||"null"));}catch(e){}})();
 /* ---------- login and access control ---------- */
 var DENY="You don't have permission to do that";
-function permNow(){return state.perm[state.meRole];}
+var ANU_D=null;
+function isAnuUser(u){return !!u&&hierarchyFirst(u.name)==="anu";}
+function anuEnsure(u){if(!isAnuUser(u))return;u.active=true;u.holdOnly=false;u.ownOnly=false;if(!roleById(u.roleId))u.roleId=2;}
+function permNow(){var p=state.perm[state.meRole],u=userById(state.meUser);
+  if(!isAnuUser(u))return p;
+  if(!ANU_D)ANU_D=defPerm(2); /* Anu always keeps at least the Senior Sales Manager permissions, even if saved role settings were changed */
+  var o={m:{},i:{},land:(p&&p.land)||ANU_D.land};
+  [ANU_D,p||{}].forEach(function(q){Object.keys(q.m||{}).forEach(function(k){if(q.m[k])o.m[k]=true;});Object.keys(q.i||{}).forEach(function(k){if(q.i[k])o.i[k]=true;});});
+  return o;}
 function canMod(m){var p=permNow();return !!(p&&p.m[m]);}
 function canDo(m,it){var p=permNow();return !!(p&&p.m[m]&&p.i[m+"::"+it]);}
 var LEAD_PAGE={Audience:"Audience",Login:"Login Business",Hold:"Hold",Disbursed:"Disbursement Business",Rejected:"Reject Business",pdd:"PDD Status"};
@@ -2847,6 +2855,7 @@ function doLogin(nm,pw){
   var u=users.filter(function(x){return String(x.name).toLowerCase().replace(/\s+/g," ").trim()===nm;})[0];
   if(!u){var fm=users.filter(function(x){return hierarchyFirst(x.name)===nm;});if(fm.length===1)u=fm[0];}
   if(!u)return loginErr("No user found with this name.");
+  anuEnsure(u);
   if(!u.active)return loginErr("This user is deactivated. Ask an admin to activate it.");
   if(!roleById(u.roleId))return loginErr("No role is assigned to this user.");
   if(String(pw||"")!==String(u.password||LOGIN_PW))return loginErr("Incorrect password.");
@@ -4023,7 +4032,7 @@ function exportDealerDetails(filtered){if(!window.XLSX){toast("Excel download un
 /* ---------- own-leads-only scope (users flagged ownOnly see just the leads they own) ---------- */
 var MASTER=null, SCOPED=null;
 function fullLeads(){
-  if(!MASTER)return leads;
+  if(!MASTER||!SCOPED)return leads;
   var keep=new Set(leads), inM=new Set(MASTER);
   var out=MASTER.filter(function(x){return !SCOPED.has(x)||keep.has(x);});
   leads.forEach(function(x){if(!inM.has(x))out.push(x);});
@@ -4175,6 +4184,7 @@ function syncScope(){
   leads.forEach(function(l){if(AL[l.owner])l.owner=AL[l.owner];});
   Object.keys(AL).forEach(function(k){var i=owners.indexOf(k);if(i>-1)owners.splice(i,1);if(owners.indexOf(AL[k])<0)owners.push(AL[k]);});
   var u=userById(state.meUser), role=u&&roleById(u.roleId);
+  anuEnsure(u);role=u&&roleById(u.roleId);
   /* Admin is the only account with unrestricted visibility. Other accounts
      see their own leads/files and the explicitly assigned reporting tree. */
   var isAnu=hierUnrestricted(u); /* users ticked "See all leads" on the Hierarchy page (Anu Kaushal by default) */
@@ -4189,7 +4199,7 @@ function syncScope(){
       if(scope||cs){
         leads=MASTER.filter(function(l){return isPartHold(l)||isSharedHRLead(l,u)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
         SCOPED=new Set(leads);
-      }
+      }else{MASTER=null;SCOPED=null;} /* unrestricted user: no filtering, nothing to restore later */
     }
   }
 }
