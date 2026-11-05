@@ -754,7 +754,11 @@ window.CRM_APPLY_LEADS=function(up,rem,all){
 };
 window.CRM_APPLY_HIER=function(o){
   if(!o||typeof o!=="object")return;
-  hier=o;try{localStorage.setItem(HIER_KEY,JSON.stringify(o));}catch(e){}
+  /* SAFETY: merge, never replace. People missing from the incoming copy keep their local/default entry. */
+  var cur0=hier;if(!cur0){try{cur0=JSON.parse(localStorage.getItem(HIER_KEY)||"null");}catch(e){}}
+  var mrg={};if(cur0&&typeof cur0==="object")Object.keys(cur0).forEach(function(k){mrg[k]=cur0[k];});
+  Object.keys(o).forEach(function(k){if(k.indexOf("__")===0||(o[k]&&typeof o[k]==="object"))mrg[k]=o[k];});
+  hier=mrg;try{localStorage.setItem(HIER_KEY,JSON.stringify(mrg));}catch(e){}
   try{if(o.__perm&&permAdopt(o.__perm))try{localStorage.setItem(PERM_KEY,JSON.stringify(o.__perm));}catch(e){}}catch(e){}
   if(o.__users){var ar=adoptUsers(o.__users);if(ar){syncOwners();if(ar==="push")saveUsers();}}
   crmRerender();
@@ -4166,7 +4170,7 @@ document.addEventListener("click",function(e){
   if(e.target&&e.target.id==="hierTickAll"){hierTickAllCats();hierSave();toast("All categories ticked for every user");render();return;}
 });
 document.addEventListener("click",function(e){
-  if(e.target&&e.target.id==="hierReset"){hier=JSON.parse(JSON.stringify(HIER_DEFAULT));hierSave();toast("Hierarchy reset to default");render();}
+  if(e.target&&e.target.id==="hierReset"){if(!confirm("Reset Hierarchy to default for ALL users? This can hide files from people such as Nitin, Keshav and Puneet."))return;hier=JSON.parse(JSON.stringify(HIER_DEFAULT));hierSave();toast("Hierarchy reset to default");render();}
 });
 function hierarchyOwnerAllowed(owner,scope){
   var first=hierarchyFirst(owner);
@@ -4199,6 +4203,7 @@ function syncScope(){
       if(scope||cs){
         leads=MASTER.filter(function(l){return isPartHold(l)||isSharedHRLead(l,u)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
         SCOPED=new Set(leads);
+        if(!leads.length&&MASTER.length&&!window.__scopeWarned){window.__scopeWarned=1;try{console.warn("Hierarchy: no visible files for",u.name,{scope:scope,categories:cs});toast("No files visible for "+u.name+" - ask Admin to check Hierarchy (see-list / category access)");}catch(_){}}
       }else{MASTER=null;SCOPED=null;} /* unrestricted user: no filtering, nothing to restore later */
     }
   }
