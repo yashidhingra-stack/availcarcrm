@@ -890,7 +890,7 @@ function drawCharts(){
   var tick=css("--muted"), line=css("--line"), ink=css("--ink");
   state.widgets.forEach(function(w){
     var box=document.querySelector('[data-w="'+w.id+'"] .chart-box'); if(!box)return;
-    var rows=teamLeads().filter(function(l){return inRange(l)&&(w.kind==="pdd"?l.stage==="Disbursed":((w.stages||[w.stage]).indexOf(l.stage)>-1&&!(l.stage==="Disbursed"&&l.pddImp)));});
+    var rows=teamLeads().filter(function(l){return inRange(l)&&(w.kind==="pdd"?(inPddNow(l)&&!(l.pddImp&&pddAdminHidden())):((w.stages||[w.stage]).indexOf(l.stage)>-1&&!inPddNow(l)));});
     if(!rows.length||typeof Chart==="undefined"){box.innerHTML='<div class="empty" style="height:100%">'+(typeof Chart==="undefined"?"Charts could not load.":"No data available for this date range.")+'</div>';return;}
     var cv=document.createElement("canvas"); box.appendChild(cv);
     var cfg;
@@ -919,6 +919,15 @@ var RTO_ST="File Approved in RTO"; /* kept out of every normal status list */
 var PDD_ST=["Open","Fee Done File At Inward","Pending At Verification Stage","Pending At Approval Stage","File Approved In RTO","State NOC Pending","RTO Paper Pending"];
 function pddSt(l){return l.pddSt||(l.status===RTO_ST?"File Approved In RTO":"Open");}
 function inPddCtx(l){return state.leadCtx==="pdd"&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST);}
+/* ---------- MONTH-END RULE ----------
+   A disbursed file stays in Disbursement business (under its Lead Owner) for the whole month it was disbursed in.
+   It moves to PDD only once that month has ended (on the last day of the month, or later). Nothing moves earlier. */
+function pddMonthEnded(d){
+  var s=String(d||"").slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false; /* no valid date: never move to PDD */
+  var n=new Date(), today=ymd(new Date(n.getFullYear(),n.getMonth(),n.getDate()));
+  return today>=ymd(new Date(+s.slice(0,4),+s.slice(5,7),0)); /* day 0 of next month = last day of this month */
+}
+function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&pddMonthEnded(l.date);}
 function pageStages(key){
   if(stages.indexOf(key)>-1)return [key]; /* Login shows only files still at Login; once moved to any other stage they leave it */
   if(key==="pdd")return ["Disbursed"];
@@ -952,8 +961,10 @@ function leadRows(key,noSel){
     if(key.indexOf("cat")===0){if(l.cat!==key)return false;}else if(l.cat&&key!=="data"&&key!=="channel")return false;
     if(l.date<lr.from||l.date>lr.to)return false;
     if(key==="pdd"&&l.status!=="Disburse"&&l.status!==RTO_ST)return false;
-    if(key==="Disbursed"&&l.pddImp)return false; /* PDD files live only in PDD status, not Disbursement business */
-    if(key!=="pdd"&&key!=="data"&&l.status===RTO_ST)return false;
+    if(key==="pdd"&&!inPddNow(l))return false; /* PDD only after month end */
+    if(key==="pdd"&&l.pddImp&&pddAdminHidden())return false;
+    if(key==="Disbursed"&&inPddNow(l))return false; /* once its month has ended the file lives in PDD; before that it stays in Disbursement business */
+    if(key!=="pdd"&&key!=="data"&&l.status===RTO_ST&&!(key==="Disbursed"&&!inPddNow(l)))return false;
     if(!noSel&&state.sel.length&&state.sel.indexOf(key==="pdd"?pddSt(l):l.status)<0)return false;
     if(f.product&&l.product!==f.product)return false;
     if(f.lender&&l.lender!==f.lender)return false;
@@ -1384,7 +1395,7 @@ function renderLeads(){
     opts.map(function(s){return '<label class="chk"><input type="checkbox" data-status="'+s+'"'+(state.sel.indexOf(s)>-1?" checked":"")+'>'+dotted(s)+s+'</label>';}).join("")+'</div></div></div>';
   h+='<div class="searchbox pw"><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
-  if(canDo("Leads","Add lead")||canDo("Leads","Import leads"))h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Add lead")?'<button class="menu-item" data-addlead>Add lead</button>':"")+(canDo("Leads","Import leads")?(key==="pdd"?'<button class="menu-item" data-importpdd>Import PDD file (CSV / Excel)</button>':"")+'<button class="menu-item" data-importcsv>Import CSV / Excel</button><button class="menu-item" data-replacecsv>Clear all and upload fresh file</button><button class="menu-item" data-clearall>Clear all data</button>'+(canDownloadLeadCategory()?'<button class="menu-item" data-template>Download template</button>':"")+'':"")+'</div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden>';
+  if(canDo("Leads","Add lead")||canDo("Leads","Import leads"))h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Add lead")?'<button class="menu-item" data-addlead>Add lead</button>':"")+(canDo("Leads","Import leads")?(key==="pdd"?'<button class="menu-item" data-importpdd>Import PDD file (CSV / Excel)</button>'+(hierIsAdmin(userById(state.meUser))?'<button class="menu-item" data-pddhide>'+(pddAdminHidden()?"Show PDD data (Admin view)":"Hide PDD data (Admin view)")+'</button>':""):"")+'<button class="menu-item" data-importcsv>Import CSV / Excel</button><button class="menu-item" data-replacecsv>Clear all and upload fresh file</button><button class="menu-item" data-clearall>Clear all data</button>'+(canDownloadLeadCategory()?'<button class="menu-item" data-template>Download template</button>':"")+'':"")+'</div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Hold"?"Upload Hold Excel":"Upload Reject Excel")+'</button><input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
@@ -1869,6 +1880,7 @@ function importPddRows(data,silent){
     var stg=pddStage(get("lead_status","PDD Stage"));
     var cb=cleanVal(get("car_booked_in","Case Booked In"));
     var k=ph?ph+"|"+nm.toLowerCase():"", l=(k&&byKey[k]&&byKey[k].length)?byKey[k].shift():null;
+    var matched=!!l;
     if(l){updated++;}
     else{
       l=newLead({name:nm,phone:ph,owner:ownHit||owners[0],product:prod||products[0],amount:amt,dealer:dlr,lender:lend,vehicle:mdl||make});
@@ -1877,7 +1889,8 @@ function importPddRows(data,silent){
     l.pddImp=true;l.seedId="pdd"+stamp+"_"+rowIx;
     l.status="Disburse";l.stage="Disbursed";l.pdd=l.pdd&&l.pdd!=="—"?l.pdd:"Pending";l.pddSt=stg;l.px=px;
     l.make=make||l.make;if(mdl||make)l.vehicle=mdl||make;if(reg)l.reg=reg;
-    if(prod)l.product=prod;if(amt)l.amount=amt;if(lend)l.lender=lend;if(dlr)l.dealer=dlr;if(own)l.owner=ownHit||own;
+    if(prod)l.product=prod;if(amt)l.amount=amt;if(lend)l.lender=lend;if(dlr)l.dealer=dlr;
+    if(own&&!(matched&&l.owner))l.owner=ownHit||own; /* a file already in Disbursement business keeps its Lead Owner */
     var yr=cleanVal(get("year_of_manufacturing","Year"));if(yr)l.year=yr;
     var em=cleanVal(get("email"));if(em)l.email=em;
     if(note)l.note=note;
@@ -2088,7 +2101,7 @@ function caseBookedOptions(l){var cur=String(ldx(l).caseBooked||"").trim(),list=
 function leadCatKeys(l){
   if(l.cat)return [l.cat];
   var ks=[l.stage];
-  if(l.stage==="Disbursed"&&(l.status==="Disburse"||l.status===RTO_ST))ks.push("pdd");
+  if(inPddNow(l))ks.push("pdd");
   return ks;
 }
 function attrAssigned(a){return !!(a.dynCats&&a.dynCats.length)&&a.visible!==false&&(a.hideRoles||[]).indexOf(state.meRole)<0;} /* shown on the pages of its categories, except for roles it is hidden from */
@@ -2375,6 +2388,7 @@ function submitMoveCat(){
   if(!newOwner){toast("Select a lead owner");if(no)no.focus();return;}
   if(!ck){toast("Select a category");document.getElementById("mvCat").focus();return;}
   if(!ns){toast("Select a status");document.getElementById("mvStatus").focus();return;}
+  if(ck==="pdd"&&!(l.stage==="Disbursed"&&pddMonthEnded(l.date))){toast("Files move to PDD only at month end. This file stays in Disbursement business until then.");return;}
   var priorOwner=l.owner;
   if(priorOwner!==newOwner){l.owner=newOwner;l.hist.unshift({ts:stamp(),text:"Lead owner changed from "+(priorOwner||"Unassigned")+" to "+newOwner,type:"owner"});}
   var c=moveCats().filter(function(x){return x.key===ck;})[0], old=l.status, oldCat=l.cat;
@@ -2974,11 +2988,16 @@ function renderUBody(){
 function catBoxHtml(prefix,k){var g=k?hierGet(k):null,c=g?g.cats:null,sees=g?g.see:[],P=hierPeople().filter(function(p){return p.k!==k;});
   var chip='<label class="hchip" style="display:inline-block;margin:2px 10px 2px 0">',lb='<label style="display:block;font-size:12px;color:var(--muted);margin:5px 0">';
   return '<div class="eu-sel">'+lb+'Lead categories this user can open</label>'+HCATS.map(function(x){return chip+'<input type="checkbox" data-ccat="'+prefix+'" value="'+x[0]+'"'+((!Array.isArray(c)||c.indexOf(x[0])>-1)?' checked':'')+'> '+esc(x[1])+'</label>';}).join('')+'</div>'+
-   '<div class="eu-sel">'+lb+'Whose files this user can see (their own files are always visible)</label>'+chip+'<input type="checkbox" data-csee="'+prefix+'" value="__all"'+(g&&g.all?' checked':'')+'> <b>See all leads</b></label>'+P.map(function(p){return chip+'<input type="checkbox" data-csee="'+prefix+'" value="'+p.k+'"'+(sees.indexOf(p.k)>-1?' checked':'')+'> '+esc(p.n)+'</label>';}).join('')+'</div>';}
+   '<div class="eu-sel">'+lb+'Whose files this user can see (their own files are always visible)</label>'+chip+'<input type="checkbox" data-csee="'+prefix+'" value="__all"'+(g&&g.all?' checked':'')+'> <b>See all leads</b></label>'+chip+'<input type="checkbox" data-csee="'+prefix+'" value="__holdown"'+((g?g.holdOwn:true)?' checked':'')+'> <b>Hold files: only of the owners selected here</b></label>'+P.map(function(p){return chip+'<input type="checkbox" data-csee="'+prefix+'" value="'+p.k+'"'+(sees.indexOf(p.k)>-1?' checked':'')+'> '+esc(p.n)+'</label>';}).join('')+'</div>';}
 function catBoxSave(prefix,k){if(!k)return;var c=hierGet(k),bx=[].slice.call(document.querySelectorAll('input[data-ccat="'+prefix+'"]')),sb=[].slice.call(document.querySelectorAll('input[data-csee="'+prefix+'"]'));
   if(bx.length)c.cats=bx.filter(function(x){return x.checked;}).map(function(x){return x.value;});
-  if(sb.length){c.all=sb.some(function(x){return x.value==="__all"&&x.checked;});c.see=sb.filter(function(x){return x.checked&&x.value!=="__all";}).map(function(x){return x.value;});}
+  if(sb.length){c.holdOwn=sb.some(function(x){return x.value==="__holdown"&&x.checked;});c.all=sb.some(function(x){return x.value==="__all"&&x.checked;});c.see=sb.filter(function(x){return x.checked&&x.value!=="__all"&&x.value!=="__holdown";}).map(function(x){return x.value;});}
   hierSave();}
+function pddAdminHidden(){try{return hierIsAdmin(userById(state.meUser))&&!!hierLoad().__pddHide;}catch(e){return false;}}
+document.addEventListener("click",function(e){var b=e.target&&e.target.closest?e.target.closest("[data-pddhide]"):null;if(!b)return;
+  if(!hierIsAdmin(userById(state.meUser))){toast(DENY);return;}
+  var h=hierLoad();h.__pddHide=!h.__pddHide;hierSave();toast(h.__pddHide?"PDD data hidden in the Admin view. Lead owners still see their files.":"PDD data shown again in the Admin view");render();
+});
 function openRole(id){
   var r=id?roleById(id):null, m=document.getElementById("modal"); state.roleEdit=r?r.id:null;
   var opts=roles.filter(function(x){return x.type!=="Child"&&(!r||!isUnder(x.id,r.id));});
@@ -3508,8 +3527,8 @@ function repeatRule(ph){
 function catLeads(c){
   if(!c.built)return leads.filter(function(l){return inTeam(l)&&l.cat===c.key;}).length;
   if(c.key==="data"||c.key==="channel")return teamLeads().length;
-  if(c.key==="pdd")return leads.filter(function(l){return inTeam(l)&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST);}).length;
-  var st=pageStages(c.key);return leads.filter(function(l){return inTeam(l)&&!l.cat&&st.indexOf(l.stage)>-1;}).length;
+  if(c.key==="pdd")return leads.filter(function(l){return inTeam(l)&&inPddNow(l);}).length;
+  var st=pageStages(c.key);return leads.filter(function(l){return inTeam(l)&&!l.cat&&st.indexOf(l.stage)>-1&&!(c.key==="Disbursed"&&inPddNow(l));}).length;
 }
 function renderCategory(){
   var full=cats.length>=MAXCAT;
@@ -4101,7 +4120,7 @@ function hierLeadAllowed(l,cs){
   if(g==="Login")return cs.indexOf(l.status)>-1;
   if(g==="Hold")return cs.indexOf("Hold")>-1;
   if(g==="Rejected")return cs.indexOf("Rejected")>-1;
-  if(g==="Disbursed"){var pd=l.status==="Disburse"||l.status===RTO_ST;return (!l.pddImp&&cs.indexOf("Disbursed")>-1)||(pd&&cs.indexOf("pdd")>-1);}
+  if(g==="Disbursed"){var pd=inPddNow(l);return (!pd&&cs.indexOf("Disbursed")>-1)||(pd&&cs.indexOf("pdd")>-1);}
   return true;}
 function hierFollowOf(k){hierLoad();var c=hier[k];if(c&&Array.isArray(c.follow))return c.follow;return (HIER_DEFAULT[k]&&HIER_DEFAULT[k].follow)||[];}
 function hierFollowers(mover){var all={};Object.keys(HIER_DEFAULT).forEach(function(k){all[k]=1;});hierLoad();Object.keys(hier).forEach(function(k){if(k.indexOf("__")!==0)all[k]=1;});
@@ -4214,7 +4233,7 @@ function syncScope(){
     }else{
       var scope=isAnu?null:hierarchyScopeFor(u), cs=hierCats(u); /* cs = categories this user may open (null = all) */
       if(scope||cs){
-        leads=MASTER.filter(function(l){return isPartHold(l)||isSharedHRLead(l,u)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
+        var hOwn=!!hierGet(hierarchyFirst(u.name)).holdOwn;leads=MASTER.filter(function(l){return (isPartHold(l)&&!hOwn)||isSharedHRLead(l,u)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
         SCOPED=new Set(leads);
         if(!leads.length&&MASTER.length&&!window.__scopeWarned){window.__scopeWarned=1;try{console.warn("Hierarchy: no visible files for",u.name,{scope:scope,categories:cs});toast("No files visible for "+u.name+" - ask Admin to check Hierarchy (see-list / category access)");}catch(_){}}
       }else{MASTER=null;SCOPED=null;} /* unrestricted user: no filtering, nothing to restore later */
