@@ -4093,14 +4093,14 @@ function hierarchyScopeFor(u){
 }
 function renderHierarchy(){
   var P=hierPeople();
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><div class="tb"><button class="btn primary" id="hierAddUser">Add user</button><button class="btn" id="hierPerm">Roles &amp; permissions</button><button class="btn" id="hierReset">Reset to default</button></div></div>';
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><div class="tb"><button class="btn primary" id="hierAddUser">Add user</button><button class="btn" id="hierPerm">Roles &amp; permissions</button><button class="btn" id="hierTickAll">Tick all categories for everyone</button><button class="btn" id="hierReset">Reset to default</button></div></div>';
   h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>Role</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th><th>Also shift own copy when these people move a file</th></tr></thead><tbody>';
   users.filter(function(u){return u.active;}).forEach(function(u){
     var k=hierarchyFirst(u.name),c=hierGet(k),r=roleById(u.roleId),adm=(r&&r.name==="Admin")||u.name==="Umesh Dhingra";
     var cell,cc=Array.isArray(c.cats)?c.cats:null,catCell;
     var fw=hierFollowOf(k),fwCell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hf="'+k+'" data-hfp="'+p.k+'"'+(fw.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
     if(adm)catCell='<em>Admin &ndash; all categories</em>';
-    else catCell=HCATS.map(function(x){return '<label class="hchip"><input type="checkbox" data-hc="'+k+'" data-hcat="'+x[0]+'"'+((!cc||cc.indexOf(x[0])>-1||HOLD_PEND.indexOf(x[0])>-1)?" checked":"")+(HOLD_PEND.indexOf(x[0])>-1?' disabled title="Always allowed"':'')+'> '+esc(x[1])+'</label>';}).join("");
+    else catCell=HCATS.map(function(x){return '<label class="hchip"><input type="checkbox" data-hc="'+k+'" data-hcat="'+x[0]+'"'+((!cc||cc.indexOf(x[0])>-1||HOLD_PEND.indexOf(x[0])>-1)?" checked":"")+(HOLD_PEND.indexOf(x[0])>-1?' disabled title="Always allowed"':'')+'> '+esc(x[1])+'</label>';}).join("")+'<div class="hsel" style="width:100%;margin-top:6px;font-size:12px"><a href="#" data-hsel="'+k+'" data-hmode="all">Select all</a> &middot; <a href="#" data-hsel="'+k+'" data-hmode="none">Clear</a></div>';
     if(adm)cell='<em>Admin &ndash; always sees everything</em>';
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
@@ -4146,6 +4146,15 @@ document.addEventListener("click",function(e){
 window.addEventListener("storage",function(e){ /* Hierarchy changed in another tab of this browser: load it at once */
   if(e.key!==HIER_KEY||!e.newValue)return;
   try{var o=JSON.parse(e.newValue);if(o&&typeof o==="object"){hier=o;crmRerender();}}catch(_){}
+});
+function hierTickAllCats(){hierLoad();var set={};users.forEach(function(u){var k=hierarchyFirst(u.name);if(k)set[k]=1;});Object.keys(hier).forEach(function(k){if(k.indexOf("__")!==0)set[k]=1;});
+  Object.keys(set).forEach(function(k){hierGet(k).cats=HCATS.map(function(x){return x[0];});});}
+document.addEventListener("click",function(e){
+  var a=e.target&&e.target.closest?e.target.closest("[data-hsel]"):null;
+  if(a){e.preventDefault();var c=hierGet(a.getAttribute("data-hsel"));
+    c.cats=a.getAttribute("data-hmode")==="all"?HCATS.map(function(x){return x[0];}):HOLD_PEND.slice();
+    hierSave();toast("Category access saved");render();return;}
+  if(e.target&&e.target.id==="hierTickAll"){hierTickAllCats();hierSave();toast("All categories ticked for every user");render();return;}
 });
 document.addEventListener("click",function(e){
   if(e.target&&e.target.id==="hierReset"){hier=JSON.parse(JSON.stringify(HIER_DEFAULT));hierSave();toast("Hierarchy reset to default");render();}
