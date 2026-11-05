@@ -1780,7 +1780,8 @@ function dedupeLeads(){var seen={},out=[],removed=0;leads.forEach(function(l){va
 function stageRank(l){var g=l.stage;return g==="Audience"?0:g==="Login"?1:2;}
 function phone10(l){var p=String(l.phone||"").replace(/\D/g,"");return p.length>=10?p.slice(-10):"";}
 function firstTok(l){var m=String(l.name||"").trim().toLowerCase().match(/[a-z0-9]+/);return m?m[0]:"";}
-function sameLead(a,b){var x=firstTok(a),y=firstTok(b);return !x||!y||x===y;} /* same mobile and same first name (spelling/surname differences do not hide a copy) */
+function regNorm(l){return String(l.reg||"").toUpperCase().replace(/[^A-Z0-9]/g,"");}
+function sameLead(a,b){var x=firstTok(a),y=firstTok(b),ra=regNorm(a),rb=regNorm(b);if(ra&&rb&&ra!==rb)return false;return !x||!y||x===y;} /* SAFETY: two different vehicle numbers = two different cases, never treat the older one as a copy to delete */ /* same mobile and same first name (spelling/surname differences do not hide a copy) */
 function copyPurgeGroups(list){
   var g={};list.forEach(function(l){if(l.cat)return;var k=phone10(l);if(k)(g[k]=g[k]||[]).push(l);});return g;}
 function dropCopies(drop){
@@ -2970,8 +2971,14 @@ function renderUBody(){
   var t=document.getElementById("uTotal"); if(t)t.textContent="Total Users: "+users.length;
   var f=document.getElementById("ufLabel"); if(f){var n=(state.uf.role?1:0)+(state.uf.status?1:0);f.textContent=n?"Filter By ("+n+")":"Filter By";}
 }
-function catBoxHtml(prefix,k){var c=k?hierGet(k).cats:null;return '<div class="eu-sel"><label style="display:block;font-size:12px;color:var(--muted);margin:5px 0">Lead categories this user can open</label>'+HCATS.map(function(x){return '<label class="hchip" style="display:inline-block;margin:2px 10px 2px 0"><input type="checkbox" data-ccat="'+prefix+'" value="'+x[0]+'"'+((!Array.isArray(c)||c.indexOf(x[0])>-1)?' checked':'')+'> '+esc(x[1])+'</label>';}).join('')+'</div>';}
-function catBoxSave(prefix,k){if(!k)return;var bx=[].slice.call(document.querySelectorAll('input[data-ccat="'+prefix+'"]'));if(!bx.length)return;hierGet(k).cats=bx.filter(function(b){return b.checked;}).map(function(b){return b.value;});hierSave();}
+function catBoxHtml(prefix,k){var g=k?hierGet(k):null,c=g?g.cats:null,sees=g?g.see:[],P=hierPeople().filter(function(p){return p.k!==k;});
+  var chip='<label class="hchip" style="display:inline-block;margin:2px 10px 2px 0">',lb='<label style="display:block;font-size:12px;color:var(--muted);margin:5px 0">';
+  return '<div class="eu-sel">'+lb+'Lead categories this user can open</label>'+HCATS.map(function(x){return chip+'<input type="checkbox" data-ccat="'+prefix+'" value="'+x[0]+'"'+((!Array.isArray(c)||c.indexOf(x[0])>-1)?' checked':'')+'> '+esc(x[1])+'</label>';}).join('')+'</div>'+
+   '<div class="eu-sel">'+lb+'Whose files this user can see (their own files are always visible)</label>'+chip+'<input type="checkbox" data-csee="'+prefix+'" value="__all"'+(g&&g.all?' checked':'')+'> <b>See all leads</b></label>'+P.map(function(p){return chip+'<input type="checkbox" data-csee="'+prefix+'" value="'+p.k+'"'+(sees.indexOf(p.k)>-1?' checked':'')+'> '+esc(p.n)+'</label>';}).join('')+'</div>';}
+function catBoxSave(prefix,k){if(!k)return;var c=hierGet(k),bx=[].slice.call(document.querySelectorAll('input[data-ccat="'+prefix+'"]')),sb=[].slice.call(document.querySelectorAll('input[data-csee="'+prefix+'"]'));
+  if(bx.length)c.cats=bx.filter(function(x){return x.checked;}).map(function(x){return x.value;});
+  if(sb.length){c.all=sb.some(function(x){return x.value==="__all"&&x.checked;});c.see=sb.filter(function(x){return x.checked&&x.value!=="__all";}).map(function(x){return x.value;});}
+  hierSave();}
 function openRole(id){
   var r=id?roleById(id):null, m=document.getElementById("modal"); state.roleEdit=r?r.id:null;
   var opts=roles.filter(function(x){return x.type!=="Child"&&(!r||!isUnder(x.id,r.id));});
