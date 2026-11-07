@@ -928,7 +928,8 @@ function inPddCtx(l){return state.leadCtx==="pdd"&&l.stage==="Disbursed"&&!l.cat
 function pddMonthEnded(d){
   var s=String(d||"").slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false; /* no valid date: never move to PDD */
   var n=new Date(), today=ymd(new Date(n.getFullYear(),n.getMonth(),n.getDate()));
-  return today>=ymd(new Date(+s.slice(0,4),+s.slice(5,7),0)); /* day 0 of next month = last day of this month */
+  var y=+s.slice(0,4), m=+s.slice(5,7);
+  return today>=ymd(new Date(y,m+1,0)); /* day 0 of the following month is the final day of the disbursement month */
 }
 function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&pddMonthEnded(l.date);}
 function pageStages(key){
