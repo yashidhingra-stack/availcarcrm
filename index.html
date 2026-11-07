@@ -1400,6 +1400,8 @@ function renderLeads(){
   h+='<div class="searchbox pw"><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
   if(canDo("Leads","Add lead")||canDo("Leads","Import leads"))h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Add lead")?'<button class="menu-item" data-addlead>Add lead</button>':"")+(canDo("Leads","Import leads")?(key==="pdd"?'<button class="menu-item" data-importpdd>Import PDD file (CSV / Excel)</button>'+(hierIsAdmin(userById(state.meUser))?'<button class="menu-item" data-pddhide>'+(pddAdminHidden()?"Show PDD data (Admin view)":"Hide PDD data (Admin view)")+'</button>':""):"")+''+(hierIsAdmin(userById(state.meUser))?'<button class="menu-item" data-importwb>Import monthly workbook (all sheets)</button>':"")+'<button class="menu-item" data-importcsv>Import CSV / Excel</button><button class="menu-item" data-replacecsv>Clear all and upload fresh file</button><button class="menu-item" data-clearall>Clear all data</button>'+(canDownloadLeadCategory()?'<button class="menu-item" data-template>Download template</button>':"")+'':"")+'</div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="wbIn" accept=".xlsx,.xls" hidden>';
+  if(key==="data"&&hierIsAdmin(userById(state.meUser))&&canDo("Leads","Import leads"))
+    h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Hold"?"Upload Hold Excel":"Upload Reject Excel")+'</button><input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
@@ -1980,13 +1982,21 @@ function wbReadSheets(wb){
     return {name:n,rows:rg?XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true,range:rg}):[]};});
 }
 function wbStatus(raw,sheet){
-  var t=cleanVal(raw).replace(/\s+/g," ").trim().toLowerCase();
+  var t=cleanVal(raw).replace(/\\s+/g," ").trim().toLowerCase(),sh=String(sheet||"").toLowerCase();
   var alias={"hold":"Finally Hold","xcl pending":"Login Pending","disburse":"Disburse","disbursed":"Disburse","reject":"Reject","rejected":"Reject"};
   var nm=alias[t];
   if(!nm){var h=STATUS.filter(function(x){return x[0].toLowerCase()===t;})[0];if(h)nm=h[0];}
+  var stage=nm?statusStage[nm]:"",target="",fallback="";
+  /* Named worksheets decide the CRM category. Preserve a row status only
+     when it belongs to that category; otherwise use a safe default. */
+  if(/audience/.test(sh)){target="Audience";fallback="Open";}
+  else if(/login/.test(sh)){target="Login";fallback="Login Pending";}
+  else if(/disbursement|disbursed|^disb$/.test(sh)){target="Disbursed";fallback="Disburse";}
+  else if(/^hold$|^holds$/.test(sh)){target="Hold";fallback="Finally Hold";}
+  else if(/^reject$|^rejected$|^rejects$/.test(sh)){target="Rejected";fallback="Reject";}
+  if(target)return {st:(nm&&stage===target)?nm:fallback,ok:!!(nm&&stage===target),raw:t};
   if(nm)return {st:nm,ok:true};
-  var sh=String(sheet||"").toLowerCase();
-  return {st:/audience/.test(sh)?"Open":/login/.test(sh)?"Login Pending":/disb/.test(sh)?"Disbursement Pending":/hold/.test(sh)?"Finally Hold":/reject/.test(sh)?"Reject":"Open",ok:false,raw:t};
+  return {st:/hold/.test(sh)?"Finally Hold":/reject/.test(sh)?"Reject":/disb/.test(sh)?"Disbursement Pending":/login/.test(sh)?"Login Pending":"Open",ok:false,raw:t};
 }
 function wbTitle(t){return (t===t.toUpperCase()||t===t.toLowerCase())?t.toLowerCase().replace(/\b[a-z]/g,function(c){return c.toUpperCase();}):t;}
 function wbOwner(raw,rep){
@@ -4486,6 +4496,7 @@ document.addEventListener("click",function(e){
   if(t.hasAttribute("data-template")){closePops();downloadTemplate();return;}
   if(t.id==="doClear"){clearAllData();return;}
   if(t.hasAttribute("data-importpdd")){closePops();if(!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("pddIn").click();return;}
+  if(t.id==="majorWbUpload"){if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("wbIn").click();return;}
   if(t.hasAttribute("data-importwb")){closePops();if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("wbIn").click();return;}
   if(t.hasAttribute("data-importcsv")){closePops();if(!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("csvIn").click();return;}
   if(d.bizgroup!==undefined){state.bizDetail={mode:"dealer",name:d.bizgroup};renderBusinessGroupDetails(state.bizDetail.mode,state.bizDetail.name);return;}
