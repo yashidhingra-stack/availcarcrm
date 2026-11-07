@@ -732,7 +732,7 @@ window.CRM_GET_HIER=function(){return hierLoad();};
 window.CRM_SYNC_STATUS=function(t){var el=document.getElementById("syncState");if(el)el.textContent=t?" · "+t:"";};
 window.CRM_APPLY_LEADS=function(up,rem,all){
   try{
-    var full, protectedSeed={}, currentSeed=leads.filter(function(x){return String(x.seedId||"").indexOf("holdreject_seed_v1_")===0;});
+    var full, remSet=null, protectedSeed={}, currentSeed=leads.filter(function(x){return String(x.seedId||"").indexOf("holdreject_seed_v1_")===0;});
     /* The shared CRM server may return an older full snapshot a few seconds after
        page load. Never let that snapshot erase the embedded Hold/Reject import. */
     currentSeed.forEach(function(x){protectedSeed[String(x.seedId)]=x;});
@@ -740,11 +740,11 @@ window.CRM_APPLY_LEADS=function(up,rem,all){
     else{
       full=fullLeads().slice();var ix={};full.forEach(function(x,i){ix[String(x.id)]=i;});
       up.forEach(function(x){var i=ix[String(x.id)];if(i===undefined){ix[String(x.id)]=full.length;full.push(x);}else full[i]=x;});
-      if(rem.length){var rs={};rem.forEach(function(id){rs[String(id)]=1;});full=full.filter(function(x){return !rs[String(x.id)];});}
+      if(rem.length){var rs={};rem.forEach(function(id){rs[String(id)]=1;});remSet=rs;full=full.filter(function(x){return !rs[String(x.id)];});}
     }
     var seedIx={};full.forEach(function(x){if(x.seedId)seedIx[String(x.seedId)]=1;});
-    Object.keys(protectedSeed).forEach(function(k){if(!seedIx[k]){full.push(protectedSeed[k]);seedIx[k]=1;}});
-    leads=full;MASTER=null;SCOPED=null;
+    Object.keys(protectedSeed).forEach(function(k){if(!seedIx[k]&&!(remSet&&remSet[String(protectedSeed[k].id)])){full.push(protectedSeed[k]);seedIx[k]=1;}}); /* a Hold/Reject file deleted by Admin stays deleted */
+    leads=full;MASTER=null;SCOPED=null;try{tombApply();}catch(e){}
     nextId=Math.max(nextId,full.reduce(function(m,x){return Math.max(m,(+x.id||0)+1);},1001));
     try{localStorage.setItem(LEADS_KEY,JSON.stringify(full));}catch(e){}
     ALLFROM=full.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));ALLTO=full.reduce(function(m,l){return l.date>m?l.date:m;},"");
@@ -757,7 +757,10 @@ window.CRM_APPLY_HIER=function(o){
   /* SAFETY: merge, never replace. People missing from the incoming copy keep their local/default entry. */
   var cur0=hier;if(!cur0){try{cur0=JSON.parse(localStorage.getItem(HIER_KEY)||"null");}catch(e){}}
   var mrg={};if(cur0&&typeof cur0==="object")Object.keys(cur0).forEach(function(k){mrg[k]=cur0[k];});
-  Object.keys(o).forEach(function(k){if(k.indexOf("__")===0||(o[k]&&typeof o[k]==="object"))mrg[k]=o[k];});
+  Object.keys(o).forEach(function(k){
+    if(k==="__delLeads"){var a=(mrg.__delLeads&&typeof mrg.__delLeads==="object")?mrg.__delLeads:{},b=o.__delLeads||{},u={};
+      Object.keys(a).forEach(function(x){u[x]=a[x];});Object.keys(b).forEach(function(x){if(u[x]===undefined||Math.abs(b[x])>Math.abs(u[x]))u[x]=b[x];});mrg.__delLeads=u;return;}
+    if(k.indexOf("__")===0||(o[k]&&typeof o[k]==="object"))mrg[k]=o[k];});
   hier=mrg;try{localStorage.setItem(HIER_KEY,JSON.stringify(mrg));}catch(e){}
   try{if(o.__perm&&permAdopt(o.__perm))try{localStorage.setItem(PERM_KEY,JSON.stringify(o.__perm));}catch(e){}}catch(e){}
   if(o.__users){var ar=adoptUsers(o.__users);if(ar){syncOwners();if(ar==="push")saveUsers();}}
@@ -1652,7 +1655,7 @@ function openAddLead(){
     return out.sort(function(a,b){return a.localeCompare(b);});
   }
   m.innerHTML='<h2>Add lead</h2><div class="row"><div class="field"><label for="aName">Name</label><input id="aName"></div><div class="field"><label for="aPhone">Mobile</label><input id="aPhone" inputmode="tel"></div></div>'+
-   '<div class="row">'+sel("aOwner","Lead owner",owners)+sel("aProd","Product",products)+'</div>'+
+   '<div class="row">'+sel("aOwner","Lead owner",(function(){var me=myOwnerName(),l2=owners.slice();if(me&&l2.indexOf(me)<0)l2.push(me);return l2;})())+sel("aProd","Product",products)+'</div>'+
    (function(){var d0=statusOptions(pageKey())[0]||"Open";return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST;}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
    '<div class="row"><div class="field"><label for="aAmt">Loan amount (₹)</label><input id="aAmt" type="number" min="0" step="10000" value="500000"></div><div class="field"><label for="aVeh">Vehicle</label><input id="aVeh" placeholder="For example, Swift"></div></div>'+
    '<div class="row"><div class="field"><label for="aYear">Year</label><input id="aYear" type="number" min="1900" max="2100" step="1" placeholder="Enter year"></div></div>'+
@@ -1664,7 +1667,9 @@ function openAddLead(){
    '<div class="row">'+sel("aMgr","Reporting manager",[""].concat(owners))+'</div>'+
    (function(){var al=attrsForPage(pageKey());return al.length?'<div class="sec-label" style="margin-top:6px">Additional details</div><div class="row" style="flex-wrap:wrap">'+al.map(function(a){return cxField({x:{cx:{}}},a).replace('id="ld_cx_','id="aCx_');}).join("")+'</div>':"";})()+
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveLead">Add lead</button></div>';
-  m.classList.add("show");showOverlay(true);document.getElementById("aName").focus();
+  m.classList.add("show");showOverlay(true);
+  (function(){var me=myOwnerName(),o=document.getElementById("aOwner");if(me&&o)o.value=me;})(); /* new lead is assigned to the signed-in user; change it here if needed */
+  document.getElementById("aName").focus();
 }
 function openDelete(id){
   var l=leads.filter(function(x){return x.id===id;})[0]; if(!l)return;
@@ -2364,6 +2369,14 @@ function moveStatuses(key){
   if(key==="Disbursed")return ["Open","Disbursed","Disbursement Pending"];
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
 }
+function myOwnerName(){
+  var u=userById(state.meUser);if(!u)return "";
+  var list=moveOwnerOptions(),nm=String(u.name||"").trim().toLowerCase(),i;
+  for(i=0;i<list.length;i++)if(list[i].toLowerCase()===nm)return list[i];
+  var f=hierarchyFirst(u.name);
+  if(f)for(i=0;i<list.length;i++)if(hierarchyFirst(list[i])===f)return list[i];
+  return "";
+}
 function moveOwnerOptions(){
   var out=[],seen={};
   function add(n){n=String(n||"").trim();var k=n.toLowerCase();if(n&&!seen[k]){seen[k]=1;out.push(n);}}
@@ -2428,7 +2441,8 @@ function ldStatusList(l){
 }
 function ldStatusBlock(l){
   var pd=inPddCtx(l), opts=pd?PDD_ST:ldStatusList(l), cur=pd?pddSt(l):l.status;
-  return '<div class="st-grid" role="radiogroup" aria-label="'+(pd?"PDD status":"Lead status")+'">'+opts.map(function(o){
+  var ownSel='<div class="field" style="max-width:320px;margin-bottom:12px"><label for="ldOwner">Lead owner</label><select id="ldOwner">'+(function(){var ol=moveOwnerOptions();if(l.owner&&ol.indexOf(l.owner)<0)ol.push(l.owner);return ol.map(function(o){return '<option value="'+esc(o)+'"'+(o===l.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("");})()+'</select></div>';
+  return ownSel+'<div class="st-grid" role="radiogroup" aria-label="'+(pd?"PDD status":"Lead status")+'">'+opts.map(function(o){
     return '<label class="st-pill'+(o===cur?" on":"")+'"><input type="radio" name="ldst" value="'+esc(o)+'"'+(o===cur?" checked":"")+'>'+esc(o)+'</label>';}).join("")+'</div>'+
    '<div class="st-note field"><label for="ldNote2">Note<span class="req">*</span></label><textarea id="ldNote2" rows="3"></textarea></div>'+
    '<div class="st-sub"><button class="btn" id="ldSubmit">Submit</button></div>';
@@ -2438,6 +2452,8 @@ function submitLeadStatus(){
   var r=document.querySelector('input[name="ldst"]:checked'), nt=document.getElementById("ldNote2"); if(!r||!nt)return;
   var tx=nt.value.trim(), ns=r.value, old=l.status;
   if(!tx){toast("Note is required");nt.focus();return;}
+  var ownEl=document.getElementById("ldOwner");
+  if(ownEl&&ownEl.value&&ownEl.value!==l.owner){var po0=l.owner;l.owner=ownEl.value;l.hist.unshift({ts:stamp(),text:"Lead owner changed from "+(po0||"Unassigned")+" to "+l.owner,type:"owner"});saveLeads();}
   if(inPddCtx(l)){
     var po=pddSt(l);
     if(ns!==po){l.pddSt=ns;l.hist.unshift({ts:stamp(),text:"PDD status changed from "+po+" to "+ns,type:"status"});}
@@ -2789,13 +2805,8 @@ function permAdopt(j){
 var DENY="You don't have permission to do that";
 var ANU_D=null;
 function isAnuUser(u){return !!u&&hierarchyFirst(u.name)==="anu";}
-function anuEnsure(u){if(!isAnuUser(u))return;u.active=true;u.holdOnly=false;u.ownOnly=false;if(!roleById(u.roleId))u.roleId=2;}
-function permNow(){var p=state.perm[state.meRole],u=userById(state.meUser);
-  if(!isAnuUser(u))return p;
-  if(!ANU_D)ANU_D=defPerm(2); /* Anu always keeps at least the Senior Sales Manager permissions, even if saved role settings were changed */
-  var o={m:{},i:{},land:(p&&p.land)||ANU_D.land};
-  [ANU_D,p||{}].forEach(function(q){Object.keys(q.m||{}).forEach(function(k){if(q.m[k])o.m[k]=true;});Object.keys(q.i||{}).forEach(function(k){if(q.i[k])o.i[k]=true;});});
-  return o;}
+function anuEnsure(u){return;} /* no hard-wired user: access follows Roles, Permission and Hierarchy set by Admin */
+function permNow(){return state.perm[state.meRole];} /* only the permissions Admin gave to the role */
 function canMod(m){var p=permNow();return !!(p&&p.m[m]);}
 function canDo(m,it){var p=permNow();return !!(p&&p.m[m]&&p.i[m+"::"+it]);}
 var LEAD_PAGE={Audience:"Audience",Login:"Login Business",Hold:"Hold",Disbursed:"Disbursement Business",Rejected:"Reject Business",pdd:"PDD Status"};
@@ -2816,7 +2827,7 @@ function routeOk(r){
   if(r==="channelwise"||r==="leads/channel")return canDo("Major Reports","Channel List");
   if(h==="lead")return canDo("Leads","View lead");
   if(h==="leads"){
-    if(LEAD_PAGE[k])return canDo("Leads",LEAD_PAGE[k])&&(hierPageOk(k)||(k==="Rejected"&&!!hrUserKey(cu)));
+    if(LEAD_PAGE[k])return canDo("Leads",LEAD_PAGE[k])&&hierPageOk(k);
     if(k==="channel")return canDo("Major Reports","Channel List");
     if(k==="data")return canDo("Major Reports","Data");
     return canMod("Major Reports");
@@ -4080,7 +4091,7 @@ function hierarchyFirst(name){var m=String(name||"").trim().toLowerCase().match(
 /* ---------- Hierarchy: who can see whose leads and files (edited on the Hierarchy page) ---------- */
 var HIER_KEY="avail_crm_hierarchy_v1", hier=null;
 var HIER_DEFAULT={
-  anu:{all:true,see:[],follow:["sapna","ashish"]},
+  anu:{all:false,see:["ashish","sapna"],follow:["sapna","ashish"]},
   nitin:{all:false,see:["keshav","puneet","kapilkharb"]},
   keshav:{all:false,see:["puneet","kapil","kapilkharb"]},
   sapna:{all:false,see:["kiran","kiranpreet"]},
@@ -4092,21 +4103,29 @@ function hierLoad(){
   if(hier)return hier;
   try{var j=localStorage.getItem(HIER_KEY);if(j)hier=JSON.parse(j);}catch(e){}
   if(!hier||typeof hier!=="object")hier=JSON.parse(JSON.stringify(HIER_DEFAULT));
+  /* one-time fix: older saved settings still had "See all leads" switched on for Anu; it now follows what Admin ticks on the Hierarchy page */
+  if(!hier.__anuScopeV2){
+    hier.__anuScopeV2=1;
+    var ca=hier.anu;if(!ca||typeof ca!=="object")ca=hier.anu={all:false,see:[],follow:["sapna","ashish"]};
+    ca.all=false;if(!Array.isArray(ca.see))ca.see=[];
+    if(!ca.see.length)ca.see=["ashish","sapna"];
+    try{localStorage.setItem(HIER_KEY,JSON.stringify(hier));}catch(e){}
+    try{if(window.CRM_SYNC&&window.CRM_SYNC.pushHier)window.CRM_SYNC.pushHier(hier);}catch(e){}
+  }
   return hier;}
 function hierSave(){try{localStorage.setItem(HIER_KEY,JSON.stringify(hier));}catch(e){toast("Could not save hierarchy in this browser");}try{if(window.CRM_SYNC)window.CRM_SYNC.pushHier(hier);}catch(e){}}
 function hierGet(k){hierLoad();var c=hier[k];if(!c||typeof c!=="object")c=hier[k]=HIER_DEFAULT[k]?JSON.parse(JSON.stringify(HIER_DEFAULT[k])):{all:false,see:[]};if(!Array.isArray(c.see))c.see=[];return c;}
 /* ---- category access: which categories of files each user can open (empty setting = all) ---- */
 var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","Login"],["Approval Pending","Approval Pending"],["Approved","Approved"],["Hold","Hold"],["Disbursed","Disbursement"],["Rejected","Reject"],["pdd","PDD Status"]];
 var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
-function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&((r&&r.name==="Admin")||u.name==="Umesh Dhingra");}
+function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&!!(r&&r.name==="Admin");}
 function canDownloadLeadCategory(){return hierIsAdmin(userById(state.meUser));}
 function isPartHold(l){return !l.cat&&["Finally Hold","Partially Hold","Approved But Hold","Postponed"].indexOf(l.status)>-1;} /* all Hold files (Finally, Partially, Approved But Hold, Postponed): visible to every user on the Hold page, whoever owns them */
 var HOLD_PEND=[]; /* every category can now be ticked or unticked per user */ /* Hold (incl. Partially Hold) and pending files: always open for every user */
-function hierCats(u){if(u&&hierarchyFirst(u.name)==="anu")return null;var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;c=c.slice();HOLD_PEND.forEach(function(x){if(c.indexOf(x)<0)c.push(x);});return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
+function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;c=c.slice();HOLD_PEND.forEach(function(x){if(c.indexOf(x)<0)c.push(x);});return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
 function hierCatsMe(){var u=userById(state.meUser);return (!u||hierIsAdmin(u))?null:hierCats(u);}
-function hierPageOk(k){if(hrUserKey(userById(state.meUser)))return true;var cs=hierCatsMe(),need=HPAGE[k];if(!cs||!need)return true;return need.some(function(x){return cs.indexOf(x)>-1;});}
+function hierPageOk(k){var cs=hierCatsMe(),need=HPAGE[k];if(!cs||!need)return true;return need.some(function(x){return cs.indexOf(x)>-1;});}
 function hierStatusOk(st){
-  if(hrUserKey(userById(state.meUser)))return true;
   var cs=hierCatsMe();if(!cs)return true;var g=statusStage[st];
   if(g==="Login")return cs.indexOf(st)>-1;
   if(g==="Audience")return cs.indexOf("Audience")>-1;
@@ -4125,7 +4144,7 @@ function hierLeadAllowed(l,cs){
 function hierFollowOf(k){hierLoad();var c=hier[k];if(c&&Array.isArray(c.follow))return c.follow;return (HIER_DEFAULT[k]&&HIER_DEFAULT[k].follow)||[];}
 function hierFollowers(mover){var all={};Object.keys(HIER_DEFAULT).forEach(function(k){all[k]=1;});hierLoad();Object.keys(hier).forEach(function(k){if(k.indexOf("__")!==0)all[k]=1;});
   return Object.keys(all).filter(function(k){return k!==mover&&hierFollowOf(k).indexOf(mover)>-1;});}
-function hierUnrestricted(u){return !!u&&(hierarchyFirst(u.name)==="anu"||!!hierGet(hierarchyFirst(u.name)).all);}
+function hierUnrestricted(u){return !!u&&!!hierGet(hierarchyFirst(u.name)).all;}
 function hierPeople(){
   var m={},out=[];
   users.forEach(function(u){var k=hierarchyFirst(u.name);if(k&&!m[k]){m[k]=1;out.push({k:k,n:u.name});}});
@@ -4141,7 +4160,7 @@ function renderHierarchy(){
   var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><div class="tb"><button class="btn primary" id="hierAddUser">Add user</button><button class="btn" id="hierPerm">Roles &amp; permissions</button><button class="btn" id="hierTickAll">Tick all categories for everyone</button><button class="btn" id="hierReset">Reset to default</button></div></div>';
   h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>Role</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th><th>Also shift own copy when these people move a file</th></tr></thead><tbody>';
   users.filter(function(u){return u.active;}).forEach(function(u){
-    var k=hierarchyFirst(u.name),c=hierGet(k),r=roleById(u.roleId),adm=(r&&r.name==="Admin")||u.name==="Umesh Dhingra";
+    var k=hierarchyFirst(u.name),c=hierGet(k),r=roleById(u.roleId),adm=!!(r&&r.name==="Admin");
     var cell,cc=Array.isArray(c.cats)?c.cats:null,catCell;
     var fw=hierFollowOf(k),fwCell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hf="'+k+'" data-hfp="'+p.k+'"'+(fw.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
     if(adm)catCell='<em>Admin &ndash; all categories</em>';
@@ -4150,7 +4169,7 @@ function renderHierarchy(){
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
     var roleSel='<select data-hrole="'+u.id+'" aria-label="Role for '+esc(u.name)+'">'+roles.map(function(x){return '<option value="'+x.id+'"'+(x.id===u.roleId?' selected':'')+'>'+esc(x.name)+'</option>';}).join("")+'</select><br><button type="button" class="btn" style="margin-top:6px" data-hperm="'+u.roleId+'">Permissions</button>';
-     h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td>'+roleSel+'</td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm||k==="anu")?" checked":"")+((adm||k==="anu")?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
+     h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td>'+roleSel+'</td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
   });
   h+='</tbody></table></div>';
   document.getElementById("view").innerHTML=h;
@@ -4209,8 +4228,20 @@ function hierarchyOwnerAllowed(owner,scope){
   var full=hierarchyKey(owner);
   return !!first&&(scope.indexOf(first)>-1||scope.indexOf(full)>-1);
 }
+/* ---------- deleted leads: a delete is remembered, so no user's old copy can bring the lead back ---------- */
+function tombMap(){var h=hierLoad();if(!h.__delLeads||typeof h.__delLeads!=="object")h.__delLeads={};return h.__delLeads;}
+function tombKeys(l){var k=[];if(l&&l.id!=null)k.push("id:"+l.id);if(l&&l.seedId)k.push("seed:"+l.seedId);return k;}
+function tombMark(l,on){var m=tombMap(),t=Date.now();tombKeys(l).forEach(function(k){m[k]=on?t:-t;});}
+function tombHit(l,m){var k=tombKeys(l),i;for(i=0;i<k.length;i++)if(m[k[i]]>0)return true;return false;}
+function tombApply(){
+  var m=tombMap(),any=false,k;for(k in m){if(m[k]>0){any=true;break;}}
+  if(!any)return;
+  var n=leads.length;leads=leads.filter(function(l){return !tombHit(l,m);});
+  if(leads.length!==n)saveLeadsSoon();
+}
 function syncScope(){
   if(MASTER){leads=fullLeads();MASTER=null;SCOPED=null;}
+  try{tombApply();}catch(e){}
   /* Imported owner names that are the same person as a CRM user. */
   var AL={"Ashish Kumar":"Ashish","Keshav Bhalla":"Keshav","Keshav Sood":"Keshav"};
   /* One Keshav user only: rename variants, keep the first, point teams at the kept id and drop the rest. */
@@ -4224,7 +4255,7 @@ function syncScope(){
   /* Admin is the only account with unrestricted visibility. Other accounts
      see their own leads/files and the explicitly assigned reporting tree. */
   var isAnu=hierUnrestricted(u); /* users ticked "See all leads" on the Hierarchy page (Anu Kaushal by default) */
-  if(u&&!(role&&role.name==="Admin")&&u.name!=="Umesh Dhingra"){
+  if(u&&!(role&&role.name==="Admin")){
     MASTER=leads;
     if(u.holdOnly){
       var assigned={};(u.holdLeadIds||[]).forEach(function(id){assigned[String(id)]=1;});
@@ -4233,7 +4264,7 @@ function syncScope(){
     }else{
       var scope=isAnu?null:hierarchyScopeFor(u), cs=hierCats(u); /* cs = categories this user may open (null = all) */
       if(scope||cs){
-        var hOwn=!!hierGet(hierarchyFirst(u.name)).holdOwn;leads=MASTER.filter(function(l){return (isPartHold(l)&&!hOwn)||isSharedHRLead(l,u)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
+        var hOwn=!!hierGet(hierarchyFirst(u.name)).holdOwn;leads=MASTER.filter(function(l){return isSharedHRLead(l,u)||((!scope||hierarchyOwnerAllowed(l.owner,scope))&&(!cs||hierLeadAllowed(l,cs)));});
         SCOPED=new Set(leads);
         if(!leads.length&&MASTER.length&&!window.__scopeWarned){window.__scopeWarned=1;try{console.warn("Hierarchy: no visible files for",u.name,{scope:scope,categories:cs});toast("No files visible for "+u.name+" - ask Admin to check Hierarchy (see-list / category access)");}catch(_){}}
       }else{MASTER=null;SCOPED=null;} /* unrestricted user: no filtering, nothing to restore later */
@@ -4336,7 +4367,13 @@ document.addEventListener("click",function(e){
   if(d.ledit2){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.ledit2);state.ldBoxId=+d.ledit2;state.ldBox=true;renderLead();return;}
   if(d.view){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.view);return;}
   if(d.del){if(!canDo("Leads","Delete lead")){toast(DENY);return;}openDelete(+d.del);return;}
-  if(d.confirmdel){if(!canDo("Leads","Delete lead")){toast(DENY);return;}var id=+d.confirmdel;bkTick();leads=leads.filter(function(x){return x.id!==id;});closeAll();if(state.route.indexOf("lead/")===0){state.route=state.listRoute||"leads/Login";render();}else renderTable();toast("Lead deleted");bkTick();return;}
+  if(d.confirmdel){if(!canDo("Leads","Delete lead")){toast(DENY);return;}var id=+d.confirmdel;bkTick();
+    (function(){var all=fullLeads(),t=all.filter(function(x){return x.id===id;})[0];if(!t)return;
+      var ph=phone10(t),gone=all.filter(function(x){return x.id===t.id||(ph&&phone10(x)===ph&&String(x.owner||"")===String(t.owner||""));}); /* the lead and the lead owner's copy of the same file */
+      gone.forEach(function(x){tombMark(x,true);});
+      leads=all.filter(function(x){return gone.indexOf(x)<0;});MASTER=null;SCOPED=null;
+      hierSave();saveLeads();})();
+    closeAll();if(state.route.indexOf("lead/")===0){state.route=state.listRoute||"leads/Login";render();}else renderTable();toast("Lead deleted");bkTick();return;}
   if(t.id==="hrUploadBtn"){pendingHRStage=pageKey();var hrf=document.getElementById("hrUploadFile");if(hrf)hrf.click();return;}
   if(t.hasAttribute("data-addlead")){closePops();if(!canDo("Leads","Add lead")){toast(DENY);return;}openAddLead();return;}
   if(t.hasAttribute("data-replacecsv")){closePops();if(!canDo("Leads","Import leads")||!canDo("Leads","Delete lead")){toast(DENY);return;}pendingReplace=true;document.getElementById("csvIn").click();return;}
@@ -4682,10 +4719,10 @@ function bkTick(){
 function bkFit(){ALLFROM=leads.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));ALLTO=leads.reduce(function(m,l){return l.date>m?l.date:m;},"");fitRange();}
 function bkAdd(arr,skipDup){
   var full=fullLeads().slice(),have={},n=0;full.forEach(function(x){have[String(x.id)]=1;});
-  arr.forEach(function(x){var c=JSON.parse(JSON.stringify(x));
+  arr.forEach(function(x){var c=JSON.parse(JSON.stringify(x));try{tombMark(c,false);}catch(e){}
     if(have[String(c.id)]){if(skipDup)return;c.id=nextId++;}else nextId=Math.max(nextId,(+c.id||0)+1);
     have[String(c.id)]=1;full.push(c);n++;});
-  leads=full;MASTER=null;SCOPED=null;saveLeads();bkFit();BK.prev=bkMap(fullLeads());return n;
+  leads=full;MASTER=null;SCOPED=null;try{hierSave();}catch(e){}saveLeads();bkFit();BK.prev=bkMap(fullLeads());return n;
 }
 function bkIsAdmin(){return hierIsAdmin(userById(state.meUser));}
 function bkRows(){return BK.dels.filter(function(d){return !BK.owner||(d.owner||"Unassigned")===BK.owner;}).sort(function(a,b){return b.at-a.at;});}
@@ -4803,7 +4840,6 @@ if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
 })();
 </script>
 <script type="module" src="crm-sync.js"></script>
-<script type="module" src="firebase-connector.js"></script>
 <script>
 /* live clock in the footer and on the sign-in page (India time), updates every second */
 (function(){
@@ -4815,6 +4851,22 @@ if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
     var els=document.querySelectorAll(".live-clock"),i;for(i=0;i<els.length;i++)els[i].textContent="Live time: "+t;
   }
   tick();setInterval(tick,1000);
+})();
+</script>
+<script>
+/* Roles, permissions and hierarchy saved by Admin are re-applied for the signed-in user automatically (only when they actually changed) */
+(function(){
+  var last=null;
+  function sig(){try{return (localStorage.getItem("avail_crm_perm_v1")||"")+"|"+(localStorage.getItem("avail_crm_hierarchy_v1")||"");}catch(e){return "";}}
+  function refresh(){try{
+    var now=sig();if(last===null){last=now;return;}if(now===last)return;last=now;
+    var raw=localStorage.getItem("avail_crm_perm_v1");if(raw&&typeof permAdopt==="function")permAdopt(JSON.parse(raw));
+    hier=null;
+    if(state&&state.meUser)render();
+  }catch(e){}}
+  last=sig();
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)refresh();});
+  setInterval(function(){if(!document.hidden)refresh();},30000);
 })();
 </script>
 </body>
