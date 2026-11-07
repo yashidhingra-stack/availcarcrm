@@ -1401,7 +1401,7 @@ function renderLeads(){
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
   if(canDo("Leads","Add lead")||canDo("Leads","Import leads"))h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Add lead")?'<button class="menu-item" data-addlead>Add lead</button>':"")+(canDo("Leads","Import leads")?(key==="pdd"?'<button class="menu-item" data-importpdd>Import PDD file (CSV / Excel)</button>'+(hierIsAdmin(userById(state.meUser))?'<button class="menu-item" data-pddhide>'+(pddAdminHidden()?"Show PDD data (Admin view)":"Hide PDD data (Admin view)")+'</button>':""):"")+''+(hierIsAdmin(userById(state.meUser))?'<button class="menu-item" data-importwb>Import monthly workbook (all sheets)</button>':"")+'<button class="menu-item" data-importcsv>Import CSV / Excel</button><button class="menu-item" data-replacecsv>Clear all and upload fresh file</button><button class="menu-item" data-clearall>Clear all data</button>'+(canDownloadLeadCategory()?'<button class="menu-item" data-template>Download template</button>':"")+'':"")+'</div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="wbIn" accept=".xlsx,.xls" hidden>';
   if(key==="data"&&hierIsAdmin(userById(state.meUser))&&canDo("Leads","Import leads"))
-    h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button>';
+    h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button><button class="btn" id="removeDuplicateLeads">Remove duplicate entries</button>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Hold"?"Upload Hold Excel":"Upload Reject Excel")+'</button><input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
@@ -2077,15 +2077,48 @@ function importWorkbook(file){
   rd.readAsArrayBuffer(file);
 }
 
+function removeDuplicateLeadEntries(){
+  if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Delete lead")){toast(DENY);return;}
+  var seen={},kept=[],removed=0;
+  function completeness(l){var fields=["name","phone","owner","product","amount","status","stage","date","vehicle","reg","lender","dealer","note"];return fields.reduce(function(n,k){var v=l[k];return n+(v!==undefined&&v!==null&&String(v).trim()!==""&&String(v)!=="0"?1:0);},0);}
+  leads.forEach(function(l){
+    var base=leadKey(l),stage=String(l.stage||statusStage[l.status]||"");
+    if(!base){kept.push(l);return;}
+    var k=base+"|"+stage;
+    if(!seen[k]){seen[k]=l;kept.push(l);return;}
+    var old=seen[k],winner=completeness(l)>completeness(old)?l:old,loser=winner===l?old:l;
+    ["owner","product","amount","date","ts","vehicle","reg","lender","dealer","note","pdd"].forEach(function(f){if((winner[f]===undefined||winner[f]===null||String(winner[f]).trim()===""||String(winner[f])==="0")&&loser[f]!==undefined&&loser[f]!==null&&String(loser[f]).trim()!=="")winner[f]=loser[f];});
+    if(winner!==old){var ix=kept.indexOf(old);if(ix>=0)kept[ix]=winner;seen[k]=winner;}
+    removed++;
+  });
+  if(!removed){toast("No duplicate entries found");return;}
+  if(!confirm("Found "+removed+" duplicate entr"+(removed===1?"y":"ies")+". Keep the most complete record for each matching Name + Mobile + Stage, and remove the extra copies?"))return;
+  leads=kept;saveLeads();state.page=1;render();toast(removed+" duplicate entr"+(removed===1?"y":"ies")+" removed");
+}
 function importCSV(file){importFile(file,false);}
 function openClearData(){
   var m=document.getElementById("modal");
-  m.innerHTML='<h2>Clear all data?</h2><p>This removes every lead from Audience, Login, Hold, Disbursed, Rejected, PDD and Data. This cannot be undone. You can then upload a fresh file.</p><div class="actions"><button class="btn" data-close>Keep data</button><button class="btn primary" id="doClear">Clear all data</button></div>';
+  m.innerHTML='<h2>Clear all leads and backups?</h2><p>This permanently removes every lead from Audience, Login, Hold, Disbursed, Rejected, PDD and Data, and clears all internal CRM backup snapshots and deleted-lead recovery entries. User logins, lead-owner details, dealer lists, permissions and CRM settings will be kept. This cannot be undone. You can then upload fresh files category-wise.</p><div class="actions"><button class="btn" data-close>Keep data</button><button class="btn primary" id="doClear">Clear leads and backups</button></div>';
   m.classList.add("show");showOverlay(true);
 }
 function clearAllData(){
-  leads=[];nextId=1001;PERSIST=true;saveLeads();
-  state.page=1;state.sel=[];closeAll();render();toast("All lead data cleared");
+  if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Delete lead")){toast(DENY);return;}
+  if(!confirm("Permanently delete ALL CRM leads and ALL internal lead backups? User accounts, lead owners, dealer lists, permissions and settings will remain."))return;
+  /* Remove every category from the live lead store without touching users or master data. */
+  leads=[];MASTER=null;SCOPED=null;nextId=1001;PERSIST=true;
+  try{var h=hierLoad();h.__delLeads={};hierSave();}catch(e){}
+  try{localStorage.setItem(LEADS_KEY,"[]");}catch(e){}
+  /* Empty all three internal backup stores: snapshots, backup payloads and deleted-lead recovery. */
+  try{
+    if(BK.db){var tx=BK.db.transaction(["snaps","data","dels"],"readwrite");
+      tx.objectStore("snaps").clear();tx.objectStore("data").clear();tx.objectStore("dels").clear();}
+  }catch(e){}
+  BK.prev={};BK.sig="";BK.lastSnap=Date.now();BK.dels=[];BK.snaps=[];BK.tab="deleted";
+  /* Publish the empty lead list to the shared CRM sync layer as well. */
+  try{if(window.CRM_SYNC&&typeof window.CRM_SYNC.pushLeads==="function")window.CRM_SYNC.pushLeads([]);}catch(e){}
+  saveLeads();
+  ALLFROM=ymd(TODAY);ALLTO="";state.page=1;state.sel=[];closeAll();render();
+  toast("All CRM leads and internal backups cleared. User and master settings were kept.");
 }
 function downloadTemplate(){
   if(!window.XLSX){toast("Excel writer unavailable. Please try again with internet enabled.");return;}
@@ -4176,11 +4209,11 @@ var DEALER_DETAILS_KEY="avail_crm_dealer_details_v1", dealerDetailsRows=[], deal
 try{dealerDetailsRows=JSON.parse(localStorage.getItem(DEALER_DETAILS_KEY)||"[]");if(!Array.isArray(dealerDetailsRows))dealerDetailsRows=[];}catch(_e){dealerDetailsRows=[];}
 function saveDealerDetails(){try{localStorage.setItem(DEALER_DETAILS_KEY,JSON.stringify(dealerDetailsRows));return true;}catch(e){toast("Storage is full; the Dealer Details sheet could not be saved");return false;}}
 function dealerDetailColumns(){var cols=[];dealerDetailsRows.forEach(function(r){Object.keys(r).forEach(function(k){if(cols.indexOf(k)<0)cols.push(k);});});return cols;}
-function dealerDetailFilterColumns(){return dealerDetailColumns().filter(function(c){var key=String(c).trim().toLowerCase().replace(/[^a-z0-9]+/g,"");return ["mobilenumber","dealeraddress","segment"].indexOf(key)<0;});}
+function dealerDetailFilterColumns(){return dealerDetailColumns().filter(function(c){var key=String(c).trim().toLowerCase().replace(/[^a-z0-9]+/g,"");return ["mobilenumber","mobile","mobileno","dealeraddress","address","segment","dealercode","dealerid","city","hub"].indexOf(key)<0;});}
 function dealerDetailFiltered(){var cols=dealerDetailFilterColumns();return dealerDetailsRows.filter(function(r){return cols.every(function(c){var f=dealerDetailsFilters[c];return !f||String(r[c]===undefined?"":r[c])===f;});});}
 function renderDealerDetails(){
  var cols=dealerDetailColumns(), filterCols=dealerDetailFilterColumns(), rows=dealerDetailFiltered(), h='<div class="page-head"><div><h1>Dealer Details</h1><p>Upload your Excel sheet, filter records by any column, and download the matching rows in Excel.</p></div><div class="tb"><span class="total">'+dealerDetailsRows.length+' records</span><button class="btn" id="dealerDetailsClearFilters">Clear filters</button><button class="btn" id="dealerDetailsExportAll">Download all Excel</button><button class="btn primary" id="dealerDetailsUpload">Upload Excel</button><input type="file" id="dealerDetailsFile" accept=".xlsx,.xls,.csv" hidden></div></div>';
- if(!dealerDetailsRows.length){h+='<div class="stub"><h2>No Dealer Details uploaded</h2>Upload an Excel or CSV file. The first row should contain your column names. After upload, filters will be available for the other columns; Mobile Number, Dealer Address and Segment remain visible in the data without filters.</div>';}
+ if(!dealerDetailsRows.length){h+='<div class="stub"><h2>No Dealer Details uploaded</h2>Upload an Excel or CSV file. The first row should contain your column names. After upload, filters will be available for the other columns; Dealer Code, Dealer Address, City, Hub, Mobile Number and Segment remain visible in the data without filters.</div>';}
  else{
   h+='<div class="repbar" style="flex-wrap:wrap;align-items:end">'+filterCols.map(function(c){var vals=[];dealerDetailsRows.forEach(function(r){var v=String(r[c]===undefined?"":r[c]);if(v!==""&&vals.indexOf(v)<0)vals.push(v);});vals.sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"});});return '<label style="display:grid;gap:5px;min-width:160px"><span>'+esc(c)+'</span><select class="dealer-detail-filter" data-dd-filter="'+esc(c)+'"><option value="">All '+esc(c)+'</option>'+vals.map(function(v){return '<option value="'+esc(v)+'"'+(dealerDetailsFilters[c]===v?' selected':'')+'>'+esc(v)+'</option>';}).join('')+'</select></label>';}).join('')+'<button class="btn primary" id="dealerDetailsExportFiltered">Download filtered Excel ('+rows.length+')</button></div>';
   h+='<div class="table-wrap"><table><thead><tr>'+cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>'+(rows.length?rows.slice(0,500).map(function(r){return '<tr>'+cols.map(function(c){return '<td>'+esc(r[c]===undefined?"":String(r[c]))+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+cols.length+'" class="empty">No records match the selected filters.</td></tr>')+'</tbody></table></div>'+(rows.length>500?'<p class="note">Showing first 500 of '+rows.length+' matching records. Excel download includes all matching records.</p>':'');
@@ -4497,6 +4530,7 @@ document.addEventListener("click",function(e){
   if(t.id==="doClear"){clearAllData();return;}
   if(t.hasAttribute("data-importpdd")){closePops();if(!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("pddIn").click();return;}
   if(t.id==="majorWbUpload"){if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("wbIn").click();return;}
+  if(t.id==="removeDuplicateLeads"){removeDuplicateLeadEntries();return;}
   if(t.hasAttribute("data-importwb")){closePops();if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("wbIn").click();return;}
   if(t.hasAttribute("data-importcsv")){closePops();if(!canDo("Leads","Import leads")){toast(DENY);return;}document.getElementById("csvIn").click();return;}
   if(d.bizgroup!==undefined){state.bizDetail={mode:"dealer",name:d.bizgroup};renderBusinessGroupDetails(state.bizDetail.mode,state.bizDetail.name);return;}
