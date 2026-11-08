@@ -20,7 +20,8 @@ import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/1
 
 const W = window;
 const CLIENT = Math.random().toString(36).slice(2, 10);
-const status = (t) => { try { if (W.CRM_SYNC_STATUS) W.CRM_SYNC_STATUS(t); } catch (e) {} };
+const SYNC_VERSION = "sync v3";
+const status = (t) => { try { if (W.CRM_SYNC_STATUS) W.CRM_SYNC_STATUS(SYNC_VERSION + " - " + t); } catch (e) {} };
 
 async function main() {
   if (!firebaseConfig.apiKey || /PASTE/.test(firebaseConfig.apiKey)) { status("Shared sync is off (not set up)"); return; }
