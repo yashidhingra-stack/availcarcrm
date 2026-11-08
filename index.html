@@ -566,7 +566,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
       </div>
     </header>
     <main class="content" id="view"></main>
-    <footer class="powered">Powered by <b>YASHU DHINGRA</b><br><span id="buildStamp" class="live-clock">Live time: --</span><span id="syncState"></span></footer>
+    <footer class="powered">Powered by <b>YASHU DHINGRA</b><br><span id="buildStamp" class="live-clock">Live time: --</span></footer>
   </div>
 </div>
 
@@ -3045,7 +3045,7 @@ function doLogin(nm,pw){
   if(!u){var fm=users.filter(function(x){return hierarchyFirst(x.name)===nm;});if(fm.length===1)u=fm[0];}
   if(!u){try{var h1=JSON.parse(localStorage.getItem("avail_crm_hierarchy_v1")||"null");if(h1&&h1.__users&&adoptUsers(h1.__users))u=users.filter(function(x){return uKey(x.name)===nm;})[0];}catch(e){}}
   if(!u&&typeof fm!=="undefined"&&fm&&fm.length>1)return loginErr("More than one user has this first name. Type your full name.");
-  if(!u)return loginErr("No user found with this name. Check the spelling or ask Admin."+(window.CRM_SYNC&&window.CRM_SYNC.ready?"":" (This computer is not connected to the shared database yet.)"));
+  if(!u)return loginErr("No user found with this name. Check the spelling or ask Admin.");
   anuEnsure(u);
   if(!u.active)return loginErr("This user is deactivated. Ask an admin to activate it.");
   if(!roleById(u.roleId))return loginErr("No role is assigned to this user.");
@@ -4957,7 +4957,6 @@ document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="chann
 if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
 })();
 </script>
-<script type="module" src="crm-sync.js?v=20261108"></script>
 <script>
 /* live clock in the footer and on the sign-in page (India time), updates every second */
 (function(){
