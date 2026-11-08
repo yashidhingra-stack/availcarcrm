@@ -2992,7 +2992,7 @@ function routeOk(r){
   }
   if(r==="data/report")return canDo("Major Reports","Leads report");
   if(r==="data/analysis")return canDo("Major Reports","Analysis");
-  if(r==="data/download")return canDo("Major Reports","Download data");
+  if(r==="data/download")return hierIsAdmin(userById(state.meUser))&&canDo("Major Reports","Download data"); /* Admin only */
   if(r==="major/staff")return canDo("Major Reports","Staff details");
   if(r==="major/dealers")return canDo("Major Reports","Dealer details");
   if(r==="dealer-details")return canMod("Major Reports");
@@ -4278,6 +4278,8 @@ var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","L
 var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
 function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&!!(r&&r.name==="Admin");}
 function canDownloadLeadCategory(){return hierIsAdmin(userById(state.meUser));}
+window.CRM_IS_ADMIN=function(){try{return canDownloadLeadCategory();}catch(e){return false;}};
+window.CRM_BLOCK_DL=function(){try{toast("Only Admin can download data");}catch(e){}};
 function isPartHold(l){return !l.cat&&["Finally Hold","Partially Hold","Approved But Hold","Postponed"].indexOf(l.status)>-1;} /* all Hold files (Finally, Partially, Approved But Hold, Postponed): visible to every user on the Hold page, whoever owns them */
 var HOLD_PEND=[]; /* every category can now be ticked or unticked per user */ /* Hold (incl. Partially Hold) and pending files: always open for every user */
 function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;c=c.slice();HOLD_PEND.forEach(function(x){if(c.indexOf(x)<0)c.push(x);});return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
@@ -4984,6 +4986,23 @@ if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
   last=sig();
   document.addEventListener("visibilitychange",function(){if(!document.hidden)refresh();});
   setInterval(function(){if(!document.hidden)refresh();},30000);
+})();
+</script>
+<script>
+/* ---- Downloads are for Admin only: hide every download/export button for other users and block any download they might still trigger ---- */
+(function(){
+  var SEL='#bizExport,#channelMasterExport,[data-rep],#uExport,#dlBulkTpl,[data-stcsv],#masterTemplate,#dealerDetailsExportAll,#dealerDetailsExportFiltered,[data-template],#repDl,[data-pdd-group-download],[data-pdd-lender-download],#payHistCsv';
+  var st=document.createElement("style");st.textContent="html.nodl :is("+SEL+"){display:none!important}";document.head.appendChild(st);
+  function isAdmin(){return !!(window.CRM_IS_ADMIN&&window.CRM_IS_ADMIN());}
+  function sync(){document.documentElement.classList.toggle("nodl",!isAdmin());}
+  sync();setInterval(sync,300);
+  var ac=HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click=function(){
+    if(this.hasAttribute("download")&&!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}
+    return ac.apply(this,arguments);
+  };
+  function wrapX(){if(window.XLSX&&XLSX.writeFile&&!XLSX.__dlGuard){var w=XLSX.writeFile;XLSX.writeFile=function(){if(!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}return w.apply(this,arguments);};XLSX.__dlGuard=true;}}
+  wrapX();window.addEventListener("load",wrapX);setTimeout(wrapX,1500);
 })();
 </script>
 </body>
