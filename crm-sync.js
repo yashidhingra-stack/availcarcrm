@@ -15,7 +15,7 @@ const firebaseConfig = {
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, writeBatch, runTransaction, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, writeBatch, runTransaction, setDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const W = window;
@@ -64,17 +64,23 @@ async function main() {
     try {
       const mine = await runTransaction(db, async (tx) => {
         const m = await tx.get(metaRef);
-        if (m.exists()) return false;
+        if (m.exists()) return (m.data() || {}).state || "other";
         tx.set(metaRef, { state: "uploading", by: CLIENT, t: serverTimestamp() });
-        return true;
+        return "mine";
       });
-      if (mine) {
+      if (mine === "mine") {
         status("Uploading files to the shared database...");
         const list = W.CRM_GET_LEADS ? W.CRM_GET_LEADS() : [];
         await uploadAll(list);
         await setDoc(metaRef, { state: "done", count: list.length }, { merge: true });
         ready = true;
         status("Shared sync on - uploaded " + list.length + " files");
+      } else if (mine === "done") {
+        /* The shared database was set up before and is now EMPTY (Admin cleared it): empty is the truth.
+           Never upload this device's old browser copy back into it - that is what made old files return. */
+        W.CRM_APPLY_LEADS([], [], true);
+        ready = true; migrating = false;
+        status("Shared sync on - 0 files");
       } else {
         status("Waiting for the first upload from another device...");
         migrating = false;
@@ -110,6 +116,7 @@ async function main() {
       status("Sync paused (too many deletions) - reload the page");
       return;
     }
+    api.allowBigDelete = false; /* one-time permission, used by "Clear all leads" */
     const ops = writes.map((w) => ["s", w[0], w[1], known.get(w[0])]).concat(dels.map((id) => ["d", id, null, known.get(id)]));
     ops.forEach((o) => { if (o[0] === "s") known.set(o[1], o[2]); else known.delete(o[1]); });
     for (const part of chunks(ops, 400)) {
@@ -122,6 +129,22 @@ async function main() {
       });
     }
   }
+  /* Delete EVERY lead document from the shared database (asks the server, not this browser's memory) */
+  api.wipeCloud = async () => {
+    clearTimeout(timer); latest = null;
+    status("Clearing the shared database...");
+    const snap = await getDocs(leadsCol);
+    for (const part of chunks(snap.docs, 400)) {
+      const b = writeBatch(db);
+      part.forEach((d) => b.delete(d.ref));
+      await b.commit();
+    }
+    known.clear();
+    await setDoc(metaRef, { state: "done", count: 0, wipedBy: CLIENT, wipedAt: serverTimestamp() }, { merge: true });
+    ready = true; migrating = false;
+    status("Shared sync on - 0 files (cleared " + snap.size + ")");
+    return snap.size;
+  };
   api.pushLeads = (list) => { if (!ready) return; latest = list; clearTimeout(timer); timer = setTimeout(flush, 500); };
 
   /* Hierarchy and category access, shared the same way */

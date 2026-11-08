@@ -740,7 +740,7 @@ window.CRM_GET_HIER=function(){return hierLoad();};
 window.CRM_SYNC_STATUS=function(t){var el=document.getElementById("syncState");if(el)el.textContent=t?" · "+t:"";};
 window.CRM_APPLY_LEADS=function(up,rem,all){
   try{
-    var full, remSet=null, protectedSeed={}, currentSeed=leads.filter(function(x){return String(x.seedId||"").indexOf("holdreject_seed_v1_")===0;});
+    var full, remSet=null, protectedSeed={}, currentSeed=[];
     /* The shared CRM server may return an older full snapshot a few seconds after
        page load. Never let that snapshot erase the embedded Hold/Reject import. */
     currentSeed.forEach(function(x){protectedSeed[String(x.seedId)]=x;});
@@ -2124,7 +2124,7 @@ function clearAllData(){
   }catch(e){}
   BK.prev={};BK.sig="";BK.lastSnap=Date.now();BK.dels=[];BK.snaps=[];BK.tab="deleted";
   /* Publish the empty lead list to the shared CRM sync layer as well. */
-  try{if(window.CRM_SYNC&&typeof window.CRM_SYNC.pushLeads==="function")window.CRM_SYNC.pushLeads([]);}catch(e){}
+  try{if(window.CRM_SYNC&&typeof window.CRM_SYNC.wipeCloud==="function"){window.CRM_SYNC.wipeCloud().then(function(n){toast("Shared database cleared ("+n+" files removed)");}).catch(function(e){console.warn("wipeCloud failed",e);toast("Could not clear the shared database - check internet and Firebase rules");});}}catch(e){}
   saveLeads();
   ALLFROM=ymd(TODAY);ALLTO="";state.page=1;state.sel=[];closeAll();render();
   toast("All CRM leads and internal backups cleared. User and master settings were kept.");
@@ -2886,7 +2886,8 @@ function isSharedHRLead(l,u){
     var seedEl=document.getElementById("holdRejectSeedData");
     var seedRows=seedEl?JSON.parse(seedEl.textContent||"[]"):[];
     var prefix="holdreject_seed_v1_";
-    if(!seedRows.length)return;
+    var AUTOSEED=false; /* embedded Hold/Reject records are no longer re-added on refresh; upload them from Admin if needed */
+    if(!AUTOSEED||!seedRows.length)return;
     var added=0;
     seedRows.forEach(function(o){
       if(o.seedId&&leads.some(function(existing){return String(existing.seedId||"")===String(o.seedId);}))return;
