@@ -543,6 +543,7 @@ body.no-del [data-del]{display:none}
 body.no-view .icon-btn[data-viewdocs]{display:none}
 .ed-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ed-wrap input,.ed-wrap select{min-width:0;max-width:100%}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
 <div class="app">
@@ -4956,57 +4957,6 @@ document.addEventListener("change",function(e){var t=e.target;if(t&&t.id==="deal
 
 document.addEventListener("change",function(e){var t=e.target;if(t.id==="channelPeriod"){state.channelPeriod=t.value;renderChannelBusinessReport();}else if(t.id==="channelDealer"){state.channelDealer=t.value;renderChannelBusinessReport();}else if(t.id==="channelFrom"||t.id==="channelTo"){state.channelPeriod="custom";state.channelFrom=document.getElementById("channelFrom").value;state.channelTo=document.getElementById("channelTo").value;renderChannelBusinessReport();}});
 document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="channelReset"){state.channelPeriod="month";state.channelDealer="";state.channelFrom="";state.channelTo="";renderChannelBusinessReport();}});
-if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
-})();
-</script>
-<script>
-/* live clock in the footer and on the sign-in page (India time), updates every second */
-(function(){
-  var f;try{f=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true});}catch(e){f=null;}
-  function tick(){
-    var t;
-    if(f){var o={};f.formatToParts(new Date()).forEach(function(x){o[x.type]=x.value;});t=o.day+" "+o.month+" "+o.year+", "+o.hour+":"+o.minute+":"+o.second+" "+String(o.dayPeriod||"").toUpperCase()+" IST";}
-    else t=new Date().toLocaleString();
-    var els=document.querySelectorAll(".live-clock"),i;for(i=0;i<els.length;i++)els[i].textContent="Live time: "+t;
-  }
-  tick();setInterval(tick,1000);
-})();
-</script>
-<script>
-/* Roles, permissions and hierarchy saved by Admin are re-applied for the signed-in user automatically (only when they actually changed) */
-(function(){
-  var last=null;
-  function sig(){try{return (localStorage.getItem("avail_crm_perm_v1")||"")+"|"+(localStorage.getItem("avail_crm_hierarchy_v1")||"");}catch(e){return "";}}
-  function refresh(){try{
-    var now=sig();if(last===null){last=now;return;}if(now===last)return;last=now;
-    var raw=localStorage.getItem("avail_crm_perm_v1");if(raw&&typeof permAdopt==="function")permAdopt(JSON.parse(raw));
-    hier=null;
-    if(state&&state.meUser)render();
-  }catch(e){}}
-  last=sig();
-  document.addEventListener("visibilitychange",function(){if(!document.hidden)refresh();});
-  setInterval(function(){if(!document.hidden)refresh();},30000);
-})();
-</script>
-<script>
-/* ---- Downloads are for Admin only: hide every download/export button for other users and block any download they might still trigger ---- */
-(function(){
-  var SEL='#bizExport,#channelMasterExport,[data-rep],#uExport,#dlBulkTpl,[data-stcsv],#masterTemplate,#dealerDetailsExportAll,#dealerDetailsExportFiltered,[data-template],#repDl,[data-pdd-group-download],[data-pdd-lender-download],#payHistCsv';
-  var st=document.createElement("style");st.textContent="html.nodl :is("+SEL+"){display:none!important}";document.head.appendChild(st);
-  function isAdmin(){return !!(window.CRM_IS_ADMIN&&window.CRM_IS_ADMIN());}
-  function sync(){document.documentElement.classList.toggle("nodl",!isAdmin());}
-  sync();setInterval(sync,300);
-  var ac=HTMLAnchorElement.prototype.click;
-  HTMLAnchorElement.prototype.click=function(){
-    if(this.hasAttribute("download")&&!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}
-    return ac.apply(this,arguments);
-  };
-  function wrapX(){if(window.XLSX&&XLSX.writeFile&&!XLSX.__dlGuard){var w=XLSX.writeFile;XLSX.writeFile=function(){if(!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}return w.apply(this,arguments);};XLSX.__dlGuard=true;}}
-  wrapX();window.addEventListener("load",wrapX);setTimeout(wrapX,1500);
-})();
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script>
 /* ===== Supabase layer: login, leads and user settings ===== */
 (function(){
 var SB_URL='https://mmcptqdrbfmbnrhlrvnp.supabase.co';
@@ -5069,7 +5019,8 @@ async function enter(user){
   await loadLeads();signIn(u);clearInterval(pollT);pollT=setInterval(poll,60000);return true;
 }
 function start(){
-  if(SB_KEY.indexOf('PASTE')===0||!window.supabase){loginErr('Setup needed: add the Supabase anon key in index.html.');return;}
+  if(SB_KEY.indexOf('sb_secret_')===0||SB_KEY.indexOf('service_role')>=0){loginErr('WRONG KEY: a secret key is in index.html. Use the publishable key and replace the secret key in Supabase.');return;}
+  if(SB_KEY.indexOf('PASTE')===0||!window.supabase){loginErr('Setup needed: add the Supabase publishable key in index.html.');return;}
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
   document.querySelector('label[for=loginEmail]').textContent='Email';
   var inp=document.getElementById('loginEmail');inp.type='email';inp.placeholder='you@example.com';inp.autocomplete='username';
@@ -5078,14 +5029,63 @@ function start(){
     var em=document.getElementById('loginEmail').value.trim(),pw=document.getElementById('loginPass').value;
     if(!em||!pw)return loginErr('Enter your email and password.');
     var r=await sb.auth.signInWithPassword({email:em,password:pw});
-    if(r.error)return loginErr('Incorrect email or password.');
+    if(r.error)return loginErr(r.error.status===400?'Incorrect email or password.':'Sign-in problem ('+r.error.status+'): '+r.error.message);
     try{await enter(r.data.user);}catch(x){fail('Could not sign in: '+x.message);}
   });
   var so=signOut;signOut=function(m){so(m);try{sb.auth.signOut();localStorage.removeItem(LEADS_KEY);leads=[];last={};clearInterval(pollT);}catch(e){}};
   sb.auth.getSession().then(function(r){if(r.data.session)enter(r.data.session.user).catch(function(x){fail(x.message);});});
 }
-window.doLogin=function(){return loginErr('Sign in with your email and password.');};
+doLogin=function(){return loginErr('Sign in with your email and password.');};
 start();
+})();
+
+if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
+})();
+</script>
+<script>
+/* live clock in the footer and on the sign-in page (India time), updates every second */
+(function(){
+  var f;try{f=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true});}catch(e){f=null;}
+  function tick(){
+    var t;
+    if(f){var o={};f.formatToParts(new Date()).forEach(function(x){o[x.type]=x.value;});t=o.day+" "+o.month+" "+o.year+", "+o.hour+":"+o.minute+":"+o.second+" "+String(o.dayPeriod||"").toUpperCase()+" IST";}
+    else t=new Date().toLocaleString();
+    var els=document.querySelectorAll(".live-clock"),i;for(i=0;i<els.length;i++)els[i].textContent="Live time: "+t;
+  }
+  tick();setInterval(tick,1000);
+})();
+</script>
+<script>
+/* Roles, permissions and hierarchy saved by Admin are re-applied for the signed-in user automatically (only when they actually changed) */
+(function(){
+  var last=null;
+  function sig(){try{return (localStorage.getItem("avail_crm_perm_v1")||"")+"|"+(localStorage.getItem("avail_crm_hierarchy_v1")||"");}catch(e){return "";}}
+  function refresh(){try{
+    var now=sig();if(last===null){last=now;return;}if(now===last)return;last=now;
+    var raw=localStorage.getItem("avail_crm_perm_v1");if(raw&&typeof permAdopt==="function")permAdopt(JSON.parse(raw));
+    hier=null;
+    if(state&&state.meUser)render();
+  }catch(e){}}
+  last=sig();
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)refresh();});
+  setInterval(function(){if(!document.hidden)refresh();},30000);
+})();
+</script>
+<script>
+/* ---- Downloads are for Admin only: hide every download/export button for other users and block any download they might still trigger ---- */
+(function(){
+  var SEL='#bizExport,#channelMasterExport,[data-rep],#uExport,#dlBulkTpl,[data-stcsv],#masterTemplate,#dealerDetailsExportAll,#dealerDetailsExportFiltered,[data-template],#repDl,[data-pdd-group-download],[data-pdd-lender-download],#payHistCsv';
+  var st=document.createElement("style");st.textContent="html.nodl :is("+SEL+"){display:none!important}";document.head.appendChild(st);
+  function isAdmin(){return !!(window.CRM_IS_ADMIN&&window.CRM_IS_ADMIN());}
+  function sync(){document.documentElement.classList.toggle("nodl",!isAdmin());}
+  sync();setInterval(sync,300);
+  var ac=HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click=function(){
+    if(this.hasAttribute("download")&&!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}
+    return ac.apply(this,arguments);
+  };
+  function wrapX(){if(window.XLSX&&XLSX.writeFile&&!XLSX.__dlGuard){var w=XLSX.writeFile;XLSX.writeFile=function(){if(!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}return w.apply(this,arguments);};XLSX.__dlGuard=true;}}
+  wrapX();window.addEventListener("load",wrapX);setTimeout(wrapX,1500);
 })();
 </script>
 </body>
