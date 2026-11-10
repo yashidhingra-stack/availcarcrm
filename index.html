@@ -757,7 +757,6 @@ window.CRM_APPLY_LEADS=function(up,rem,all){
     nextId=Math.max(nextId,full.reduce(function(m,x){return Math.max(m,(+x.id||0)+1);},1001));
     try{localStorage.setItem(LEADS_KEY,JSON.stringify(full));}catch(e){}
     ALLFROM=full.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));ALLTO=full.reduce(function(m,l){return l.date>m?l.date:m;},"");
-    if(all)fitRange();
     crmRerender();
   }catch(e){console.warn("CRM sync apply failed",e);}
 };
@@ -801,7 +800,7 @@ var channels=[
   ["Journey campaign","Multi-step flows with delays"],["Auto call campaign","Automated voice reminders"]];
 
 /* ---------- state ---------- */
-var state={route:"dashboard",range:{from:ymd(new Date(TODAY.getTime()-29*864e5)),to:ymd(TODAY)},open:{leads:true},q:"",sel:[],f:{product:"",lender:"",dealer:"",owner:"",source:"",team:"",min:"",max:""},sort:{k:"ts",d:-1},page:1,size:100,panel:false,lrange:{from:"2020-01-01",to:ymd(TODAY)},
+var state={route:"dashboard",range:{from:ymd(new Date(TODAY.getTime()-29*864e5)),to:ymd(TODAY)},open:{leads:true},q:"",sel:[],f:{product:"",lender:"",dealer:"",owner:"",source:"",team:"",min:"",max:""},sort:{k:"ts",d:-1},page:1,size:100,panel:false,lrange:{from:ymd(new Date(TODAY.getTime()-29*864e5)),to:ymd(TODAY)},
   cols:{sno:true,ts:true,name:true,phone:true,product:true,amount:true,vehicle:true,reg:true,lender:true,dealer:true,status:true,owner:false},
   sf:{name:true,phone:true,veh:true,lender:false,dealer:false},
   widgets:[
@@ -4950,7 +4949,7 @@ bkOpen(function(){
 });
 
 /* Embedded one-time Audience/Login/PDD seed imports removed. Upload category-wise from Admin. */
-dedupeLeads();if(purgeAllCopies())saveLeads();fitRange();
+dedupeLeads();if(purgeAllCopies())saveLeads();
 
 document.addEventListener("click",function(e){var t=e.target;if(!t)return;if(t.id==="dealerDetailsUpload"){var f=document.getElementById("dealerDetailsFile");if(f)f.click();}else if(t.id==="dealerDetailsExportAll")exportDealerDetails(false);else if(t.id==="dealerDetailsExportFiltered")exportDealerDetails(true);else if(t.id==="dealerDetailsClearFilters"){dealerDetailsFilters={};renderDealerDetails();}});
 document.addEventListener("change",function(e){var t=e.target;if(t&&t.id==="dealerDetailsFile"){importDealerDetailsFile(t.files&&t.files[0]);t.value="";}else if(t&&t.classList&&t.classList.contains("dealer-detail-filter")){dealerDetailsFilters[t.getAttribute("data-dd-filter")]=t.value;renderDealerDetails();}});
