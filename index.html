@@ -5021,6 +5021,22 @@ window.CRM_SYNC={
   pushLeads:function(list){if(!sb||!state.meUser)return;clearTimeout(pushT);pend=1;pushT=setTimeout(function(){doPush(list).catch(function(e){console.warn(e);}).then(function(){pend=null;});},1500);},
   pushHier:function(h){if(!sb||!state.meUser)return;clearTimeout(hierT);hierT=setTimeout(function(){sb.from('settings').upsert({key:'hier',value:clean(h),updated_at:new Date().toISOString()}).then(function(r){if(r.error)console.warn('settings not saved (Admin only):',r.error.message);});},1000);}
 };
+/* "Clear leads and backups" must also empty the shared Supabase table, otherwise every old lead comes back on the next refresh. Admin only (the button already checks this). */
+window.CRM_SYNC.wipeCloud=async function(){
+  if(!sb)return 0;
+  var n=0;
+  for(var round=0;round<200;round++){
+    var r=await sb.from('leads').select('seed_id').limit(500);
+    if(r.error)throw r.error;
+    if(!r.data.length)break;
+    var d=await sb.from('leads').delete().in('seed_id',r.data.map(function(x){return x.seed_id;})).select('seed_id');
+    if(d.error)throw d.error;
+    if(!d.data||!d.data.length)throw new Error('database refused the delete (only Admin may delete)');
+    n+=d.data.length;
+  }
+  last={};fpSeen={};lastPoll=new Date().toISOString();
+  return n;
+};
 async function enter(user){
   var p=await sb.from('profiles').select('name').eq('id',user.id).maybeSingle();
   meId=user.id;var pa=await sb.from('profiles').select('id,name');profs=pa.data||[];
