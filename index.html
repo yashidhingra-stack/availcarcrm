@@ -3205,7 +3205,7 @@ function openEditUser(u,m){
    '<div class="eu-body"><div class="eu-sel" style="margin-bottom:12px"><label for="euName" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">User name (login ID)</label><input id="euName" value="'+esc(u.name)+'" style="width:100%" spellcheck="false" autocomplete="off"></div><div class="eu-row"><button class="eu-link" id="euToggle" data-eutoggle>'+(u.active?"Deactivate User":"Activate User")+'</button>'+
    '<span class="eu-tg">Waba user: '+sw("euWaba",u.waba,"Waba user")+'</span></div>'+
    '<div class="eu-sel"><label class="sr" for="euRole" style="position:absolute;left:-9999px">Role</label><select id="euRole">'+roles.map(function(x){return '<option value="'+x.id+'"'+(u.roleId===x.id?" selected":"")+'>'+esc(x.name)+'</option>';}).join("")+'</select></div>'+
-   '<div class="eu-sel"><label for="euPassword" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Login password</label><input id="euPassword" type="text" value="'+esc(u.password||LOGIN_PW)+'" style="width:100%" autocomplete="off"></div>'+
+   '<input id="euPassword" type="hidden" value="">'+((roleById(state.meRole)||{}).name==="Admin"?'<div class="eu-sel"><button type="button" class="btn" id="euSetPw">Change login password (Admin)</button></div>':'')+
    '<div class="eu-sel"><label class="sr" for="euPlugin" style="position:absolute;left:-9999px">Plugin</label><select id="euPlugin"><option value="">Select Plugin</option>'+PLUGINS.map(function(p){return '<option'+(u.plugin===p?" selected":"")+'>'+p+'</option>';}).join("")+'</select></div>'+
    '<div class="eu-row" style="margin-top:14px"><span class="eu-tg">Own leads only: '+sw("euOwn",!!u.ownOnly,"Own leads only")+'</span></div>'+
    '<div class="eu-sel"><label class="inline-chk"><input type="checkbox" id="euHoldOnly"'+(u.holdOnly?" checked":"")+'> Hold leads only</label><div style="display:none"><select id="euHoldLeads" multiple size="7">'+
@@ -3232,7 +3232,7 @@ function euUpdate(){
     u.name=nm;if(state.meUser===u.id)window.CRM_USER=nm;
   }
   u.roleId=+document.getElementById("euRole").value;
-  u.password=(document.getElementById("euPassword").value||LOGIN_PW);
+  delete u.password;
   u.holdOnly=document.getElementById("euHoldOnly").checked;
   u.holdLeadIds=[].slice.call(document.getElementById("euHoldLeads").selectedOptions).map(function(o){return +o.value;});
   catBoxSave("eu",hierarchyFirst(u.name));
@@ -5018,6 +5018,18 @@ async function enter(user){
   if(!roleById(u.roleId))return fail('No role is assigned to this user.');
   await loadLeads();signIn(u);clearInterval(pollT);pollT=setInterval(poll,60000);return true;
 }
+document.addEventListener('click',async function(e){
+  var t=e.target;if(!t||t.id!=='euSetPw'||!sb)return;
+  var u=users.filter(function(x){return x.id===state.userEdit;})[0];if(!u)return;
+  var pw=prompt('New login password for '+u.name+' (at least 8 characters):');if(!pw)return;
+  if(pw.length<8){toast('Password must be at least 8 characters');return;}
+  var pr=await sb.from('profiles').select('id,name'),pid=null;
+  (pr.data||[]).forEach(function(p){[p.name].concat(ALIAS[norm(p.name)]||[]).forEach(function(n){if(!pid&&norm(n)===norm(u.name))pid=p.id;});});
+  if(!pid){toast('No login found for '+u.name);return;}
+  var r=await sb.functions.invoke('admin-set-password',{body:{user_id:pid,password:pw}});
+  var msg=(r.data&&r.data.error)||(r.error&&r.error.message);
+  toast(msg?'Could not change password: '+msg:'Password changed for '+u.name);
+});
 function start(){
   if(SB_KEY.indexOf('sb_secret_')===0||SB_KEY.indexOf('service_role')>=0){loginErr('WRONG KEY: a secret key is in index.html. Use the publishable key and replace the secret key in Supabase.');return;}
   if(SB_KEY.indexOf('PASTE')===0||!window.supabase){loginErr('Setup needed: add the Supabase publishable key in index.html.');return;}
