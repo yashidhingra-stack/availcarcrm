@@ -4962,10 +4962,10 @@ document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="chann
 var SB_URL='https://mmcptqdrbfmbnrhlrvnp.supabase.co';
 var SB_KEY='sb_publishable_OxTZD1TvwbMcoiuC2VbCdg_VWLC_OHd'; /* Supabase > Project Settings > API > anon public. NEVER the service_role key. */
 /* Supabase login name (lower case) -> CRM user name, when they differ */
-var ALIAS={'puneet':'Puneet Kundra','ashish kumar saroj':'Ashish','kapil':'Kapil Kharb','jiya saini':'Jiya','sanjana sachdeva':'Sanjana','gagandeep singh':'Gagandeep','keshav bhalla':'Keshav','admin':'Umesh Dhingra'};
+var ALIAS={'puneet':['Puneet Kundra'],'ashish kumar saroj':['Ashish'],'kapil':['Kapil Kharb'],'jiya saini':['Jiya'],'sanjana sachdeva':['Sanjana'],'gagandeep singh':['Gagandeep'],'keshav bhalla':['Keshav'],'umesh dhingra':['admin'],'yashi dhingra':['admin','Umesh Dhingra'],'admin':['Umesh Dhingra']};
 var sb=null,last={},pend=null,pushT=null,hierT=null,lastPoll=null,pollT=null;
 function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();}
-function findUser(name){var tries=[name,ALIAS[norm(name)]];for(var i=0;i<tries.length;i++){if(!tries[i])continue;var u=users.filter(function(x){return norm(x.name)===norm(tries[i]);})[0];if(u)return u;}return null;}
+function findUser(name){var tries=[name].concat(ALIAS[norm(name)]||[]);for(var i=0;i<tries.length;i++){var u=users.filter(function(x){return norm(x.name)===norm(tries[i]);})[0];if(u)return u;}return null;}
 function fail(m){try{if(sb)sb.auth.signOut();}catch(e){}return loginErr(m);}
 function clean(h){var c=JSON.parse(JSON.stringify(h||{}));if(c.__users&&c.__users.users)c.__users.users.forEach(function(u){delete u.password;});return c;}
 async function loadHier(){var r=await sb.from('settings').select('value').eq('key','hier').maybeSingle();if(r.data&&r.data.value)CRM_APPLY_HIER(r.data.value);}
