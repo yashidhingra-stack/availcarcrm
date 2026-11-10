@@ -4971,33 +4971,45 @@ function fail(m){try{if(sb)sb.auth.signOut();}catch(e){}return loginErr(m);}
 function clean(h){var c=JSON.parse(JSON.stringify(h||{}));if(c.__users&&c.__users.users)c.__users.users.forEach(function(u){delete u.password;});return c;}
 async function loadHier(){var r=await sb.from('settings').select('value').eq('key','hier').maybeSingle();if(r.data&&r.data.value)CRM_APPLY_HIER(r.data.value);}
 function toLead(row){var l=Object.assign({},row.data);l.seedId=row.seed_id;l.id=(+l.id>0)?+l.id:row.id;return l;}
+function h(s){var a=0xdeadbeef,b=0x41c6ce57;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677);}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return (4294967296*(2097151&b)+(a>>>0)).toString(36);}
+/* A lead's identity = phone + name + entry time. Same identity = same lead, so re-uploads and double saves can never add copies. */
+function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||'');return ph?ph+'|'+norm(l.name)+'|'+t:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg);}
+var fpSeen={};
+function mk(l){return {seed_id:l.seedId,owner_uid:ownerUid(l.owner),owner_name:l.owner||null,status:l.status||null,stage:l.stage||null,data:l,updated_at:new Date().toISOString()};}
 async function loadLeads(){
   var all=[],from=0,step=1000;
   for(;;){var r=await sb.from('leads').select('id,seed_id,data,updated_at').order('id').range(from,from+step-1);
     if(r.error){toast('Could not load leads: '+r.error.message);break;}
     all=all.concat(r.data);if(r.data.length<step)break;from+=step;}
-  var seen={},arr=all.map(function(row){var l=toLead(row);while(seen[l.id])l.id+=1000003;seen[l.id]=1;return l;});
-  last={};arr.forEach(function(l){last[l.seedId]=JSON.stringify(l);});
+  var seen={},arr=[],dup=0;fpSeen={};last={};
+  all.forEach(function(row){var l=toLead(row),k=fp(l);if(fpSeen[k]){dup++;return;}fpSeen[k]=l.seedId;while(seen[l.id])l.id+=1000003;seen[l.id]=1;last[l.seedId]=JSON.stringify(l);arr.push(l);});
+  if(dup)console.log('Duplicate copies hidden (still in the database):',dup);
   lastPoll=all.reduce(function(m,x){return x.updated_at>m?x.updated_at:m;},'1970-01-01');
   CRM_APPLY_LEADS(arr,[],true);
-  nextId=arr.reduce(function(m,x){return Math.max(m,x.id+1);},1001)+Math.floor(Math.random()*900000); /* keeps ids of two users apart */
+  nextId=arr.reduce(function(m,x){return Math.max(m,x.id+1);},1001)+Math.floor(Math.random()*900000);
 }
 async function poll(){
   if(!sb||!state.meUser||pend)return;
   var r=await sb.from('leads').select('id,seed_id,data,updated_at').gt('updated_at',lastPoll).order('updated_at').limit(1000);
   if(r.error||!r.data.length)return;
   lastPoll=r.data[r.data.length-1].updated_at;
-  var up=r.data.map(toLead);up.forEach(function(l){last[l.seedId]=JSON.stringify(l);});CRM_APPLY_LEADS(up,[],false);
+  var up=[];r.data.forEach(function(row){var l=toLead(row),k=fp(l);if(fpSeen[k]&&fpSeen[k]!==l.seedId)return;fpSeen[k]=l.seedId;last[l.seedId]=JSON.stringify(l);up.push(l);});
+  if(up.length)CRM_APPLY_LEADS(up,[],false);
+}
+async function save(rows,ignore){
+  for(var i=0;i<rows.length;i+=200){var part=rows.slice(i,i+200);
+    var r=await sb.from('leads').upsert(part.map(mk),ignore?{onConflict:'seed_id',ignoreDuplicates:true}:{onConflict:'seed_id'});
+    if(r.error){CRM_SYNC_STATUS('save failed');toast('Could not save to the database: '+r.error.message);return false;}
+    part.forEach(function(l){last[l.seedId]=JSON.stringify(l);});}
+  return true;
 }
 async function doPush(list){
-  var up=[],cur={};
-  list.forEach(function(l){if(!l.seedId)l.seedId='a_'+crypto.randomUUID();cur[l.seedId]=1;if(last[l.seedId]!==JSON.stringify(l))up.push(l);});
-  for(var i=0;i<up.length;i+=200){
-    var rows=up.slice(i,i+200).map(function(l){return {seed_id:l.seedId,owner_uid:ownerUid(l.owner),owner_name:l.owner||null,status:l.status||null,stage:l.stage||null,data:l,updated_at:new Date().toISOString()};});
-    var r=await sb.from('leads').upsert(rows,{onConflict:'seed_id'});
-    if(r.error){CRM_SYNC_STATUS('save failed');toast('Could not save to the database: '+r.error.message);return;}
-    rows.forEach(function(x,k){last[x.seed_id]=JSON.stringify(up[i+k]);});
-  }
+  var nw=[],ed=[],dups=[],cur={};
+  list.forEach(function(l){
+    if(!l.seedId){var k=fp(l);if(fpSeen[k]){dups.push(l.id);return;}l.seedId='f_'+h(k);fpSeen[k]=l.seedId;cur[l.seedId]=1;nw.push(l);return;}
+    cur[l.seedId]=1;if(last[l.seedId]!==JSON.stringify(l))ed.push(l);});
+  if(dups.length){CRM_APPLY_LEADS([],dups,false);toast(dups.length+' duplicate lead'+(dups.length>1?'s':'')+' skipped');}
+  if(!(await save(nw,true))||!(await save(ed,false)))return;
   /* deletions: Admin only, small batches only, never from a partial list */
   var gone=Object.keys(last).filter(function(k){return !cur[k];});
   if(gone.length&&window.CRM_IS_ADMIN&&CRM_IS_ADMIN()&&gone.length<=50&&list.length>=Object.keys(last).length*0.5){
