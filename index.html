@@ -754,6 +754,7 @@ window.CRM_APPLY_LEADS=function(up,rem,all){
     var seedIx={};full.forEach(function(x){if(x.seedId)seedIx[String(x.seedId)]=1;});
     Object.keys(protectedSeed).forEach(function(k){if(!seedIx[k]&&!(remSet&&remSet[String(protectedSeed[k].id)])){full.push(protectedSeed[k]);seedIx[k]=1;}}); /* a Hold/Reject file deleted by Admin stays deleted */
     leads=full;MASTER=null;SCOPED=null;try{tombApply();}catch(e){}
+    try{purgeAllCopies();}catch(e){} /* the database still holds old Audience copies of files that moved on; hide them on every load, the same way the live session does */
     nextId=Math.max(nextId,full.reduce(function(m,x){return Math.max(m,(+x.id||0)+1);},1001));
     try{localStorage.setItem(LEADS_KEY,JSON.stringify(full));}catch(e){}
     ALLFROM=full.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));ALLTO=full.reduce(function(m,l){return l.date>m?l.date:m;},"");
