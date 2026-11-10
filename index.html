@@ -2113,37 +2113,33 @@ function openClearData(){
 async function clearAllData(){
   if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Delete lead")){toast(DENY);return;}
   if(!confirm("Permanently delete ALL CRM leads and ALL internal lead backups? User accounts, lead owners, dealer lists, permissions and settings will remain."))return;
-
-  /* Do not clear the local copy or announce success until the shared database confirms deletion. */
-  if(!window.CRM_SYNC||typeof window.CRM_SYNC.wipeCloud!=="function"){
-    toast("Cloud database is not connected. No data was cleared.");
-    return;
-  }
-  var clearBtn=document.getElementById("doClear");
-  if(clearBtn){clearBtn.disabled=true;clearBtn.textContent="Clearing database…";}
+  var btn=document.getElementById("doClear");
+  if(btn){btn.disabled=true;btn.textContent="Clearing database...";}
   try{
+    /* Cloud deletion must finish and be verified BEFORE local copies are cleared. */
+    if(!window.CRM_SYNC||typeof window.CRM_SYNC.wipeCloud!=="function")throw new Error("Cloud database connection is not ready. Sign in again and retry.");
     var removed=await window.CRM_SYNC.wipeCloud();
-
-    /* Remove every category locally only after the cloud deletion succeeds. */
+    /* Only after the server confirms an empty table do we clear this browser. */
+    SYNC_SKIP=true;
     leads=[];MASTER=null;SCOPED=null;nextId=1001;PERSIST=true;LEADS_RESET_LOCK=true;
-    try{localStorage.setItem(LEADS_RESET_LOCK_KEY,"1");localStorage.setItem(LEADS_KEY,"[]");}catch(e){}
+    try{localStorage.setItem(LEADS_RESET_LOCK_KEY,"1");localStorage.removeItem("avail_crm_clear_shared_leads_pending");localStorage.setItem(LEADS_KEY,"[]");}catch(e){}
     try{var h=hierLoad();h.__delLeads={};hierSave();}catch(e){}
-
-    /* Empty all three internal backup stores: snapshots, backup payloads and deleted-lead recovery. */
     try{
       if(BK.db){var tx=BK.db.transaction(["snaps","data","dels"],"readwrite");
         tx.objectStore("snaps").clear();tx.objectStore("data").clear();tx.objectStore("dels").clear();}
     }catch(e){}
     BK.prev={};BK.sig="";BK.lastSnap=Date.now();BK.dels=[];BK.snaps=[];BK.tab="deleted";
-
     ALLFROM=ymd(TODAY);ALLTO="";state.page=1;state.sel=[];closeAll();render();
-    toast("Database cleared successfully. "+removed+" cloud records deleted; internal backups cleared.");
+    SYNC_SKIP=false;
+    toast("Database cleared successfully ("+removed+" cloud leads removed). User and master settings were kept.");
   }catch(e){
-    console.warn("wipeCloud failed",e);
-    toast("Database clear failed: "+(e&&e.message?e.message:"check Supabase access policies and connection")+". Local data was kept.");
-    if(clearBtn){clearBtn.disabled=false;clearBtn.textContent="Clear leads and backups";}
+    SYNC_SKIP=false;
+    console.error("Database clear failed:",e);
+    toast("DATABASE CLEAR FAILED: "+(e&&e.message?e.message:String(e)));
+    if(btn){btn.disabled=false;btn.textContent="Clear leads and backups";}
   }
 }
+
 function downloadTemplate(){
   if(!window.XLSX){toast("Excel writer unavailable. Please try again with internet enabled.");return;}
   var cols=["Name","Mobile","Lead Owner","Product","Loan Amount","Status","Stage","Date","Vehicle Model","Vehicle Number","Lender","Dealer","Source","PDD Status","PDD Stage","Notes"];
@@ -5037,27 +5033,35 @@ window.CRM_SYNC={
 };
 /* "Clear leads and backups" must also empty the shared Supabase table, otherwise every old lead comes back on the next refresh. Admin only (the button already checks this). */
 window.CRM_SYNC.wipeCloud=async function(){
-  if(!sb)throw new Error('Supabase is not connected; sign in again before clearing data.');
-  var n=0;
-  for(var round=0;round<200;round++){
-    /* Delete by the table primary key, not seed_id: older rows may have a NULL seed_id. */
-    var r=await sb.from('leads').select('id').order('id').limit(500);
-    if(r.error)throw r.error;
-    if(!r.data.length)break;
-    var ids=r.data.map(function(x){return x.id;}).filter(function(x){return x!==null&&x!==undefined;});
-    if(!ids.length)throw new Error('No deletable lead IDs were returned.');
-    var d=await sb.from('leads').delete().in('id',ids).select('id');
-    if(d.error)throw d.error;
-    if(!d.data||!d.data.length)throw new Error('Supabase refused the delete. Check the leads table DELETE policy for the signed-in Admin.');
-    n+=d.data.length;
-  }
-  /* Verify that no cloud rows remain before reporting success. */
-  var check=await sb.from('leads').select('id').limit(1);
-  if(check.error)throw check.error;
-  if(check.data&&check.data.length)throw new Error('Some cloud lead rows remain after deletion.');
-  last={};fpSeen={};lastPoll=new Date().toISOString();
-  clearTimeout(pushT);pend=null;
-  return n;
+  if(!sb||!state.meUser)throw new Error('Supabase is not connected or the user is not signed in.');
+  clearTimeout(pushT);pushT=null;pend=1;
+  var n=0,round=0;
+  try{
+    /* Delete by the table primary key, not seed_id: older rows may have NULL seed_id. */
+    for(round=0;round<500;round++){
+      var r=await sb.from('leads').select('id').limit(500);
+      if(r.error)throw new Error('Could not read leads before deletion: '+r.error.message);
+      if(!r.data||!r.data.length)break;
+      var ids=r.data.map(function(x){return x.id;}).filter(function(x){return x!==null&&x!==undefined;});
+      if(!ids.length)throw new Error('Rows were found but no primary-key IDs were returned. Check the leads table schema.');
+      var d=await sb.from('leads').delete().in('id',ids).select('id');
+      if(d.error)throw new Error('Supabase delete denied: '+d.error.message);
+      if(!d.data||!d.data.length)throw new Error('Supabase did not delete any rows. Check DELETE permission/RLS policies for the leads table.');
+      n+=d.data.length;
+      if(d.data.length<ids.length){
+        var check=await sb.from('leads').select('id').limit(1);
+        if(check.error)throw new Error('Could not verify deletion: '+check.error.message);
+        if(check.data&&check.data.length)throw new Error('Some rows remain. Check DELETE permission/RLS policies for the leads table.');
+        break;
+      }
+    }
+    if(round>=500)throw new Error('Deletion stopped after 500 batches; some rows may remain.');
+    var verify=await sb.from('leads').select('id').limit(1);
+    if(verify.error)throw new Error('Could not verify that the database is empty: '+verify.error.message);
+    if(verify.data&&verify.data.length)throw new Error('Database still contains lead rows after deletion. Check DELETE permission/RLS policies.');
+    last={};fpSeen={};lastPoll=new Date().toISOString();
+    return n;
+  }finally{pend=null;}
 };
 async function enter(user){
   var p=await sb.from('profiles').select('name').eq('id',user.id).maybeSingle();
