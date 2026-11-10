@@ -4963,7 +4963,8 @@ var SB_URL='https://mmcptqdrbfmbnrhlrvnp.supabase.co';
 var SB_KEY='sb_publishable_OxTZD1TvwbMcoiuC2VbCdg_VWLC_OHd'; /* Supabase > Project Settings > API > anon public. NEVER the service_role key. */
 /* Supabase login name (lower case) -> CRM user name, when they differ */
 var ALIAS={'puneet':['Puneet Kundra'],'ashish kumar saroj':['Ashish'],'kapil':['Kapil Kharb'],'jiya saini':['Jiya'],'sanjana sachdeva':['Sanjana'],'gagandeep singh':['Gagandeep'],'keshav bhalla':['Keshav'],'umesh dhingra':['admin'],'yashi dhingra':['admin','Umesh Dhingra'],'admin':['Umesh Dhingra']};
-var sb=null,last={},pend=null,pushT=null,hierT=null,lastPoll=null,pollT=null;
+var sb=null,last={},pend=null,pushT=null,hierT=null,lastPoll=null,pollT=null,profs=[],meId=null;
+function ownerUid(name){var n=norm(name),hit=null;profs.forEach(function(p){if(hit)return;var ns=[p.name].concat(ALIAS[norm(p.name)]||[]);if(ns.some(function(x){return norm(x)===n;}))hit=p.id;});return hit||meId;}
 function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();}
 function findUser(name){var tries=[name].concat(ALIAS[norm(name)]||[]);for(var i=0;i<tries.length;i++){var u=users.filter(function(x){return norm(x.name)===norm(tries[i]);})[0];if(u)return u;}return null;}
 function fail(m){try{if(sb)sb.auth.signOut();}catch(e){}return loginErr(m);}
@@ -4992,7 +4993,7 @@ async function doPush(list){
   var up=[],cur={};
   list.forEach(function(l){if(!l.seedId)l.seedId='a_'+crypto.randomUUID();cur[l.seedId]=1;if(last[l.seedId]!==JSON.stringify(l))up.push(l);});
   for(var i=0;i<up.length;i+=200){
-    var rows=up.slice(i,i+200).map(function(l){return {seed_id:l.seedId,owner_name:l.owner||null,status:l.status||null,stage:l.stage||null,data:l,updated_at:new Date().toISOString()};});
+    var rows=up.slice(i,i+200).map(function(l){return {seed_id:l.seedId,owner_uid:ownerUid(l.owner),owner_name:l.owner||null,status:l.status||null,stage:l.stage||null,data:l,updated_at:new Date().toISOString()};});
     var r=await sb.from('leads').upsert(rows,{onConflict:'seed_id'});
     if(r.error){CRM_SYNC_STATUS('save failed');toast('Could not save to the database: '+r.error.message);return;}
     rows.forEach(function(x,k){last[x.seed_id]=JSON.stringify(up[i+k]);});
@@ -5010,6 +5011,7 @@ window.CRM_SYNC={
 };
 async function enter(user){
   var p=await sb.from('profiles').select('name').eq('id',user.id).maybeSingle();
+  meId=user.id;var pa=await sb.from('profiles').select('id,name');profs=pa.data||[];
   if(!p.data)return fail('Your login has no profile. Ask Admin.');
   await loadHier();
   var u=findUser(p.data.name);
