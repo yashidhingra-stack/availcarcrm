@@ -2110,25 +2110,39 @@ function openClearData(){
   m.innerHTML='<h2>Clear all leads and backups?</h2><p>This permanently removes every lead from Audience, Login, Hold, Disbursed, Rejected, PDD and Data, and clears all internal CRM backup snapshots and deleted-lead recovery entries. User logins, lead-owner details, dealer lists, permissions and CRM settings will be kept. This cannot be undone. You can then upload fresh files category-wise.</p><div class="actions"><button class="btn" data-close>Keep data</button><button class="btn primary" id="doClear">Clear leads and backups</button></div>';
   m.classList.add("show");showOverlay(true);
 }
-function clearAllData(){
+async function clearAllData(){
   if(!hierIsAdmin(userById(state.meUser))||!canDo("Leads","Delete lead")){toast(DENY);return;}
   if(!confirm("Permanently delete ALL CRM leads and ALL internal lead backups? User accounts, lead owners, dealer lists, permissions and settings will remain."))return;
-  /* Remove every category from the live lead store without touching users or master data. */
-  leads=[];MASTER=null;SCOPED=null;nextId=1001;PERSIST=true;LEADS_RESET_LOCK=true;
-  try{localStorage.setItem(LEADS_RESET_LOCK_KEY,"1");localStorage.setItem("avail_crm_clear_shared_leads_pending","1");}catch(e){}
-  try{var h=hierLoad();h.__delLeads={};hierSave();}catch(e){}
-  try{localStorage.setItem(LEADS_KEY,"[]");}catch(e){}
-  /* Empty all three internal backup stores: snapshots, backup payloads and deleted-lead recovery. */
+
+  /* Do not clear the local copy or announce success until the shared database confirms deletion. */
+  if(!window.CRM_SYNC||typeof window.CRM_SYNC.wipeCloud!=="function"){
+    toast("Cloud database is not connected. No data was cleared.");
+    return;
+  }
+  var clearBtn=document.getElementById("doClear");
+  if(clearBtn){clearBtn.disabled=true;clearBtn.textContent="Clearing database…";}
   try{
-    if(BK.db){var tx=BK.db.transaction(["snaps","data","dels"],"readwrite");
-      tx.objectStore("snaps").clear();tx.objectStore("data").clear();tx.objectStore("dels").clear();}
-  }catch(e){}
-  BK.prev={};BK.sig="";BK.lastSnap=Date.now();BK.dels=[];BK.snaps=[];BK.tab="deleted";
-  /* Publish the empty lead list to the shared CRM sync layer as well. */
-  try{if(window.CRM_SYNC&&typeof window.CRM_SYNC.wipeCloud==="function"){window.CRM_SYNC.wipeCloud().then(function(n){toast("Shared database cleared ("+n+" files removed)");}).catch(function(e){console.warn("wipeCloud failed",e);toast("Could not clear the shared database - check internet and Firebase rules");});}}catch(e){}
-  saveLeads();
-  ALLFROM=ymd(TODAY);ALLTO="";state.page=1;state.sel=[];closeAll();render();
-  toast("All CRM leads and internal backups cleared. User and master settings were kept.");
+    var removed=await window.CRM_SYNC.wipeCloud();
+
+    /* Remove every category locally only after the cloud deletion succeeds. */
+    leads=[];MASTER=null;SCOPED=null;nextId=1001;PERSIST=true;LEADS_RESET_LOCK=true;
+    try{localStorage.setItem(LEADS_RESET_LOCK_KEY,"1");localStorage.setItem(LEADS_KEY,"[]");}catch(e){}
+    try{var h=hierLoad();h.__delLeads={};hierSave();}catch(e){}
+
+    /* Empty all three internal backup stores: snapshots, backup payloads and deleted-lead recovery. */
+    try{
+      if(BK.db){var tx=BK.db.transaction(["snaps","data","dels"],"readwrite");
+        tx.objectStore("snaps").clear();tx.objectStore("data").clear();tx.objectStore("dels").clear();}
+    }catch(e){}
+    BK.prev={};BK.sig="";BK.lastSnap=Date.now();BK.dels=[];BK.snaps=[];BK.tab="deleted";
+
+    ALLFROM=ymd(TODAY);ALLTO="";state.page=1;state.sel=[];closeAll();render();
+    toast("Database cleared successfully. "+removed+" cloud records deleted; internal backups cleared.");
+  }catch(e){
+    console.warn("wipeCloud failed",e);
+    toast("Database clear failed: "+(e&&e.message?e.message:"check Supabase access policies and connection")+". Local data was kept.");
+    if(clearBtn){clearBtn.disabled=false;clearBtn.textContent="Clear leads and backups";}
+  }
 }
 function downloadTemplate(){
   if(!window.XLSX){toast("Excel writer unavailable. Please try again with internet enabled.");return;}
@@ -5023,18 +5037,26 @@ window.CRM_SYNC={
 };
 /* "Clear leads and backups" must also empty the shared Supabase table, otherwise every old lead comes back on the next refresh. Admin only (the button already checks this). */
 window.CRM_SYNC.wipeCloud=async function(){
-  if(!sb)return 0;
+  if(!sb)throw new Error('Supabase is not connected; sign in again before clearing data.');
   var n=0;
   for(var round=0;round<200;round++){
-    var r=await sb.from('leads').select('seed_id').limit(500);
+    /* Delete by the table primary key, not seed_id: older rows may have a NULL seed_id. */
+    var r=await sb.from('leads').select('id').order('id').limit(500);
     if(r.error)throw r.error;
     if(!r.data.length)break;
-    var d=await sb.from('leads').delete().in('seed_id',r.data.map(function(x){return x.seed_id;})).select('seed_id');
+    var ids=r.data.map(function(x){return x.id;}).filter(function(x){return x!==null&&x!==undefined;});
+    if(!ids.length)throw new Error('No deletable lead IDs were returned.');
+    var d=await sb.from('leads').delete().in('id',ids).select('id');
     if(d.error)throw d.error;
-    if(!d.data||!d.data.length)throw new Error('database refused the delete (only Admin may delete)');
+    if(!d.data||!d.data.length)throw new Error('Supabase refused the delete. Check the leads table DELETE policy for the signed-in Admin.');
     n+=d.data.length;
   }
+  /* Verify that no cloud rows remain before reporting success. */
+  var check=await sb.from('leads').select('id').limit(1);
+  if(check.error)throw check.error;
+  if(check.data&&check.data.length)throw new Error('Some cloud lead rows remain after deletion.');
   last={};fpSeen={};lastPoll=new Date().toISOString();
+  clearTimeout(pushT);pend=null;
   return n;
 };
 async function enter(user){
