@@ -5111,7 +5111,12 @@ document.addEventListener('click',async function(e){
   (pr.data||[]).forEach(function(p){[p.name].concat(ALIAS[norm(p.name)]||[]).forEach(function(n){if(!pid&&norm(n)===norm(u.name))pid=p.id;});});
   if(!pid){toast('No login found for '+u.name);return;}
   var r=await sb.functions.invoke('admin-set-password',{body:{user_id:pid,password:pw}});
-  var msg=(r.data&&r.data.error)||(r.error&&r.error.message);
+  var msg=(r.data&&r.data.error)||null;
+  if(!msg&&r.error){
+    msg=r.error.message||'request failed';
+    try{if(r.error.context&&typeof r.error.context.json==='function'){var b=await r.error.context.json();if(b&&(b.error||b.message))msg=b.error||b.message;}}catch(_){}
+    if(/not found|NOT_FOUND|Failed to send|non-2xx/i.test(msg))msg+=' (the Supabase function admin-set-password is not deployed yet - see the setup steps)';
+  }
   toast(msg?'Could not change password: '+msg:'Password changed for '+u.name);
 });
 function start(){
