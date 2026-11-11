@@ -951,7 +951,7 @@ function statusOptions(key){
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
 var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
 var HR=["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"];
-var ALLTIME={Hold:1,Rejected:1,pdd:1,data:1}, NOFILTER={Hold:1,Rejected:1,pdd:1,data:1};
+var ALLTIME={Audience:1,Hold:1,Rejected:1,pdd:1,data:1}, NOFILTER={Hold:1,Rejected:1,pdd:1,data:1};
 state.lrangeBy={};state.rlabel={};state.fyBasis="fy";state.repTab="owner";
 function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,to:(ALLTO>ymd(TODAY)?ALLTO:ymd(TODAY))}:state.lrange);}
 function setRange(key,r){state.lrangeBy[key]=r;}
@@ -1613,7 +1613,7 @@ function renderTable(){
   var pss=document.getElementById("pddStatusSel");if(pss)pss.value=state.sel.length===1?state.sel[0]:(state.sel.length>1?"multi":"");
   document.getElementById("selLabel").textContent=state.sel.length?state.sel.length+" selected":"Select status";
   var fbl=document.getElementById("fpLabel");if(fbl)fbl.textContent=nf?"Filter ("+nf+")":"Filter";
-  var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing "+(state.rlabel[key]?state.rlabel[key]+", ":"")+"records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+". The last 30 days are shown by default"+(({Audience:1,Login:1,Disbursed:1})[key]?".":"; use the calendar to change this.");
+  var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing "+(state.rlabel[key]?state.rlabel[key]+", ":"")+"records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+(key==="Audience"&&!state.lrangeBy[key]?". All records are shown by default; use the Filter dates to narrow this.":". The last 30 days are shown by default"+(({Login:1,Disbursed:1})[key]?".":"; use the calendar to change this."));
   var sortable={ts:1,name:1,status:1,owner:1};
   var head='<tr>'+vis.map(function(c){
     var k=c[0]; if(!sortable[k])return '<th>'+c[1]+'</th>';
