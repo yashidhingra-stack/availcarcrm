@@ -4989,13 +4989,13 @@ function mk(l){return {seed_id:l.seedId,owner_uid:ownerUid(l.owner),owner_name:l
 async function loadLeads(){
   var all=[],from=0,step=1000;
   for(;;){var r=await sb.from('leads').select('id,seed_id,data,updated_at').order('id').range(from,from+step-1);
-    if(r.error){toast('Could not load leads: '+r.error.message);break;}
+    if(r.error){CRM_SYNC_STATUS('Shared sync off');toast('Could not load leads: '+r.error.message);break;}
     all=all.concat(r.data);if(r.data.length<step)break;from+=step;}
   var seen={},arr=[],dup=0;fpSeen={};last={};
   all.forEach(function(row){var l=toLead(row),k=fp(l);if(fpSeen[k]){dup++;return;}fpSeen[k]=l.seedId;while(seen[l.id])l.id+=1000003;seen[l.id]=1;last[l.seedId]=JSON.stringify(l);arr.push(l);});
   if(dup)console.log('Duplicate copies hidden (still in the database):',dup);
   lastPoll=all.reduce(function(m,x){return x.updated_at>m?x.updated_at:m;},'1970-01-01');
-  CRM_APPLY_LEADS(arr,[],true);
+  CRM_APPLY_LEADS(arr,[],true);CRM_SYNC_STATUS('Shared sync on');
   nextId=arr.reduce(function(m,x){return Math.max(m,x.id+1);},1001)+Math.floor(Math.random()*900000);
 }
 async function poll(){
@@ -5014,9 +5014,24 @@ async function save(rows,ignore){
   return true;
 }
 async function doPush(list){
-  var nw=[],ed=[],dups=[],cur={};
+  var nw=[],ed=[],dups=[],cur={},claimed={};
+  /* Pass 1: leads the database already knows keep their identity */
+  list.forEach(function(l){if(l.seedId&&Object.prototype.hasOwnProperty.call(last,l.seedId))claimed[l.seedId]=1;});
+  /* Pass 2: a lead the database does NOT know yet is checked against the lead identity (phone + name + entry time).
+     If that identity already exists, it is the same lead: update the existing row instead of adding a copy. */
   list.forEach(function(l){
-    if(!l.seedId){var k=fp(l);if(fpSeen[k]){dups.push(l.id);return;}l.seedId='f_'+h(k);fpSeen[k]=l.seedId;cur[l.seedId]=1;nw.push(l);return;}
+    if(!l.seedId){var k=fp(l);if(fpSeen[k]){dups.push(l.id);return;}l.seedId='f_'+h(k);fpSeen[k]=l.seedId;claimed[l.seedId]=1;cur[l.seedId]=1;nw.push(l);return;}
+    if(!Object.prototype.hasOwnProperty.call(last,l.seedId)){
+      var k2=fp(l),ex=fpSeen[k2];
+      if(ex&&ex!==l.seedId){
+        if(claimed[ex]&&last[ex]===undefined){dups.push(l.id);return;}
+        if(claimed[ex]&&list.some(function(o){return o!==l&&o.seedId===ex;})){dups.push(l.id);return;}
+        l.seedId=ex;
+      }else if(!ex){fpSeen[k2]=l.seedId;}
+      claimed[l.seedId]=1;cur[l.seedId]=1;
+      if(Object.prototype.hasOwnProperty.call(last,l.seedId)){if(last[l.seedId]!==JSON.stringify(l))ed.push(l);}else nw.push(l);
+      return;
+    }
     cur[l.seedId]=1;if(last[l.seedId]!==JSON.stringify(l))ed.push(l);});
   if(dups.length){CRM_APPLY_LEADS([],dups,false);toast(dups.length+' duplicate lead'+(dups.length>1?'s':'')+' skipped');}
   if(!(await save(nw,true))||!(await save(ed,false)))return;
@@ -5035,30 +5050,43 @@ window.CRM_SYNC={
 window.CRM_SYNC.wipeCloud=async function(){
   if(!sb||!state.meUser)throw new Error('Supabase is not connected or the user is not signed in.');
   clearTimeout(pushT);pushT=null;pend=1;
-  var n=0,round=0;
+  function explain(m){
+    m=String(m||'');
+    if(/protect|denied|policy|row-level|where clause|permission|not allowed|forbidden|only an admin/i.test(m))
+      return m+'  >> Supabase is blocking the delete. Run supabase_fix_delete.sql once in Supabase > SQL Editor (STEP 2), then try again.';
+    return m;
+  }
+  async function countRows(){
+    var c=await sb.from('leads').select('id',{count:'exact',head:true});
+    if(c.error)throw new Error('Could not count leads: '+explain(c.error.message));
+    return c.count||0;
+  }
   try{
-    /* Delete by the table primary key, not seed_id: older rows may have NULL seed_id. */
-    for(round=0;round<500;round++){
-      var r=await sb.from('leads').select('id').limit(500);
-      if(r.error)throw new Error('Could not read leads before deletion: '+r.error.message);
-      if(!r.data||!r.data.length)break;
-      var ids=r.data.map(function(x){return x.id;}).filter(function(x){return x!==null&&x!==undefined;});
-      if(!ids.length)throw new Error('Rows were found but no primary-key IDs were returned. Check the leads table schema.');
-      var d=await sb.from('leads').delete().in('id',ids).select('id');
-      if(d.error)throw new Error('Supabase delete denied: '+d.error.message);
-      if(!d.data||!d.data.length)throw new Error('Supabase did not delete any rows. Check DELETE permission/RLS policies for the leads table.');
-      n+=d.data.length;
-      if(d.data.length<ids.length){
-        var check=await sb.from('leads').select('id').limit(1);
-        if(check.error)throw new Error('Could not verify deletion: '+check.error.message);
-        if(check.data&&check.data.length)throw new Error('Some rows remain. Check DELETE permission/RLS policies for the leads table.');
-        break;
+    var before=await countRows(),n=0,usedRpc=false;
+    if(before>0){
+      /* 1st choice: the admin-only wipe_leads() function created by supabase_fix_delete.sql (bypasses the "protected table" block safely) */
+      var rp=await sb.rpc('wipe_leads');
+      if(!rp.error){usedRpc=true;n=(typeof rp.data==='number')?rp.data:before;}
+      else if(!(rp.error.code==='PGRST202'||/could not find the function|schema cache/i.test(rp.error.message||'')))
+        throw new Error('Supabase delete denied: '+explain(rp.error.message));
+      /* 2nd choice (function not installed yet): delete in batches by primary key */
+      if(!usedRpc){
+        for(var round=0;round<500;round++){
+          var r=await sb.from('leads').select('id').limit(500);
+          if(r.error)throw new Error('Could not read leads before deletion: '+explain(r.error.message));
+          if(!r.data||!r.data.length)break;
+          var ids=r.data.map(function(x){return x.id;}).filter(function(x){return x!==null&&x!==undefined;});
+          if(!ids.length)throw new Error('Rows were found but no primary-key IDs were returned. Check the leads table schema.');
+          var d=await sb.from('leads').delete().in('id',ids).select('id');
+          if(d.error)throw new Error('Supabase delete denied: '+explain(d.error.message));
+          if(!d.data||!d.data.length)throw new Error(explain('Supabase did not delete any rows (no DELETE policy for this user).'));
+          n+=d.data.length;
+        }
+        if(round>=500)throw new Error('Deletion stopped after 500 batches; some rows may remain.');
       }
     }
-    if(round>=500)throw new Error('Deletion stopped after 500 batches; some rows may remain.');
-    var verify=await sb.from('leads').select('id').limit(1);
-    if(verify.error)throw new Error('Could not verify that the database is empty: '+verify.error.message);
-    if(verify.data&&verify.data.length)throw new Error('Database still contains lead rows after deletion. Check DELETE permission/RLS policies.');
+    var left=await countRows();
+    if(left>0)throw new Error('Database still contains '+left+' lead rows after deletion. '+explain('Delete was blocked.'));
     last={};fpSeen={};lastPoll=new Date().toISOString();
     return n;
   }finally{pend=null;}
