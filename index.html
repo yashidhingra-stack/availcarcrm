@@ -2035,7 +2035,7 @@ function wbOwner(raw,rep){
 }
 function wbParse(sheets){
   var rep={sheets:[],loose:{},added:{},blankOwner:0,badStatus:{},total:0,dups:0},existing={},i;
-  fullLeads().forEach(function(x){var k=leadKey(x);if(k)existing[k+"|"+x.stage]=1;});
+  fullLeads().forEach(function(x){var k=leadKey(x);if(k&&!existing[k+"|"+x.stage])existing[k+"|"+x.stage]=x;});
   var out=[];
   sheets.forEach(function(sh){
     var info={name:sh.name,rows:0,added:0,dups:0,noName:0},cm=wbCols(sh.rows),map=cm.map;
@@ -2057,7 +2057,7 @@ function wbParse(sheets){
       var cb=cleanVal(get("caseb"));if(cb)ldx(l).caseBooked=cb;
       if(l.stage==="Disbursed"){var rto=cleanVal(get("rto")).toLowerCase();l.pdd=(rto&&/^rec/.test(rto)&&!/not/.test(rto))?"Received":"Pending";}
       var key=leadKey(l);
-      if(key&&existing[key+"|"+l.stage]){info.dups++;rep.dups++;return;}
+      if(key&&existing[key+"|"+l.stage]){var ex=existing[key+"|"+l.stage];if(ex&&ex!==1&&l.date&&ex.date!==l.date){ex.date=l.date;ex.ts=l.ts;rep.redated=(rep.redated||0)+1;}info.dups++;rep.dups++;return;}
       if(key)existing[key+"|"+l.stage]=1;
       out.push(l);info.added++;rep.total++;
     });
@@ -2080,7 +2080,7 @@ function importWorkbook(file){
       leads.sort(function(a,b){return a.ts<b.ts?1:-1;});
       ALLFROM=leads.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));ALLTO=leads.reduce(function(m,l){return l.date>m?l.date:m;},"");
       purgeAllCopies();saveLeads();fitRange();state.page=1;state.sel=[];
-      var h='<h2>Workbook imported</h2><p><b>'+rep.total+'</b> leads added'+(rep.dups?', '+rep.dups+' already in the CRM (skipped)':'')+'.</p><ul style="margin:0 0 10px 18px">'+rep.sheets.map(function(s){return '<li>'+esc(s.name)+': '+s.added+' of '+s.rows+' rows'+(s.dups?', '+s.dups+' duplicates':'')+(s.noName?', '+s.noName+' rows without a name skipped':'')+'</li>';}).join("")+'</ul>';
+      var h='<h2>Workbook imported</h2><p><b>'+rep.total+'</b> leads added'+(rep.dups?', '+rep.dups+' already in the CRM (skipped)':'')+(rep.redated?', '+rep.redated+' existing leads had their entry date corrected from this file':'')+'.</p><ul style="margin:0 0 10px 18px">'+rep.sheets.map(function(s){return '<li>'+esc(s.name)+': '+s.added+' of '+s.rows+' rows'+(s.dups?', '+s.dups+' duplicates':'')+(s.noName?', '+s.noName+' rows without a name skipped':'')+'</li>';}).join("")+'</ul>';
       var la=Object.keys(rep.loose),ad=Object.keys(rep.added),bs=Object.keys(rep.badStatus);
       if(la.length)h+='<p><b>Owner names matched to existing users:</b><br>'+la.map(function(k){return esc(k)+' &rarr; '+esc(rep.loose[k]);}).join('<br>')+'</p>';
       if(ad.length)h+='<p><b>New lead owners added from the sheet</b> (create a user with the same name in User Management so they can sign in and see these leads):<br>'+ad.map(function(k){return esc(k)+' ('+rep.added[k]+')';}).join(', ')+'</p>';
