@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -1199,7 +1199,7 @@ function bizImportFile(file){
 var CHANNEL_MASTER_KEY="avail_crm_channel_master_v1";
 var channelMaster=[];
 try{channelMaster=JSON.parse(localStorage.getItem(CHANNEL_MASTER_KEY)||"[]");if(!Array.isArray(channelMaster))channelMaster=[];}catch(_){channelMaster=[];}
-function saveChannelMaster(){try{localStorage.setItem(CHANNEL_MASTER_KEY,JSON.stringify(channelMaster));return true;}catch(e){toast("Could not save dealer list in this browser. The file may be too large.");return false;}}
+function saveChannelMaster(){try{localStorage.setItem(CHANNEL_MASTER_KEY,JSON.stringify(channelMaster));}catch(e){toast("Could not save dealer list in this browser. The file may be too large.");return false;}try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster(true);}catch(_p){}return true;}
 var channelTrackerSearch="";
 function renderChannelDirectory(){
   var v=document.getElementById("view"); if(!v)return;
@@ -1434,6 +1434,7 @@ function renderLeads(){
   h+='</div></div>';
   if(calcOn(key))h+='<div class="sumbar" id="sumbar"></div><section class="card repcard" id="repbox"></section>';
   if(!NOFILTER[key])h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'"><span id="fpLabel">Filter</span> '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
+    '<div class="field"><label for="fpFrom">Date from</label><input type="date" id="fpFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="fpTo">Date to</label><input type="date" id="fpTo" value="'+getRange(key).to+'"></div><div class="field"><button class="btn" data-fpall title="Show files of all dates">All dates</button></div>'+
     selectField("product","Product",products)+selectField("lender","Lender",lenderOptions())+selectField("dealer","Dealer",dealerFilterOptions())+selectField("owner","Lead owner",owners)+selectField("team","Team",roleNames())+selectField("year","Year",Array.from(new Set((leads||[]).map(function(l){return String(l.year||"").trim();}).filter(Boolean))).sort().reverse())+selectField("source","Source",sources)+
     (key==="Disbursed"?"":'<div class="field"><label for="f_min">Loan amount from (₹)</label><input type="number" id="f_min" data-f="min" min="0" step="50000" value="'+esc(state.f.min)+'"></div>'+
     '<div class="field"><label for="f_max">Loan amount to (₹)</label><input type="number" id="f_max" data-f="max" min="0" step="50000" value="'+esc(state.f.max)+'"></div>')+
@@ -1607,7 +1608,8 @@ function renderPending(){
    '<div class="seg" role="group" aria-label="Break down by" style="margin-bottom:12px">'+tabs.map(function(t){return '<button class="seg-btn" data-pbtab="'+t[0]+'" aria-pressed="'+(by===t[0])+'">'+t[1]+'</button>';}).join("")+'</div>'+body+
    '<div class="actions"><button class="btn" data-close>Close</button></div>';
 }
-function renderTable(){
+function fpSync(){var r=getRange(pageKey()),a=document.getElementById("fpFrom"),b=document.getElementById("fpTo"),c=document.getElementById("lrFrom"),d=document.getElementById("lrTo");if(a)a.value=r.from;if(b)b.value=r.to;if(c)c.value=r.from;if(d)d.value=r.to;}
+function renderTable(){try{fpSync();}catch(_e){}
   var box=document.getElementById("tbl"); if(!box)return;
   PH=phoneCounts();
   var key=pageKey(); renderSummary(key);
@@ -3787,12 +3789,13 @@ function payById(id){return state.payments.filter(function(x){return x.id===id;}
 function rebuildPaid(){state.paidAmt={};state.payments.forEach(function(p){if(p.status==="void")return;p.items.forEach(function(it){state.paidAmt[it.id]=it.amount;});});}
 var LS_KEY="avail_crm_payments_v1";
 function storeLoadLocal(){try{var j=JSON.parse(localStorage.getItem(LS_KEY)||"null");if(j){state.payments=j.payments||[];state.dcfg=j.dcfg||{};}}catch(e){}}
-function storeSaveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify({payments:state.payments,dcfg:state.dcfg}));}catch(e){}}
+function storeSaveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify({payments:state.payments,dcfg:state.dcfg}));}catch(e){}try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster(true);}catch(_p){}}
 function persistPayment(p){if(window.CRM_STORE)return window.CRM_STORE.savePayment(p);storeSaveLocal();return Promise.resolve();}
 function persistCfg(){if(window.CRM_STORE)return window.CRM_STORE.saveConfig(state.dcfg);storeSaveLocal();return Promise.resolve();}
 window.CRM_LOAD=function(d){state.payments=d.payments||[];if(d.dcfg)state.dcfg=d.dcfg;rebuildPaid();if(state.route==="payments")renderPayments();};
 function storeNote(){
   if(window.CRM_STORE)return 'Saved to Firebase. Signed in as '+esc(whoAmI())+'.';
+  if(window.CRM_SYNC&&state.meUser)return 'Saved to Supabase and in this browser. Signed in as '+esc(whoAmI())+'.';
   return 'Saved in this browser only, so other staff and the app cannot see it.'+(window.CRM_SIGNIN?' <button class="btn" id="payCloudIn">Sign in to save to Firebase</button>':'');
 }
 function payRefocus(id){var el=document.getElementById(id);if(el){el.focus();try{var n=el.value.length;el.setSelectionRange(n,n);}catch(e){}}}
@@ -4543,6 +4546,7 @@ document.addEventListener("click",function(e){
   if(d.pop){var p=document.getElementById("pop-"+d.pop),was=!p.hidden;closePops();p.hidden=was;t.setAttribute("aria-expanded",String(!was));if(!was&&d.pop==="status"){}return;}
   if(d.fby){closePops();setPanel(true);var c=document.querySelector('[data-f="'+d.fby+'"]');if(c)c.focus();return;}
   if(t.hasAttribute("data-panel")){setPanel(document.getElementById("fpBody").hidden);return;}
+  if(t.hasAttribute("data-fpall")){var fr0={from:ALLFROM,to:(ALLTO>ymd(TODAY)?ALLTO:ymd(TODAY))};setRange(pageKey(),fr0);clearPeriodLabel();state.page=1;renderTable();return;}
   if(t.hasAttribute("data-pddall")){delete state.lrangeBy.pdd;clearPeriodLabel();var ra=getRange("pdd"),pf=document.getElementById("pdFrom"),pt=document.getElementById("pdTo");if(pf)pf.value=ra.from;if(pt)pt.value=ra.to;var lf=document.getElementById("lrFrom"),lt=document.getElementById("lrTo");if(lf)lf.value=ra.from;if(lt)lt.value=ra.to;state.page=1;renderTable();return;}
   if(t.hasAttribute("data-pddclear")){state.f.owner="";state.sel=[];delete state.lrangeBy.pdd;clearPeriodLabel();var rr=getRange("pdd"),pf2=document.getElementById("pdFrom"),pt2=document.getElementById("pdTo");if(pf2)pf2.value=rr.from;if(pt2)pt2.value=rr.to;var po=document.getElementById("f_owner"),ps2=document.getElementById("pddStatusSel");if(po)po.value="";if(ps2)ps2.value="";var cbs2=document.querySelectorAll("[data-status]"),j2;for(j2=0;j2<cbs2.length;j2++)cbs2[j2].checked=false;state.page=1;renderTable();return;}
   if(t.hasAttribute("data-firmsearch")){var fi=document.getElementById("f_firm");state.f.firm=fi?fi.value.trim():"";state.page=1;renderTable();return;}
@@ -4792,6 +4796,7 @@ document.addEventListener("change",function(e){
   if(t.id==="plugActive"){state.bulkOn=t.checked;renderIntegration();return;}
   if(t.id==="pdBasis"){state.fyBasis=t.value;var kq=document.getElementById("pdQ"),kh=document.getElementById("pdH");if(kq)kq.innerHTML=periodOptions("Q",pageKey());if(kh)kh.innerHTML=periodOptions("H",pageKey());return;}
   if(t.id==="pdQ"||t.id==="pdH"){if(!t.value)return;var pr=t.value.split("|");applyPeriod(pr[0],pr[1],pr[2]);return;}
+  if(t.id==="fpFrom"||t.id==="fpTo"){var fa=document.getElementById("fpFrom").value,fb=document.getElementById("fpTo").value;if(fa&&fb&&fa<=fb){setRange(pageKey(),{from:fa,to:fb});clearPeriodLabel();state.page=1;renderTable();}else toast("Pick a start date before the end date");return;}
   if(t.id==="lrFrom"||t.id==="lrTo"){
     var f2=document.getElementById("lrFrom").value,t2=document.getElementById("lrTo").value;
     if(f2&&t2&&f2<=t2){setRange(pageKey(),{from:f2,to:t2});clearPeriodLabel();state.page=1;renderTable();}else toast("Pick a start date before the end date");return;}
@@ -5015,6 +5020,20 @@ var MASTER_KINDS={
     local:function(){return (dealerDetailsRows||[]).length>0||(masterData.dealers||[]).length>0;},
     set:function(v){dealerDetailsRows=Array.isArray(v.details)?v.details:[];masterData.dealers=Array.isArray(v.master)?v.master:[];},
     save:function(){try{localStorage.setItem(DEALER_DETAILS_KEY,JSON.stringify(dealerDetailsRows));localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));}catch(_e){}}
+  },
+  payments:{
+    get:function(){return {payments:state.payments||[],dcfg:state.dcfg||{}};},
+    has:function(v){return !!(v&&Array.isArray(v.payments));},
+    local:function(){return (state.payments||[]).length>0;},
+    set:function(v){if(window.CRM_LOAD)CRM_LOAD({payments:v.payments,dcfg:v.dcfg});else{state.payments=v.payments;if(v.dcfg)state.dcfg=v.dcfg;}},
+    save:function(){try{localStorage.setItem('avail_crm_payments_v1',JSON.stringify({payments:state.payments,dcfg:state.dcfg}));}catch(_e){}}
+  },
+  channels:{
+    get:function(){return {rows:channelMaster||[]};},
+    has:function(v){return !!(v&&Array.isArray(v.rows));},
+    local:function(){return (channelMaster||[]).length>0;},
+    set:function(v){channelMaster=v.rows;},
+    save:function(){try{localStorage.setItem(CHANNEL_MASTER_KEY,JSON.stringify(channelMaster));}catch(_e){}}
   }
 };
 async function loadMaster(){
