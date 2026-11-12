@@ -940,7 +940,10 @@ function pddMonthEnded(d){
   var y=+s.slice(0,4), m=+s.slice(5,7);
   return today>=ymd(new Date(y,m,0)); /* m is 1-based, so day 0 of month index m is the last day of the disbursement month itself */
 }
-function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&pddMonthEnded(l.date);}
+/* PDD holds (1) the files loaded from the PDD Excel upload, and (2) Disbursed files whose disbursement month has ended,
+   but only for files disbursed on or after PDD_AUTO_FROM. Older Disbursed files reach PDD only through the PDD upload. */
+var PDD_AUTO_FROM="2026-11-01";
+function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&(l.pddImp===true||(String(l.date||"").slice(0,10)>=PDD_AUTO_FROM&&pddMonthEnded(l.date)));}
 function pageStages(key){
   if(stages.indexOf(key)>-1)return [key]; /* Login shows only files still at Login; once moved to any other stage they leave it */
   if(key==="pdd")return ["Disbursed"];
@@ -5030,7 +5033,7 @@ async function loadHier(){var r=await sb.from('settings').select('value').eq('ke
 function toLead(row){var l=Object.assign({},row.data);l.seedId=row.seed_id;l.id=(+l.id>0)?+l.id:row.id;return l;}
 function h(s){var a=0xdeadbeef,b=0x41c6ce57;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677);}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return (4294967296*(2097151&b)+(a>>>0)).toString(36);}
 /* A lead's identity = phone + name + entry time. Same identity = same lead, so re-uploads and double saves can never add copies. */
-function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||'');return ph?ph+'|'+norm(l.name)+'|'+t:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg);}
+function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||''),sg='|'+String(l.stage||'')+'|'+String(l.cat||'');return ph?ph+'|'+norm(l.name)+'|'+t+sg:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg)+sg;}
 var fpSeen={};
 function mk(l){return {seed_id:l.seedId,owner_uid:ownerUid(l.owner),owner_name:l.owner||null,status:l.status||null,stage:l.stage||null,data:l,updated_at:new Date().toISOString()};}
 async function loadLeads(){
