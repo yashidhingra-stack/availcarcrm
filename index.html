@@ -550,7 +550,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
   <aside class="side" id="side" aria-label="Main navigation">
     <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20 12 4l7 16M8.5 14h7"/></svg></span><span id="brandName"></span></div>
     <nav class="nav" id="nav"></nav>
-    <div class="ver">Version 1.0.0</div>
+    <div class="ver">Version 1.0.3</div>
   </aside>
   <div class="scrim" id="scrim"></div>
   <div class="main" id="mainScroll">
@@ -1822,6 +1822,7 @@ function copyPurgeGroups(list){
   var g={};list.forEach(function(l){if(l.cat)return;var k=phone10(l);if(k)(g[k]=g[k]||[]).push(l);});return g;}
 function dropCopies(drop){
   if(!drop.size)return 0;
+  try{var lg=JSON.parse(localStorage.getItem("avail_crm_purge_log_v1")||"[]");drop.forEach(function(x){lg.unshift({at:stamp(),name:x.name,phone:x.phone,stage:x.stage,status:x.status,date:x.date});});localStorage.setItem("avail_crm_purge_log_v1",JSON.stringify(lg.slice(0,300)));}catch(_e){}
   leads=leads.filter(function(x){return !drop.has(x);});
   if(MASTER)MASTER=MASTER.filter(function(x){return !drop.has(x);});
   return drop.size;}
@@ -1858,7 +1859,7 @@ function purgeAllCopies(){
   initStages();
   var g=copyPurgeGroups(MASTER?fullLeads():leads),drop=new Set();
   Object.keys(g).forEach(function(k){var a=g[k];if(a.length<2)return;
-    a.forEach(function(l){var r=stageRank(l);if(!r)return;a.forEach(function(o){if(o!==l&&stageRank(o)<r&&sameLead(l,o))drop.add(o);});});});
+    a.forEach(function(l){var r=stageRank(l);if(!r)return;a.forEach(function(o){if(o!==l&&stageRank(o)===0&&sameLead(l,o))drop.add(o);});});}); /* automatic clean-up never removes Login/Hold/Reject/Disbursed files; moving a file by hand still removes its older copy */
   return dropCopies(drop);}
 function fitRange(){var m=leads.reduce(function(a,l){return l.date<a?l.date:a;},ymd(TODAY));state.lrange={from:m,to:ymd(TODAY)};}
 
