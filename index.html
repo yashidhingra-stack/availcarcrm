@@ -4203,14 +4203,14 @@ function renderStub(){
 var MASTER_KEY="avail_crm_master_records_v1", STAFF_DEFAULT_COLUMNS=["Employee code", "Email Address", "NAME OF THE EMPLOYEE", "PHONE NUMBER", "DATE OF JOINING", "ADDRESS", "DATE OF BIRTH", "AADHAAR CARD NUMBER", "BANK ACCOUNT NUMBER", "IFSC CODE", "ANNIVERSARY DATE"], STAFF_UPLOAD_SEED=[], masterData={staff:[],dealers:[],staffColumns:STAFF_DEFAULT_COLUMNS.slice()};
 try{var _md=JSON.parse(localStorage.getItem(MASTER_KEY)||"null");if(_md){masterData.staff=Array.isArray(_md.staff)?_md.staff:[];masterData.dealers=Array.isArray(_md.dealers)?_md.dealers:[];if(Array.isArray(_md.staffColumns))masterData.staffColumns=_md.staffColumns.filter(function(c){return typeof c==="string"&&c.trim();});}}catch(_e){}
 if(localStorage.getItem(MASTER_KEY+"_uploaded_staff_file_v1")!=="yes"){masterData.staff=STAFF_UPLOAD_SEED.map(function(r){return Object.assign({},r);});masterData.staffColumns=STAFF_DEFAULT_COLUMNS.slice();saveMasterData();try{localStorage.setItem(MASTER_KEY+"_uploaded_staff_file_v1","yes");}catch(_seedErr){}}
-function saveMasterData(){try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));return true;}catch(e){toast("Storage is full; records could not be saved");return false;}}
+function saveMasterData(){try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));}catch(e){toast("Storage is full; records could not be saved");return false;}try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster();}catch(_p){}return true;}
 function staffIsAdmin(){return hierIsAdmin(userById(state.meUser));}
 function renderMasterDirectory(kind){
   var staff=kind==="staff", title=staff?"Staff details":"Dealer details", key=staff?"staff":"dealers", rows=masterData[key]||[], all=[];
   if(staff)(masterData.staffColumns||[]).forEach(function(k){if(all.indexOf(k)<0)all.push(k);});
   rows.forEach(function(r){Object.keys(r).forEach(function(k){if(all.indexOf(k)<0)all.push(k);});});
   if(!all.length)all=staff?STAFF_DEFAULT_COLUMNS.slice():["Dealer Name","Mobile Number","City","Address","Contact Person"];
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>'+title+'</h1><p class="note" style="margin:0">'+(staff?'Edit staff records using the Edit and Save buttons.':'Import and maintain dealer records using Excel or CSV.')+'</p></div></div><div class="tb"><span class="total">Total records: '+rows.length+'</span>'+(staff?'<button class="btn" id="staffAddRow">+ Add employee</button>'+(staffIsAdmin()?'<button class="btn" id="staffAddColumn">+ Add column</button>':''):'<button class="btn" id="masterTemplate">Download template</button><button class="btn primary" id="masterImport">'+ic("upload")+' Import</button><input type="file" id="masterFile" accept=".xlsx,.xls,.csv" hidden>')+'</div></div>';
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>'+title+'</h1><p class="note" style="margin:0">'+(staff?'Edit staff records using the Edit and Save buttons.':'Import and maintain dealer records using Excel or CSV.')+'</p></div></div><div class="tb"><span class="total">Total records: '+rows.length+'</span>'+(staff?'<button class="btn" id="staffAddRow">+ Add employee</button>'+(staffIsAdmin()?'<button class="btn" id="staffAddColumn">+ Add column</button><button class="btn" id="masterTemplate">Download template</button><button class="btn primary" id="masterImport">'+ic("upload")+' Upload Excel</button><input type="file" id="masterFile" accept=".xlsx,.xls,.csv" hidden>':''):'<button class="btn" id="masterTemplate">Download template</button><button class="btn primary" id="masterImport">'+ic("upload")+' Import</button><input type="file" id="masterFile" accept=".xlsx,.xls,.csv" hidden>')+'</div></div>';
   h+='<div class="table-wrap"><table><thead><tr>'+all.map(function(k){return '<th>'+esc(k)+'</th>';}).join("")+(staff?'<th>Action</th>':'')+'</tr></thead><tbody>';
   if(rows.length)h+=rows.map(function(r,i){return '<tr>'+all.map(function(k){return staff?'<td><input type="text" class="staff-edit-field" data-staff-index="'+i+'" data-staff-field="'+esc(k)+'" value="'+esc(r[k]===undefined?"":String(r[k]))+'" disabled style="min-width:130px;width:100%;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"></td>':'<td>'+esc(r[k]===undefined?"":String(r[k]))+'</td>';}).join("")+(staff?'<td><button class="btn" data-staff-edit="'+i+'">Edit</button> <button class="btn danger" data-staff-delete="'+i+'">Delete</button></td>':'')+'</tr>';}).join("");
   else h+='<tr><td colspan="'+(all.length+(staff?1:0))+'" class="empty">'+(staff?'No staff records are available. Use “Add employee” to create a record.':'No dealer records imported yet. Click Import to upload an Excel or CSV file.')+'</td></tr>';
@@ -4220,7 +4220,18 @@ function renderMasterDirectory(kind){
 function importMasterFile(file,kind){
   if(!window.XLSX){toast("Excel reader unavailable. Please try again with internet enabled.");return;}
   var reader=new FileReader(),key=kind==="staff"?"staff":"dealers";
-  reader.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}), data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!data.length){toast("No data rows found in this file");return;}masterData[key]=data.map(function(r){var o={};Object.keys(r).forEach(function(k){o[String(k).trim()]=r[k] instanceof Date?ymd(r[k]):r[k];});return o;});if(saveMasterData()){renderMasterDirectory(key);toast(data.length+" "+(key==="staff"?"staff":"dealer")+" records imported successfully");}}catch(err){toast("Could not read this file. Please check the Excel/CSV format.");}};
+  reader.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}), data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});if(!data.length){toast("No data rows found in this file");return;}var rowsIn=data.map(function(r){var o={};Object.keys(r).forEach(function(k){o[String(k).trim()]=r[k] instanceof Date?ymd(r[k]):r[k];});return o;}).filter(function(o){return Object.keys(o).some(function(k){return String(o[k]).trim()!=="";});});
+  if(key==="staff"){
+    var cols=(masterData.staffColumns&&masterData.staffColumns.length)?masterData.staffColumns.slice():STAFF_DEFAULT_COLUMNS.slice();
+    rowsIn.forEach(function(r){Object.keys(r).forEach(function(k){if(k&&cols.indexOf(k)<0)cols.push(k);});});
+    masterData.staffColumns=cols;
+    var codeCol=cols.filter(function(c){return /^employee\s*code$/i.test(c);})[0],idx={},added=0,updated=0;
+    if(codeCol)masterData.staff.forEach(function(r,i){var c=String(r[codeCol]||"").trim().toLowerCase();if(c)idx[c]=i;});
+    rowsIn.forEach(function(r){var c=codeCol?String(r[codeCol]||"").trim().toLowerCase():"";if(c&&idx[c]!==undefined){Object.assign(masterData.staff[idx[c]],r);updated++;}else{masterData.staff.push(r);if(c)idx[c]=masterData.staff.length-1;added++;}});
+    if(saveMasterData()){renderMasterDirectory("staff");toast(added+" staff added, "+updated+" updated (matched by Employee code)");try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster(true);}catch(_n){}}
+    return;
+  }
+  masterData[key]=rowsIn;if(saveMasterData()){renderMasterDirectory(key);toast(data.length+" "+(key==="staff"?"staff":"dealer")+" records imported successfully");try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster(true);}catch(_n){}}}catch(err){toast("Could not read this file. Please check the Excel/CSV format.");}};
   reader.readAsArrayBuffer(file);
 }
 function downloadMasterTemplate(kind){var staff=kind==="staff", cols=staff?(masterData.staffColumns&&masterData.staffColumns.length?masterData.staffColumns:STAFF_DEFAULT_COLUMNS):["Dealer Name","Mobile Number","City","Address","Contact Person"];if(!window.XLSX){toast("Excel template download unavailable. Please enable internet and try again.");return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([cols]),"Template");XLSX.writeFile(wb,(staff?"Staff":"Dealer")+"_Template.xlsx");}
@@ -4228,7 +4239,7 @@ function downloadMasterTemplate(kind){var staff=kind==="staff", cols=staff?(mast
 /* ---------- Dealer Details spreadsheet upload, column filters and Excel export ---------- */
 var DEALER_DETAILS_KEY="avail_crm_dealer_details_v1", dealerDetailsRows=[], dealerDetailsFilters={};
 try{dealerDetailsRows=JSON.parse(localStorage.getItem(DEALER_DETAILS_KEY)||"[]");if(!Array.isArray(dealerDetailsRows))dealerDetailsRows=[];}catch(_e){dealerDetailsRows=[];}
-function saveDealerDetails(){try{localStorage.setItem(DEALER_DETAILS_KEY,JSON.stringify(dealerDetailsRows));return true;}catch(e){toast("Storage is full; the Dealer Details sheet could not be saved");return false;}}
+function saveDealerDetails(){try{localStorage.setItem(DEALER_DETAILS_KEY,JSON.stringify(dealerDetailsRows));}catch(e){toast("Storage is full; the Dealer Details sheet could not be saved");return false;}try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster();}catch(_p){}return true;}
 function dealerDetailColumns(){var cols=[];dealerDetailsRows.forEach(function(r){Object.keys(r).forEach(function(k){if(cols.indexOf(k)<0)cols.push(k);});});return cols;}
 function dealerDetailFilterColumns(){return dealerDetailColumns().filter(function(c){var key=String(c).trim().toLowerCase().replace(/[^a-z0-9]+/g,"");return ["mobilenumber","mobile","mobileno","dealeraddress","address","segment","dealercode","dealerid","city","hub"].indexOf(key)<0;});}
 function dealerDetailFiltered(){var cols=dealerDetailFilterColumns();return dealerDetailsRows.filter(function(r){return cols.every(function(c){var f=dealerDetailsFilters[c];return !f||String(r[c]===undefined?"":r[c])===f;});});}
@@ -4241,7 +4252,7 @@ function renderDealerDetails(){
  }
  document.getElementById("view").innerHTML=h;
 }
-function importDealerDetailsFile(file){if(!file)return;if(!window.XLSX){toast("Excel reader unavailable. Please try again with internet enabled.");return;}var reader=new FileReader();reader.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(ws,{defval:""});if(!data.length){toast("No data rows found. Check the first sheet and column headings.");return;}dealerDetailsRows=data.map(function(r){var o={};Object.keys(r).forEach(function(k){var v=r[k];o[String(k).trim()]=v instanceof Date?ymd(v):v;});return o;});dealerDetailsFilters={};if(saveDealerDetails()){renderDealerDetails();toast(data.length+" Dealer Details records uploaded");}}catch(err){toast("Could not read this Excel file. Please check its format.");}};reader.readAsArrayBuffer(file);}
+function importDealerDetailsFile(file){if(!file)return;if(!window.XLSX){toast("Excel reader unavailable. Please try again with internet enabled.");return;}var reader=new FileReader();reader.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],data=XLSX.utils.sheet_to_json(ws,{defval:""});if(!data.length){toast("No data rows found. Check the first sheet and column headings.");return;}dealerDetailsRows=data.map(function(r){var o={};Object.keys(r).forEach(function(k){var v=r[k];o[String(k).trim()]=v instanceof Date?ymd(v):v;});return o;});dealerDetailsFilters={};if(saveDealerDetails()){renderDealerDetails();toast(data.length+" Dealer Details records uploaded");try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster(true);}catch(_n){}}}catch(err){toast("Could not read this Excel file. Please check its format.");}};reader.readAsArrayBuffer(file);}
 function exportDealerDetails(filtered){if(!window.XLSX){toast("Excel download unavailable. Please enable internet and try again.");return;}var rows=filtered?dealerDetailFiltered():dealerDetailsRows;if(!rows.length){toast("No records to download");return;}var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Dealer Details");XLSX.writeFile(wb,filtered?"Dealer_Details_Filtered.xlsx":"Dealer_Details_All.xlsx");toast(rows.length+" records exported to Excel");}
 
 
@@ -4979,6 +4990,42 @@ function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();}
 function findUser(name){var tries=[name].concat(ALIAS[norm(name)]||[]);for(var i=0;i<tries.length;i++){var u=users.filter(function(x){return norm(x.name)===norm(tries[i]);})[0];if(u)return u;}return null;}
 function fail(m){try{if(sb)sb.auth.signOut();}catch(e){}return loginErr(m);}
 function clean(h){var c=JSON.parse(JSON.stringify(h||{}));if(c.__users&&c.__users.users)c.__users.users.forEach(function(u){delete u.password;});return c;}
+var masterT=null,masterNotify=false,masterReady={},masterLast={};
+var MASTER_KINDS={
+  staff:{
+    get:function(){return {rows:masterData.staff||[],columns:masterData.staffColumns||[]};},
+    has:function(v){return !!(v&&Array.isArray(v.rows));},
+    local:function(){return (masterData.staff||[]).length>0;},
+    set:function(v){masterData.staff=v.rows;if(Array.isArray(v.columns)&&v.columns.length)masterData.staffColumns=v.columns;},
+    save:function(){try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));localStorage.setItem(MASTER_KEY+'_uploaded_staff_file_v1','yes');}catch(_e){}}
+  },
+  dealers:{
+    get:function(){return {details:dealerDetailsRows||[],master:masterData.dealers||[]};},
+    has:function(v){return !!(v&&(Array.isArray(v.details)||Array.isArray(v.master)));},
+    local:function(){return (dealerDetailsRows||[]).length>0||(masterData.dealers||[]).length>0;},
+    set:function(v){dealerDetailsRows=Array.isArray(v.details)?v.details:[];masterData.dealers=Array.isArray(v.master)?v.master:[];},
+    save:function(){try{localStorage.setItem(DEALER_DETAILS_KEY,JSON.stringify(dealerDetailsRows));localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));}catch(_e){}}
+  }
+};
+async function loadMaster(){
+  masterReady={};masterLast={};
+  try{
+    var kinds=Object.keys(MASTER_KINDS);
+    var r=await sb.from('master_records').select('kind,value').in('kind',kinds);
+    if(r.error){console.warn('Staff/dealer details not loaded from Supabase:',r.error.message);return;}
+    var byKind={};(r.data||[]).forEach(function(x){byKind[x.kind]=x.value;});
+    for(var i=0;i<kinds.length;i++){
+      var k=kinds[i],M=MASTER_KINDS[k],v=byKind[k];
+      if(M.has(v)){M.set(v);M.save();masterLast[k]=JSON.stringify(M.get());}
+      else if(M.local()){
+        /* first time: copy this browser's records to Supabase (Admin only; ignored for others) */
+        var up=await sb.from('master_records').upsert({kind:k,value:M.get(),updated_at:new Date().toISOString()});
+        if(!up.error)masterLast[k]=JSON.stringify(M.get());
+      }
+      masterReady[k]=true;
+    }
+  }catch(e){console.warn('Staff/dealer details load failed:',e);}
+}
 async function loadHier(){var r=await sb.from('settings').select('value').eq('key','hier').maybeSingle();if(r.data&&r.data.value)CRM_APPLY_HIER(r.data.value);}
 function toLead(row){var l=Object.assign({},row.data);l.seedId=row.seed_id;l.id=(+l.id>0)?+l.id:row.id;return l;}
 function h(s){var a=0xdeadbeef,b=0x41c6ce57;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677);}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return (4294967296*(2097151&b)+(a>>>0)).toString(36);}
@@ -5044,6 +5091,27 @@ async function doPush(list){
 }
 window.CRM_SYNC={
   pushLeads:function(list){if(!sb||!state.meUser)return;clearTimeout(pushT);pend=1;pushT=setTimeout(function(){doPush(list).catch(function(e){console.warn(e);}).then(function(){pend=null;});},1500);},
+  pushMaster:function(notify){
+    if(!sb||!state.meUser)return;
+    if(notify)masterNotify=true;
+    clearTimeout(masterT);
+    masterT=setTimeout(async function(){
+      var nt=masterNotify;masterNotify=false;
+      var kinds=Object.keys(MASTER_KINDS),errs=[],notReady=0;
+      for(var i=0;i<kinds.length;i++){
+        var k=kinds[i];
+        if(!masterReady[k]){notReady++;continue;}
+        var js=JSON.stringify(MASTER_KINDS[k].get());
+        if(masterLast[k]===undefined&&!MASTER_KINDS[k].local()){masterLast[k]=js;continue;}
+        if(js===masterLast[k])continue;
+        var r=await sb.from('master_records').upsert({kind:k,value:MASTER_KINDS[k].get(),updated_at:new Date().toISOString()});
+        if(r.error)errs.push(k+': '+r.error.message);else masterLast[k]=js;
+      }
+      if(errs.length)toast('Saved on this device only. Supabase said: '+errs.join(' | ')+(/row-level|policy/i.test(errs.join(' '))?' (only Admin can save these details)':''));
+      else if(notReady===kinds.length){if(nt)toast('Saved on this device only: could not reach the Supabase table (run supabase_staff_master.sql once, then sign in again).');}
+      else if(nt)toast('Saved to Supabase');
+    },800);
+  },
   pushHier:function(h){if(!sb||!state.meUser)return;clearTimeout(hierT);hierT=setTimeout(function(){sb.from('settings').upsert({key:'hier',value:clean(h),updated_at:new Date().toISOString()}).then(function(r){if(r.error)console.warn('settings not saved (Admin only):',r.error.message);});},1000);}
 };
 /* "Clear leads and backups" must also empty the shared Supabase table, otherwise every old lead comes back on the next refresh. Admin only (the button already checks this). */
@@ -5096,6 +5164,7 @@ async function enter(user){
   meId=user.id;var pa=await sb.from('profiles').select('id,name');profs=pa.data||[];
   if(!p.data)return fail('Your login has no profile. Ask Admin.');
   await loadHier();
+  await loadMaster();
   var u=findUser(p.data.name);
   if(!u)return fail('Your login ('+p.data.name+') is not linked to a CRM user. Ask Admin.');
   if(!u.active)return fail('This user is deactivated. Ask an admin to activate it.');
