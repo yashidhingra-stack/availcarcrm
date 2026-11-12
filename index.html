@@ -647,6 +647,9 @@ function pick(a){return a[Math.floor(R()*a.length)];}
 function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 var _now=new Date();var TODAY=new Date(_now.getFullYear(),_now.getMonth(),_now.getDate());
 var owners=["Harjot Singh","Puneet Kundra","Anil Gill","Anu Kaushal","Ashish","Kiranpreet Kaur","Nitin Narula","Rohit Bhalla","Sapna Jindal","Keshav","Kapil Kharb","Nisha Verma","Rahul Mahant"];
+/* Different spellings of the same person -> one name everywhere (imports, users, leads) */
+var OWNER_ALIAS={"ashish saroj":"Ashish","ashish kumar saroj":"Ashish","ashish kumar":"Ashish","ashish rana":"Ashish","keshav sood":"Keshav","keshav bhalla":"Keshav"};
+function canonOwner(n){var t=String(n==null?"":n).replace(/\s+/g," ").trim();return OWNER_ALIAS[t.toLowerCase()]||t;}
 var products=["Used Car Purchase","Used Car Refinance","New Car Loan","Car Top-up","Balance Transfer"];
 var pcolor=["#2b7de9","#3aa76d","#f2a900","#e4572e","#7c5cc4"];
 var stages=["Audience","Login","Hold","Disbursed","Rejected"];
@@ -719,7 +722,7 @@ try{
   }
   LEADS_RESET_LOCK=localStorage.getItem(LEADS_RESET_LOCK_KEY)==="1";
 }catch(e){LEADS_RESET_LOCK=true;leads=[];nextId=1001;PERSIST=true;}
-(function(){var m={"Keshav Sood":"Keshav","Ashish Rana":"Ashish"};leads.forEach(function(l){if(m[l.owner])l.owner=m[l.owner];});})(); /* rename already-saved leads */
+(function(){leads.forEach(function(l){var c=canonOwner(l.owner);if(c!==l.owner)l.owner=c;});})(); /* rename already-saved leads */
 var saveT=null;
 var SYNC_SKIP=false;
 function saveLeads(){if(!PERSIST)return true;if(SYNC_SKIP)return true;var ok=true;try{localStorage.setItem(LEADS_KEY,JSON.stringify(fullLeads()));}catch(e){ok=false;}try{if(window.CRM_SYNC)window.CRM_SYNC.pushLeads(fullLeads());}catch(e){}return ok;}
@@ -1761,7 +1764,7 @@ function rowsToLeads(data,tag){
     if(!hit&&sg){var sgHit=stages.filter(function(x){return x.toLowerCase()===sg.toLowerCase()||(stageName[x]||"").toLowerCase()===sg.toLowerCase();})[0];if(sgHit)hit=[STAGE_DEFAULT[sgHit],sgHit];}
     var prod=cleanVal(get("Product"));prod=PROD_ALIAS[prod.toLowerCase()]||prod;
     if(prod&&products.indexOf(prod)<0)products.push(prod);
-    var own=cleanVal(get("Lead Owner","Owner"));
+    var own=canonOwner(cleanVal(get("Lead Owner","Owner")));
     var ownHit=owners.filter(function(x){return x.toLowerCase()===own.toLowerCase();})[0];
     if(own&&!ownHit){own=own===own.toUpperCase()||own===own.toLowerCase()?own.toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();}):own;ownHit=owners.filter(function(x){return x.toLowerCase()===own.toLowerCase();})[0]||own;if(owners.indexOf(ownHit)<0)owners.push(ownHit);}
     var make=cleanVal(get("Vehicle Make","Vehicle")), mdl=cleanVal(get("Vehicle Model"));
@@ -1885,7 +1888,7 @@ function importPddRows(data,silent){
     var ph=cleanVal(get("mobile","Phone")).replace(/\.0$/,"").replace(/\D/g,"").slice(-10);
     var reg=cleanVal(get("vehicle_no","Vehicle Number","Reg No")).toUpperCase();
     var prod=cleanVal(get("product"));prod=PROD_ALIAS[prod.toLowerCase()]||prod;if(prod&&products.indexOf(prod)<0)products.push(prod);
-    var own=cleanVal(get("Lead Owner","Owner"));var ownHit=owners.filter(function(x){return x.toLowerCase()===own.toLowerCase();})[0];
+    var own=canonOwner(cleanVal(get("Lead Owner","Owner")));var ownHit=owners.filter(function(x){return x.toLowerCase()===own.toLowerCase();})[0];
     if(own&&!ownHit){ownHit=own;owners.push(own);}
     var lend=cleanVal(get("lendor","Lender","Bank"));if(lend&&lenders.indexOf(lend)<0)lenders.push(lend);
     var dlr=cleanVal(get("dealer","Dealer Name"));if(dlr&&dealers.indexOf(dlr)<0)dealers.push(dlr);
@@ -1955,7 +1958,7 @@ function importHoldRejectFile(file,targetKey){
       var tm="12:00:00",matches=note.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g);
       if(!date&&matches&&matches.length){matches.sort();date=matches[0].slice(0,10);tm=matches[0].slice(11);}
       if(!date)date=ymd(TODAY);
-      var own=cleanVal(get("Lead Owner","Owner"))||"Unassigned";
+      var own=canonOwner(cleanVal(get("Lead Owner","Owner")))||"Unassigned";
       var prod=cleanVal(get("Product"));var lender=cleanVal(get("Lender","Lendor","Bank"));
       var dealer=cleanVal(get("Dealer","Dealer Name","Channel"));
       var make=cleanVal(get("Vehicle Make","Vehicle")),model=cleanVal(get("Vehicle Model"));
@@ -2012,7 +2015,7 @@ function wbStatus(raw,sheet){
 }
 function wbTitle(t){return (t===t.toUpperCase()||t===t.toLowerCase())?t.toLowerCase().replace(/\b[a-z]/g,function(c){return c.toUpperCase();}):t;}
 function wbOwner(raw,rep){
-  var t=cleanVal(raw).replace(/\s+/g," ").trim();
+  var t=canonOwner(cleanVal(raw).replace(/\s+/g," ").trim());
   if(!t)return "";
   var all=moveOwnerOptions(),base=all.filter(function(o){return !rep.added[o];}),parts=t.split(/\s*[\/,&]\s*/).filter(Boolean),i,hit="";
   function exact(list,p){var k=p.toLowerCase();return list.filter(function(o){return o.toLowerCase()===k;})[0]||"";}
@@ -4428,9 +4431,13 @@ function syncScope(){
   if(MASTER){leads=fullLeads();MASTER=null;SCOPED=null;}
   try{tombApply();}catch(e){}
   /* Imported owner names that are the same person as a CRM user. */
-  var AL={"Ashish Kumar":"Ashish","Keshav Bhalla":"Keshav","Keshav Sood":"Keshav"};
+  var AL={"Ashish Kumar":"Ashish","Ashish Saroj":"Ashish","Ashish Kumar Saroj":"Ashish","Ashish Rana":"Ashish","Keshav Bhalla":"Keshav","Keshav Sood":"Keshav"};
   /* One Keshav user only: rename variants, keep the first, point teams at the kept id and drop the rest. */
   (function(){var keep=null,drop={};users.forEach(function(u){if(/^keshav\b/i.test(u.name)){u.name="Keshav";if(!keep)keep=u;else drop[u.id]=1;}});
+    if(keep&&Object.keys(drop).length){users=users.filter(function(u){return !drop[u.id];});
+      teams.forEach(function(tm){if(drop[tm.head])tm.head=keep.id;tm.members=(tm.members||[]).map(function(id){return drop[id]?keep.id:id;}).filter(function(id,i,a){return a.indexOf(id)===i&&id!==tm.head;});});}})();
+  /* One Ashish user only (same merge as Keshav): rename variants, keep the first, move teams to it, drop the rest. */
+  (function(){var keep=null,drop={};users.forEach(function(u){if(/^ashish( kumar| rana| saroj)*$/i.test(String(u.name||"").trim())){u.name="Ashish";if(!keep)keep=u;else drop[u.id]=1;}});
     if(keep&&Object.keys(drop).length){users=users.filter(function(u){return !drop[u.id];});
       teams.forEach(function(tm){if(drop[tm.head])tm.head=keep.id;tm.members=(tm.members||[]).map(function(id){return drop[id]?keep.id:id;}).filter(function(id,i,a){return a.indexOf(id)===i&&id!==tm.head;});});}})();
   leads.forEach(function(l){if(AL[l.owner])l.owner=AL[l.owner];});
@@ -4986,7 +4993,7 @@ document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="chann
 var SB_URL='https://mmcptqdrbfmbnrhlrvnp.supabase.co';
 var SB_KEY='sb_publishable_OxTZD1TvwbMcoiuC2VbCdg_VWLC_OHd'; /* Supabase > Project Settings > API > anon public. NEVER the service_role key. */
 /* Supabase login name (lower case) -> CRM user name, when they differ */
-var ALIAS={'puneet':['Puneet Kundra'],'ashish kumar saroj':['Ashish'],'kapil':['Kapil Kharb'],'jiya saini':['Jiya'],'sanjana sachdeva':['Sanjana'],'gagandeep singh':['Gagandeep'],'keshav bhalla':['Keshav'],'umesh dhingra':['admin'],'yashi dhingra':['admin','Umesh Dhingra'],'admin':['Umesh Dhingra']};
+var ALIAS={'puneet':['Puneet Kundra'],'ashish kumar saroj':['Ashish'],'ashish saroj':['Ashish'],'ashish kumar':['Ashish'],'ashish rana':['Ashish'],'kapil':['Kapil Kharb'],'jiya saini':['Jiya'],'sanjana sachdeva':['Sanjana'],'gagandeep singh':['Gagandeep'],'keshav bhalla':['Keshav'],'umesh dhingra':['admin'],'yashi dhingra':['admin','Umesh Dhingra'],'admin':['Umesh Dhingra']};
 var sb=null,last={},pend=null,pushT=null,hierT=null,lastPoll=null,pollT=null,profs=[],meId=null;
 function ownerUid(name){var n=norm(name),hit=null;profs.forEach(function(p){if(hit)return;var ns=[p.name].concat(ALIAS[norm(p.name)]||[]);if(ns.some(function(x){return norm(x)===n;}))hit=p.id;});return hit||meId;}
 function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();}
