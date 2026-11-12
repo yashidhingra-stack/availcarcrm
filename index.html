@@ -1823,8 +1823,11 @@ function copyPurgeGroups(list){
 function dropCopies(drop){
   if(!drop.size)return 0;
   try{var lg=JSON.parse(localStorage.getItem("avail_crm_purge_log_v1")||"[]");drop.forEach(function(x){lg.unshift({at:stamp(),name:x.name,phone:x.phone,stage:x.stage,status:x.status,date:x.date});});localStorage.setItem("avail_crm_purge_log_v1",JSON.stringify(lg.slice(0,300)));}catch(_e){}
+  var sup=[];drop.forEach(function(x){if(x.seedId&&!x.superseded){x.superseded=true;sup.push(x);}});
   leads=leads.filter(function(x){return !drop.has(x);});
   if(MASTER)MASTER=MASTER.filter(function(x){return !drop.has(x);});
+  /* FIX: mark the old copy as superseded in the shared database (any user may update rows; only Admin may delete them), so it is not loaded again after refresh */
+  if(sup.length){try{if(window.CRM_SYNC&&window.CRM_SYNC.pushSuperseded)window.CRM_SYNC.pushSuperseded(sup);}catch(_s){}}
   return drop.size;}
 /* Sapna and Ashish: when they shift a lead, the same lead held under Anu Kaushal is shifted out of her list too (one record only, still visible to Anu through her team view) */
 function shiftFromAnu(l){
@@ -5060,7 +5063,7 @@ async function loadHier(){var r=await sb.from('settings').select('value').eq('ke
 function toLead(row){var l=Object.assign({},row.data);l.seedId=row.seed_id;l.id=(+l.id>0)?+l.id:row.id;return l;}
 function h(s){var a=0xdeadbeef,b=0x41c6ce57;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677);}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return (4294967296*(2097151&b)+(a>>>0)).toString(36);}
 /* A lead's identity = phone + name + entry time. Same identity = same lead, so re-uploads and double saves can never add copies. */
-function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||''),sg='|'+String(l.stage||'')+'|'+String(l.cat||'');return ph?ph+'|'+norm(l.name)+'|'+t+sg:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg)+sg;}
+function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||''),sg='|'+String(l.stage||'')+'|'+String(l.cat||'');var rg='|'+norm(l.reg)+'|'+norm(l.vehicle);return ph?ph+'|'+norm(l.name)+'|'+t+sg+rg:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg)+sg;}
 var fpSeen={};
 function mk(l){return {seed_id:l.seedId,owner_uid:ownerUid(l.owner),owner_name:l.owner||null,status:l.status||null,stage:l.stage||null,data:l,updated_at:new Date().toISOString()};}
 async function loadLeads(){
@@ -5069,7 +5072,7 @@ async function loadLeads(){
     if(r.error){CRM_SYNC_STATUS('Shared sync off');toast('Could not load leads: '+r.error.message);break;}
     all=all.concat(r.data);if(r.data.length<step)break;from+=step;}
   var seen={},arr=[],dup=0;fpSeen={};last={};
-  all.forEach(function(row){var l=toLead(row),k=fp(l);if(fpSeen[k]){dup++;return;}fpSeen[k]=l.seedId;while(seen[l.id])l.id+=1000003;seen[l.id]=1;last[l.seedId]=JSON.stringify(l);arr.push(l);});
+  all.forEach(function(row){var l=toLead(row);if(l.superseded){last[l.seedId]=JSON.stringify(l);return;}var k=fp(l);if(fpSeen[k]){dup++;return;}fpSeen[k]=l.seedId;while(seen[l.id])l.id+=1000003;seen[l.id]=1;last[l.seedId]=JSON.stringify(l);arr.push(l);});
   if(dup)console.log('Duplicate copies hidden (still in the database):',dup);
   lastPoll=all.reduce(function(m,x){return x.updated_at>m?x.updated_at:m;},'1970-01-01');
   CRM_APPLY_LEADS(arr,[],true);CRM_SYNC_STATUS('Shared sync on');
@@ -5080,8 +5083,8 @@ async function poll(){
   var r=await sb.from('leads').select('id,seed_id,data,updated_at').gt('updated_at',lastPoll).order('updated_at').limit(1000);
   if(r.error||!r.data.length)return;
   lastPoll=r.data[r.data.length-1].updated_at;
-  var up=[];r.data.forEach(function(row){var l=toLead(row),k=fp(l);if(fpSeen[k]&&fpSeen[k]!==l.seedId)return;fpSeen[k]=l.seedId;last[l.seedId]=JSON.stringify(l);up.push(l);});
-  if(up.length)CRM_APPLY_LEADS(up,[],false);
+  var up=[];var gone=[];r.data.forEach(function(row){var l=toLead(row);if(l.superseded){last[l.seedId]=JSON.stringify(l);gone.push(l.id);return;}var k=fp(l);if(fpSeen[k]&&fpSeen[k]!==l.seedId)return;fpSeen[k]=l.seedId;last[l.seedId]=JSON.stringify(l);up.push(l);});
+  if(up.length||gone.length)CRM_APPLY_LEADS(up,gone,false);
 }
 async function save(rows,ignore){
   for(var i=0;i<rows.length;i+=200){var part=rows.slice(i,i+200);
@@ -5120,6 +5123,9 @@ async function doPush(list){
   CRM_SYNC_STATUS('saved');
 }
 window.CRM_SYNC={
+  pushSuperseded:function(list){if(!sb||!state.meUser||!list||!list.length)return;
+    var rows=list.filter(function(l){return l.seedId;});if(!rows.length)return;
+    save(rows,false).catch(function(e){console.warn('superseded not saved',e);});},
   pushLeads:function(list){if(!sb||!state.meUser)return;clearTimeout(pushT);pend=1;pushT=setTimeout(function(){doPush(list).catch(function(e){console.warn(e);}).then(function(){pend=null;});},1500);},
   pushMaster:function(notify){
     if(!sb||!state.meUser)return;
