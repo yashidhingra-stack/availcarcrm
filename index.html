@@ -5063,19 +5063,20 @@ async function loadHier(){var r=await sb.from('settings').select('value').eq('ke
 function toLead(row){var l=Object.assign({},row.data);l.seedId=row.seed_id;l.id=(+l.id>0)?+l.id:row.id;return l;}
 function h(s){var a=0xdeadbeef,b=0x41c6ce57;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677);}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return (4294967296*(2097151&b)+(a>>>0)).toString(36);}
 /* A lead's identity = phone + name + entry time. Same identity = same lead, so re-uploads and double saves can never add copies. */
-function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||''),sg='|'+String(l.stage||'')+'|'+String(l.cat||'');var rg='|'+norm(l.reg)+'|'+norm(l.vehicle);return ph?ph+'|'+norm(l.name)+'|'+t+sg+rg:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg)+sg;}
+function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||''),sg='|'+String(l.stage||'')+'|'+String(l.cat||'');return ph?ph+'|'+norm(l.name)+'|'+t+sg:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg)+sg;}
 var fpSeen={};
+var synced=false; /* true only after this session has loaded the shared database; nothing is pushed before that */
 function mk(l){return {seed_id:l.seedId,owner_uid:ownerUid(l.owner),owner_name:l.owner||null,status:l.status||null,stage:l.stage||null,data:l,updated_at:new Date().toISOString()};}
 async function loadLeads(){
   var all=[],from=0,step=1000;
   for(;;){var r=await sb.from('leads').select('id,seed_id,data,updated_at').order('id').range(from,from+step-1);
-    if(r.error){CRM_SYNC_STATUS('Shared sync off');toast('Could not load leads: '+r.error.message);break;}
+    if(r.error){CRM_SYNC_STATUS('Shared sync off');toast('Could not load leads: '+r.error.message+'. Nothing was changed.');return;}
     all=all.concat(r.data);if(r.data.length<step)break;from+=step;}
   var seen={},arr=[],dup=0;fpSeen={};last={};
   all.forEach(function(row){var l=toLead(row);if(l.superseded){last[l.seedId]=JSON.stringify(l);return;}var k=fp(l);if(fpSeen[k]){dup++;return;}fpSeen[k]=l.seedId;while(seen[l.id])l.id+=1000003;seen[l.id]=1;last[l.seedId]=JSON.stringify(l);arr.push(l);});
   if(dup)console.log('Duplicate copies hidden (still in the database):',dup);
   lastPoll=all.reduce(function(m,x){return x.updated_at>m?x.updated_at:m;},'1970-01-01');
-  CRM_APPLY_LEADS(arr,[],true);CRM_SYNC_STATUS('Shared sync on');
+  synced=true;CRM_APPLY_LEADS(arr,[],true);CRM_SYNC_STATUS('Shared sync on');
   nextId=arr.reduce(function(m,x){return Math.max(m,x.id+1);},1001)+Math.floor(Math.random()*900000);
 }
 async function poll(){
@@ -5123,10 +5124,10 @@ async function doPush(list){
   CRM_SYNC_STATUS('saved');
 }
 window.CRM_SYNC={
-  pushSuperseded:function(list){if(!sb||!state.meUser||!list||!list.length)return;
+  pushSuperseded:function(list){if(!sb||!state.meUser||!synced||!list||!list.length)return;
     var rows=list.filter(function(l){return l.seedId;});if(!rows.length)return;
     save(rows,false).catch(function(e){console.warn('superseded not saved',e);});},
-  pushLeads:function(list){if(!sb||!state.meUser)return;clearTimeout(pushT);pend=1;pushT=setTimeout(function(){doPush(list).catch(function(e){console.warn(e);}).then(function(){pend=null;});},1500);},
+  pushLeads:function(list){if(!sb||!state.meUser||!synced)return; /* a copy saved in this browser must never be written to the shared database before the real data is loaded */clearTimeout(pushT);pend=1;pushT=setTimeout(function(){doPush(list).catch(function(e){console.warn(e);}).then(function(){pend=null;});},1500);},
   pushMaster:function(notify){
     if(!sb||!state.meUser)return;
     if(notify)masterNotify=true;
@@ -5238,7 +5239,7 @@ function start(){
     if(r.error)return loginErr(r.error.status===400?'Incorrect email or password.':'Sign-in problem ('+r.error.status+'): '+r.error.message);
     try{await enter(r.data.user);}catch(x){fail('Could not sign in: '+x.message);}
   });
-  var so=signOut;signOut=function(m){so(m);try{sb.auth.signOut();localStorage.removeItem(LEADS_KEY);leads=[];last={};clearInterval(pollT);}catch(e){}};
+  var so=signOut;signOut=function(m){so(m);try{sb.auth.signOut();synced=false;localStorage.removeItem(LEADS_KEY);leads=[];last={};clearInterval(pollT);}catch(e){}};
   sb.auth.getSession().then(function(r){if(r.data.session)enter(r.data.session.user).catch(function(x){fail(x.message);});});
 }
 doLogin=function(){return loginErr('Sign in with your email and password.');};
