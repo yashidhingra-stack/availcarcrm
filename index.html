@@ -761,6 +761,7 @@ window.CRM_APPLY_LEADS=function(up,rem,all){
     nextId=Math.max(nextId,full.reduce(function(m,x){return Math.max(m,(+x.id||0)+1);},1001));
     try{localStorage.setItem(LEADS_KEY,JSON.stringify(full));}catch(e){}
     ALLFROM=full.reduce(function(m,l){return l.date<m?l.date:m;},ymd(TODAY));ALLTO=full.reduce(function(m,l){return l.date>m?l.date:m;},"");
+    if(all){try{fitRange();}catch(e){}} /* Login and Disbursement use the date range, which restarts at the last 30 days on every refresh: widen it to cover every file so older files are not hidden */
     crmRerender();
   }catch(e){console.warn("CRM sync apply failed",e);}
 };
