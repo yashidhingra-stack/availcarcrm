@@ -4425,7 +4425,8 @@ function hierarchyOwnerAllowed(owner,scope){
 }
 /* ---------- deleted leads: a delete is remembered, so no user's old copy can bring the lead back ---------- */
 function tombMap(){var h=hierLoad();if(!h.__delLeads||typeof h.__delLeads!=="object")h.__delLeads={};return h.__delLeads;}
-function tombKeys(l){var k=[];if(l&&l.id!=null)k.push("id:"+l.id);if(l&&l.seedId)k.push("seed:"+l.seedId);return k;}
+function tombKeys(l){var k=[];/* a file with a permanent database id is remembered by that id only: the local number (id) is reused by other files after a refresh and used to hide real Login/Disbursement files */
+  if(l&&l.seedId)k.push("seed:"+l.seedId);else if(l&&l.id!=null)k.push("id:"+l.id);return k;}
 function tombMark(l,on){var m=tombMap(),t=Date.now();tombKeys(l).forEach(function(k){m[k]=on?t:-t;});}
 function tombHit(l,m){var k=tombKeys(l),i;for(i=0;i<k.length;i++)if(m[k[i]]>0)return true;return false;}
 function tombApply(){
