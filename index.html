@@ -361,6 +361,17 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 .st-btn{border:1px solid currentColor;background:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:600;min-width:84px}
 .st-btn.st-active{color:var(--ok)}.st-btn.st-inactive{color:var(--bad)}
 .st-btn:hover{background:var(--bg)}
+.nd-card{margin-top:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px 16px}
+.nd-h{margin:0 0 12px;font-size:15px;font-weight:600}
+.nd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.nd-f label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.nd-in{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0 10px}
+.nd-in input{flex:1;min-width:0;border:0;background:none;padding:8px 0;outline-offset:6px}
+.nd-res{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 28px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.nd-res small{display:block;font-size:12px;color:var(--muted)}
+.nd-res strong{font-size:18px;font-weight:600}
+#ndNet{color:var(--ok);font-size:22px}#ndNet.neg{color:var(--bad)}
+.nd-res .btn{margin-left:auto}
 .tm-tree{display:flex;flex-direction:column;gap:10px}
 .tm-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px 14px}
 .tm-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -2360,6 +2371,35 @@ function ldEditor(k,raw,kind){
   }
   return '<input id="ldE" type="'+(kind==="num"?"number":"text")+'" value="'+esc(raw)+'" aria-label="Edit '+k+'"'+(k==="caseBooked"?' list="firmList2"><datalist id="firmList2">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist':'')+'>';
 }
+function ndCalcHtml(l){
+  var nd=ldx(l).nd||{};
+  function f(k,label,val){return '<div class="nd-f"><label for="nd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="nd_'+k+'" data-nd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val===undefined||val===null?"":val)+'"></div></div>';}
+  return '<section class="nd-card" aria-label="Net disbursement calculator"><h3 class="nd-h">Net Disbursement Calculator</h3><div class="nd-grid">'+
+    f("loan","Loan amount",l.amount||"")+f("pf","Processing fees",nd.pf)+f("ch","Challan charges",nd.ch)+f("rto","RTO charges",nd.rto)+f("oth","Other amount (if any)",nd.oth)+
+    '</div><div class="nd-res"><div><small>Total deductions</small><strong id="ndDed">—</strong></div><div><small>Net disbursement</small><strong id="ndNet">—</strong></div><button class="btn primary" data-ndsave>Save</button></div>'+
+    '<p class="note">Net disbursement = Loan amount − (Processing fees + Challan charges + RTO charges + Other amount).</p></section>';
+}
+function ndWire(l,v){
+  var box=v.querySelector(".nd-card");if(!box)return;
+  function raw(k){var e=box.querySelector('[data-nd="'+k+'"]');return e?e.value.trim():"";}
+  function num(k){var n=parseFloat(raw(k));return isNaN(n)?0:n;}
+  function upd(){var ded=num("pf")+num("ch")+num("rto")+num("oth"),net=num("loan")-ded,e=document.getElementById("ndNet");
+    document.getElementById("ndDed").textContent=money(ded);e.textContent=money(net);e.classList.toggle("neg",net<0);}
+  box.querySelectorAll("[data-nd]").forEach(function(e){e.oninput=upd;});upd();
+  box.querySelector("[data-ndsave]").onclick=function(){
+    var ks=["loan","pf","ch","rto","oth"];
+    if(ks.some(function(k){return num(k)<0;})){toast("Amounts cannot be negative");return;}
+    var loan=num("loan");if(!loan){toast("Enter the loan amount");return;}
+    var ded=num("pf")+num("ch")+num("rto")+num("oth"),net=loan-ded;
+    if(net<0){toast("Charges are more than the loan amount");return;}
+    var x=ldx(l);
+    if(loan!==+l.amount){l.amount=loan;l.hist.unshift({ts:stamp(),text:"Loan amount updated to "+money(loan),type:"system"});}
+    x.nd={pf:raw("pf"),ch:raw("ch"),rto:raw("rto"),oth:raw("oth")};
+    x.net=String(net);if(num("rto")>0)x.rto=String(num("rto"));
+    l.hist.unshift({ts:stamp(),text:"Net disbursement saved: "+money(net)+" (loan "+money(loan)+" less charges "+money(ded)+")",type:"system"});
+    saveLeads();toast("Net disbursement saved");renderLead();
+  };
+}
 function ldRow(r){
   var val;
   if(state.ldBox&&r[4])val=ldEditor(r[0],r[2],r[4]).replace('id="ldE"','data-bx="'+r[0]+'"');
@@ -2506,7 +2546,7 @@ function renderDisbLead(l){
       colL=all.slice(0,half).map(ldRow); colR=all.slice(half).map(ldRow);
     }
     var boxBar='<div class="ld-boxbar">'+(state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit '+(state.ldTab==="more"?"additional details":"lead details")+'" title="Edit">'+ldi("pencil")+' Edit</button>')+'</div>';
-    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div></section>';
+    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+(state.ldTab==="more"&&l.stage==="Disbursed"?ndCalcHtml(l):"")+'</section>';
   } else if(state.ldTab==="docs"){ h+=ldDocsTab(l); } else { h+=ldFollow(l,today,tom); }
   h+='</div>';
   if(state.ldTab==="details"||state.ldTab==="more")h+=ldStatusBlock(l);
@@ -2527,6 +2567,7 @@ function renderDisbLead(l){
   q("[data-edcancel]",function(b){b.onmousedown=function(ev){ev.preventDefault();};b.onclick=function(){var ee=document.getElementById("ldE");if(ee)ee.onblur=null;state.ldEdit=null;renderLead();};});
   var dIn=document.getElementById("docIn");if(dIn)dIn.onchange=function(){ldAddFiles(l,dIn.files,state.docSlot);dIn.value="";};
   q("[data-ldarea]",function(t){t.oninput=function(){ldx(l)[t.getAttribute("data-ldarea")]=t.value;};});
+  if(state.ldTab==="more"&&l.stage==="Disbursed")ndWire(l,v);
   var e=document.getElementById("ldE");
   if(e){
     var done=false;
