@@ -372,6 +372,11 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 .nd-res strong{font-size:18px;font-weight:600}
 #ndNet{color:var(--ok);font-size:22px}#ndNet.neg{color:var(--bad)}
 .nd-res .btn{margin-left:auto}
+.nd-sub{margin:18px 0 10px;font-size:14px;font-weight:600}
+.nd-rem{margin-top:12px}
+.nd-rem textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:8px 10px;font:inherit;color:inherit;resize:vertical}
+.nd-foot{display:flex;justify-content:flex-end;margin-top:14px}
+#ndBal.neg{color:var(--bad)}
 .tm-tree{display:flex;flex-direction:column;gap:10px}
 .tm-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px 14px}
 .tm-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -2376,7 +2381,11 @@ function ndCalcHtml(l){
   function f(k,label,val){return '<div class="nd-f"><label for="nd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="nd_'+k+'" data-nd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val===undefined||val===null?"":val)+'"></div></div>';}
   return '<section class="nd-card" aria-label="Net disbursement calculator"><h3 class="nd-h">Net Disbursement Calculator</h3><div class="nd-grid">'+
     f("loan","Loan amount",l.amount||"")+f("pf","Processing fees",nd.pf)+f("ch","Challan charges",nd.ch)+f("rto","RTO charges",nd.rto)+f("oth","Other amount (if any)",nd.oth)+f("hold","Hold payment",nd.hold)+
-    '</div><div class="nd-res"><div><small>Total deductions</small><strong id="ndDed">—</strong></div><div><small>Net disbursement</small><strong id="ndNet">—</strong></div><button class="btn primary" data-ndsave>Save</button></div>'+
+    '</div><div class="nd-res"><div><small>Total deductions</small><strong id="ndDed">—</strong></div><div><small>Net disbursement</small><strong id="ndNet">—</strong></div></div>'+
+    '<h4 class="nd-sub">Payments to client</h4><div class="nd-grid">'+f("p1","Payment 1",nd.p1)+f("p2","Payment 2",nd.p2)+f("p3","Payment 3",nd.p3)+'</div>'+
+    '<div class="nd-res"><div><small>Total paid</small><strong id="ndPaid">—</strong></div><div><small>Balance to pay</small><strong id="ndBal">—</strong></div><div><small>Hold payment</small><strong id="ndHold">—</strong></div></div>'+
+    '<div class="nd-f nd-rem"><label for="nd_rem">Remarks (including any hold payment)</label><textarea id="nd_rem" data-ndrem rows="3">'+esc(nd.rem||"")+'</textarea></div>'+
+    '<div class="nd-foot"><button class="btn primary" data-ndsave>Save</button></div>'+
     '<p class="note">Net disbursement = Loan amount − (Processing fees + Challan charges + RTO charges + Other amount + Hold payment).</p></section>';
 }
 function ndWire(l,v){
@@ -2384,19 +2393,23 @@ function ndWire(l,v){
   function raw(k){var e=box.querySelector('[data-nd="'+k+'"]');return e?e.value.trim():"";}
   function num(k){var n=parseFloat(raw(k));return isNaN(n)?0:n;}
   function upd(){var ded=num("pf")+num("ch")+num("rto")+num("oth")+num("hold"),net=num("loan")-ded,e=document.getElementById("ndNet");
-    document.getElementById("ndDed").textContent=money(ded);e.textContent=money(net);e.classList.toggle("neg",net<0);}
+    var paid=num("p1")+num("p2")+num("p3"),bal=net-paid,b=document.getElementById("ndBal");
+    document.getElementById("ndDed").textContent=money(ded);e.textContent=money(net);e.classList.toggle("neg",net<0);
+    document.getElementById("ndPaid").textContent=money(paid);b.textContent=money(bal);b.classList.toggle("neg",bal<0);document.getElementById("ndHold").textContent=money(num("hold"));}
   box.querySelectorAll("[data-nd]").forEach(function(e){e.oninput=upd;});upd();
   box.querySelector("[data-ndsave]").onclick=function(){
-    var ks=["loan","pf","ch","rto","oth","hold"];
+    var ks=["loan","pf","ch","rto","oth","hold","p1","p2","p3"];
     if(ks.some(function(k){return num(k)<0;})){toast("Amounts cannot be negative");return;}
     var loan=num("loan");if(!loan){toast("Enter the loan amount");return;}
     var ded=num("pf")+num("ch")+num("rto")+num("oth")+num("hold"),net=loan-ded;
     if(net<0){toast("Charges are more than the loan amount");return;}
+    var paid=num("p1")+num("p2")+num("p3");
+    if(paid>net){toast("Payments are more than the net disbursement");return;}
     var x=ldx(l);
     if(loan!==+l.amount){l.amount=loan;l.hist.unshift({ts:stamp(),text:"Loan amount updated to "+money(loan),type:"system"});}
-    x.nd={pf:raw("pf"),ch:raw("ch"),rto:raw("rto"),oth:raw("oth"),hold:raw("hold")};
+    x.nd={pf:raw("pf"),ch:raw("ch"),rto:raw("rto"),oth:raw("oth"),hold:raw("hold"),p1:raw("p1"),p2:raw("p2"),p3:raw("p3"),rem:box.querySelector("[data-ndrem]").value.trim()};
     x.net=String(net);if(num("rto")>0)x.rto=String(num("rto"));
-    l.hist.unshift({ts:stamp(),text:"Net disbursement saved: "+money(net)+" (loan "+money(loan)+" less charges "+money(ded)+")",type:"system"});
+    l.hist.unshift({ts:stamp(),text:"Net disbursement saved: "+money(net)+" (loan "+money(loan)+" less charges "+money(ded)+")"+(paid?"; paid "+money(paid)+", balance "+money(net-paid):""),type:"system"});
     saveLeads();toast("Net disbursement saved");renderLead();
   };
 }
