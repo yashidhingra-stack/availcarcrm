@@ -2291,6 +2291,7 @@ function renderLead(){
 /* ---------- Disbursement lead view (Cronberry-style) ---------- */
 state.ldTab="details";state.ldSub="main";state.ldEdit=null;
 var LDI={
+  share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
  pencil:'<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
  swap:'<path d="M17 4l3 3-3 3M20 7H8M7 20l-3-3 3-3M4 17h12"/>',
@@ -2376,38 +2377,57 @@ function ldEditor(k,raw,kind){
   }
   return '<input id="ldE" type="'+(kind==="num"?"number":"text")+'" value="'+esc(raw)+'" aria-label="Edit '+k+'"'+(k==="caseBooked"?' list="firmList2"><datalist id="firmList2">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist':'')+'>';
 }
+function ldShareText(l){
+  var x=ldx(l),nd=x.nd||{},L=[];
+  function add(k,v){if(v!==undefined&&v!==null&&String(v).trim()!==""&&v!=="—")L.push(k+": "+v);}
+  function amt(v){var n=parseFloat(v);return(isNaN(n)||!n)?"":money(n);}
+  function nn(v){var n=parseFloat(v);return isNaN(n)?0:n;}
+  L.push("*Lead details*");
+  add("Name",l.name);add("Mobile",l.phone);add("Lead owner",l.owner);add("Status",l.status);
+  add("Vehicle",l.vehicle);add("Vehicle number",l.reg);add("Product",l.product);add("Lender",l.lender);add("Loan amount",amt(l.amount));
+  if(l.stage==="Disbursed"&&Object.keys(nd).some(function(k){return String(nd[k]||"").trim();})){
+    var ded=nn(nd.pf)+nn(nd.ch)+nn(nd.rto)+nn(nd.oth),net=nn(l.amount)-ded,paid=nn(nd.p1)+nn(nd.p2)+nn(nd.p3);
+    L.push("","*Net disbursement*");
+    add("Loan amount",amt(l.amount));add("Processing fees",amt(nd.pf));add("Challan charges",amt(nd.ch));add("RTO charges",amt(nd.rto));add("Other amount",amt(nd.oth));
+    add("Total deductions",amt(ded));add("Net disbursement",amt(net));
+    add("Payment 1",amt(nd.p1));add("Payment 2",amt(nd.p2));add("Payment 3",amt(nd.p3));
+    if(paid){add("Total paid",amt(paid));add("Balance",amt(net-paid));}
+    add("Remarks",nd.rem);
+  }
+  return L.join("\n");
+}
 function ndCalcHtml(l){
   var nd=ldx(l).nd||{};
   function f(k,label,val){return '<div class="nd-f"><label for="nd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="nd_'+k+'" data-nd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val===undefined||val===null?"":val)+'"></div></div>';}
   return '<section class="nd-card" aria-label="Net disbursement calculator"><h3 class="nd-h">Net Disbursement Calculator</h3><div class="nd-grid">'+
-    f("loan","Loan amount",l.amount||"")+f("pf","Processing fees",nd.pf)+f("ch","Challan charges",nd.ch)+f("rto","RTO charges",nd.rto)+f("oth","Other amount (if any)",nd.oth)+f("hold","Hold payment",nd.hold)+
+    f("loan","Loan amount",l.amount||"")+f("pf","Processing fees",nd.pf)+f("ch","Challan charges",nd.ch)+f("rto","RTO charges",nd.rto)+f("oth","Other amount (if any)",nd.oth)+
     '</div><div class="nd-res"><div><small>Total deductions</small><strong id="ndDed">—</strong></div><div><small>Net disbursement</small><strong id="ndNet">—</strong></div></div>'+
     '<h4 class="nd-sub">Payments to client</h4><div class="nd-grid">'+f("p1","Payment 1",nd.p1)+f("p2","Payment 2",nd.p2)+f("p3","Payment 3",nd.p3)+'</div>'+
-    '<div class="nd-res"><div><small>Total paid</small><strong id="ndPaid">—</strong></div><div><small>Balance to pay</small><strong id="ndBal">—</strong></div><div><small>Hold payment</small><strong id="ndHold">—</strong></div></div>'+
+    '<div class="nd-res"><div><small>Total paid</small><strong id="ndPaid">—</strong></div><div><small>Balance to pay</small><strong id="ndBal">—</strong></div></div>'+
     '<div class="nd-f nd-rem"><label for="nd_rem">Remarks (including any hold payment)</label><textarea id="nd_rem" data-ndrem rows="3">'+esc(nd.rem||"")+'</textarea></div>'+
     '<div class="nd-foot"><button class="btn primary" data-ndsave>Save</button></div>'+
-    '<p class="note">Net disbursement = Loan amount − (Processing fees + Challan charges + RTO charges + Other amount + Hold payment).</p></section>';
+    '<p class="note">Net disbursement = Loan amount − (Processing fees + Challan charges + RTO charges + Other amount).</p></section>';
 }
 function ndWire(l,v){
   var box=v.querySelector(".nd-card");if(!box)return;
   function raw(k){var e=box.querySelector('[data-nd="'+k+'"]');return e?e.value.trim():"";}
   function num(k){var n=parseFloat(raw(k));return isNaN(n)?0:n;}
-  function upd(){var ded=num("pf")+num("ch")+num("rto")+num("oth")+num("hold"),net=num("loan")-ded,e=document.getElementById("ndNet");
+  function upd(){var ded=num("pf")+num("ch")+num("rto")+num("oth"),net=num("loan")-ded,e=document.getElementById("ndNet");
     var paid=num("p1")+num("p2")+num("p3"),bal=net-paid,b=document.getElementById("ndBal");
     document.getElementById("ndDed").textContent=money(ded);e.textContent=money(net);e.classList.toggle("neg",net<0);
-    document.getElementById("ndPaid").textContent=money(paid);b.textContent=money(bal);b.classList.toggle("neg",bal<0);document.getElementById("ndHold").textContent=money(num("hold"));}
+    document.getElementById("ndPaid").textContent=money(paid);b.textContent=money(bal);b.classList.toggle("neg",bal<0);}
   box.querySelectorAll("[data-nd]").forEach(function(e){e.oninput=upd;});upd();
   box.querySelector("[data-ndsave]").onclick=function(){
-    var ks=["loan","pf","ch","rto","oth","hold","p1","p2","p3"];
+    var ks=["loan","pf","ch","rto","oth","p1","p2","p3"];
     if(ks.some(function(k){return num(k)<0;})){toast("Amounts cannot be negative");return;}
     var loan=num("loan");if(!loan){toast("Enter the loan amount");return;}
-    var ded=num("pf")+num("ch")+num("rto")+num("oth")+num("hold"),net=loan-ded;
+    var ded=num("pf")+num("ch")+num("rto")+num("oth"),net=loan-ded;
     if(net<0){toast("Charges are more than the loan amount");return;}
     var paid=num("p1")+num("p2")+num("p3");
     if(paid>net){toast("Payments are more than the net disbursement");return;}
     var x=ldx(l);
     if(loan!==+l.amount){l.amount=loan;l.hist.unshift({ts:stamp(),text:"Loan amount updated to "+money(loan),type:"system"});}
-    x.nd={pf:raw("pf"),ch:raw("ch"),rto:raw("rto"),oth:raw("oth"),hold:raw("hold"),p1:raw("p1"),p2:raw("p2"),p3:raw("p3"),rem:box.querySelector("[data-ndrem]").value.trim()};
+    x.nd={pf:raw("pf"),ch:raw("ch"),rto:raw("rto"),oth:raw("oth"),p1:raw("p1"),p2:raw("p2"),p3:raw("p3"),rem:box.querySelector("[data-ndrem]").value.trim()};
     x.net=String(net);if(num("rto")>0)x.rto=String(num("rto"));
     l.hist.unshift({ts:stamp(),text:"Net disbursement saved: "+money(net)+" (loan "+money(loan)+" less charges "+money(ded)+")"+(paid?"; paid "+money(paid)+", balance "+money(net-paid):""),type:"system"});
     saveLeads();toast("Net disbursement saved");renderLead();
@@ -2530,7 +2550,7 @@ function renderDisbLead(l){
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
-   '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-lmove="'+l.id+'"','Move lead by category','swap')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
+   '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-lmove="'+l.id+'"','Move lead by category','swap')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
   var tabs=[["details","Lead Details"],["more","Additional Details"],["followups","Follow up"],["docs","Documents"]];
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
@@ -2574,6 +2594,7 @@ function renderDisbLead(l){
   q("[data-ledit]",function(b){b.onclick=function(){state.ldEdit=b.getAttribute("data-ledit");renderLead();var e=document.getElementById("ldE");if(e)e.focus();};});
   q("[data-ldcopy]",function(b){b.onclick=function(){var n=b.getAttribute("data-ldcopy");if(navigator.clipboard)navigator.clipboard.writeText(n).then(function(){toast("Number copied");},function(){toast("Could not copy");});else toast("Copy is not available in this browser");};});
   q("[data-ldprint]",function(b){b.onclick=function(){window.print();};});
+  q("[data-ldshare]",function(b){b.onclick=function(){window.open("https://wa.me/?text="+encodeURIComponent(ldShareText(l)),"_blank","noopener");};});
   q("[data-docup]",function(b){b.onclick=function(){state.docSlot=+b.getAttribute("data-docup");var i=document.getElementById("docIn");if(i)i.click();};});
   q("[data-docrm]",function(b){b.onclick=function(){var id=b.getAttribute("data-docrm"),f=(l.files||[]).filter(function(x){return x.id===id;})[0];if(!f)return;l.files=l.files.filter(function(x){return x.id!==id;});try{URL.revokeObjectURL(f.url);}catch(_){}if(f.slot>=0&&!l.files.some(function(x){return x.slot===f.slot;}))l.docs[DOCS[f.slot]]=false;renderLead();toast("File removed");};});
   q("[data-docfield]",function(b){b.onclick=function(){ldPick(b.getAttribute("data-docfield"));};});
