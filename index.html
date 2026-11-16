@@ -358,6 +358,9 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 .inline-chk{display:flex;gap:8px;align-items:center;margin:4px 0 12px}
 .badge-btn{border:0;background:#f2c14e;color:#4a3500;border-radius:6px;padding:2px 8px;font-size:12px;margin-left:8px}
 .st-active{color:#2b7de9}.st-inactive{color:var(--bad)}
+.st-btn{border:1px solid currentColor;background:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:600;min-width:84px}
+.st-btn.st-active{color:var(--ok)}.st-btn.st-inactive{color:var(--bad)}
+.st-btn:hover{background:var(--bg)}
 .tm-tree{display:flex;flex-direction:column;gap:10px}
 .tm-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px 14px}
 .tm-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -947,7 +950,7 @@ function pddMonthEnded(d){
 /* PDD holds (1) the files loaded from the PDD Excel upload, and (2) Disbursed files whose disbursement month has ended,
    but only for files disbursed on or after PDD_AUTO_FROM. Older Disbursed files reach PDD only through the PDD upload. */
 var PDD_AUTO_FROM="2026-11-01";
-function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&(l.pddImp===true||(String(l.date||"").slice(0,10)>=PDD_AUTO_FROM&&pddMonthEnded(l.date)));}
+function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&(l.pddImp===true||l.pddMoved===true||(String(l.date||"").slice(0,10)>=PDD_AUTO_FROM&&pddMonthEnded(l.date)));}
 function pageStages(key){
   if(stages.indexOf(key)>-1)return [key]; /* Login shows only files still at Login; once moved to any other stage they leave it */
   if(key==="pdd")return ["Disbursed"];
@@ -1624,18 +1627,20 @@ function renderTable(){try{fpSync();}catch(_e){}
   var fbl=document.getElementById("fpLabel");if(fbl)fbl.textContent=nf?"Filter ("+nf+")":"Filter";
   var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing "+(state.rlabel[key]?state.rlabel[key]+", ":"")+"records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+(key==="Audience"&&!state.lrangeBy[key]?". All records are shown by default; use the Filter dates to narrow this.":". The last 30 days are shown by default"+(({Login:1,Disbursed:1})[key]?".":"; use the calendar to change this."));
   var sortable={ts:1,name:1,status:1,owner:1};
-  var head='<tr>'+vis.map(function(c){
+  var dsOn=(key==="Disbursed"&&canDo("Leads","Move to PDD")),dsElig=dsOn?rows.filter(function(l){return pddEligible(l);}):[];state.dsel=state.dsel||{};
+  var dsAllOn=dsElig.length>0&&dsElig.every(function(l){return state.dsel[l.id];}),dsN=Object.keys(state.dsel).filter(function(k){return state.dsel[k];}).length;
+  var head='<tr>'+(dsOn?'<th><input type="checkbox" id="dsAll" aria-label="Select all disbursed files"'+(dsAllOn?" checked":"")+(dsElig.length?"":" disabled")+'></th>':"")+vis.map(function(c){
     var k=c[0]; if(!sortable[k])return '<th>'+c[1]+'</th>';
     var s=state.sort, on=s.k===k;
     return '<th aria-sort="'+(on?(s.d>0?"ascending":"descending"):"none")+'"><button class="th-sort" data-sort="'+k+'">'+c[1]+' <span aria-hidden="true">'+(on?(s.d>0?"▲":"▼"):"↕")+'</span></button></th>';
   }).join("")+'<th>Action</th></tr>';
   var body=shown.map(function(l,i){
-    return '<tr>'+vis.map(function(c){return '<td'+(c[0]==="ts"?' class="dt"':"")+'>'+cell(l,c[0],start+i)+'</td>';}).join("")+
+    return '<tr>'+(dsOn?'<td><input type="checkbox" data-dsel="'+l.id+'"'+(state.dsel[l.id]?" checked":"")+(pddEligible(l)?"":' disabled title="Its disbursement month has not ended yet"')+' aria-label="Select '+esc(l.name)+'"></td>':"")+vis.map(function(c){return '<td'+(c[0]==="ts"?' class="dt"':"")+'>'+cell(l,c[0],start+i)+'</td>';}).join("")+
       '<td><div class="act"><button class="icon-btn" data-view="'+l.id+'" aria-label="View '+esc(l.name)+'">'+ic("eye")+'</button><button class="icon-btn" data-ledit2="'+l.id+'" aria-label="Edit '+esc(l.name)+'" title="Edit lead">'+ic("pencil")+'</button><button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move '+esc(l.name)+' by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete '+esc(l.name)+'">'+ic("trash")+'</button></div></td></tr>';
   }).join("");
-  if(!rows.length)body='<tr><td colspan="'+(vis.length+1)+'" class="emptyrow">No leads match. Clear the filters or widen the date range.</td></tr>';
+  if(!rows.length)body='<tr><td colspan="'+(vis.length+1+(dsOn?1:0))+'" class="emptyrow">No leads match. Clear the filters or widen the date range.</td></tr>';
   var foot='<div class="foot"><label>Show <select id="pSize">'+[10,20,50,100].map(function(n){return '<option'+(n===size?" selected":"")+'>'+n+'</option>';}).join("")+'<option value="all"'+(size>=1e5?" selected":"")+'>All</option></select></label><span class="tc">Total count: '+rows.length+'</span><div class="pager"><button data-pg="prev"'+(state.page<=1?" disabled":"")+'>« Previous</button><span>'+state.page+' / '+pages+'</span><button data-pg="next"'+(state.page>=pages?" disabled":"")+'>Next »</button></div></div>';
-  box.innerHTML='<div class="tcard"><div class="tscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="hbar" id="hbar" aria-hidden="true"><div></div></div>'+foot+'</div>';
+  box.innerHTML=(dsOn?'<div class="firmbar dsbar"><button class="btn" data-dsall'+(dsElig.length?"":" disabled")+'>Select all ('+dsElig.length+')</button><button class="btn" data-dsclear'+(dsN?"":" disabled")+'>Clear</button><button class="btn primary" data-dsmove'+(dsN?"":" disabled")+'>Move selected to PDD ('+dsN+')</button>'+(dsElig.length?"":'<span class="note">Files can be moved once their disbursement month has ended.</span>')+'</div>':"")+'<div class="tcard"><div class="tscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="hbar" id="hbar" aria-hidden="true"><div></div></div>'+foot+'</div>';
   (function(){var ts=box.querySelector(".tscroll"),hb=document.getElementById("hbar");if(!ts||!hb)return;
     var inner=hb.firstChild,lock=false;
     function fit(){inner.style.width=ts.scrollWidth+"px";hb.style.display=ts.scrollWidth>ts.clientWidth+1?"":"none";}
@@ -2589,7 +2594,7 @@ function submitMoveCat(){
   if(!c){toast(DENY);return;}
   if(c.built)delete l.cat; else l.cat=ck;
   if(ck==="pdd"){ /* PDD Status: lead stays a disbursed file; the chosen option is its PDD status */
-    l.status="Disburse"; l.stage="Disbursed"; l.pddSt=ns; ns="Disburse";
+    l.status="Disburse"; l.stage="Disbursed"; l.pddSt=ns; l.pddMoved=true; ns="Disburse";
     if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
     l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" (PDD status "+l.pddSt+")",type:"status"});
     purgeEarlierCopies(l);saveLeads();
@@ -2597,7 +2602,7 @@ function submitMoveCat(){
   }
   var shown=ns; /* Disbursement Business: Open / Disbursed / Disbursement Pending all keep the lead in that stage */
   if(ck==="Disbursed"&&(ns==="Open"||ns==="Disbursed")){ns="Disburse";if(shown==="Open")l.pddSt="Open";}
-  l.status=ns; l.stage=statusStage[ns];
+  delete l.pddMoved; l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
   l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" ("+(old!==ns?"status "+old+" to "+ns:"status "+ns)+")",type:"status"});
   purgeEarlierCopies(l);saveLeads();
@@ -2612,6 +2617,41 @@ document.addEventListener("click",function(e){
   var b=e.target.closest&&e.target.closest("[data-lmove]");
   if(b){e.stopPropagation();closeAll();openMoveCat(b.getAttribute("data-lmove"));return;}
   if(e.target.id==="mvSubmit")submitMoveCat();
+},true);
+
+/* ---------- month-end bulk move: Disbursement business -> PDD ---------- */
+function pddEligible(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&pddMonthEnded(l.date)&&!inPddNow(l);}
+function openBulkPdd(){
+  var ids=Object.keys(state.dsel||{}).filter(function(k){return state.dsel[k];}),n=ids.filter(function(k){return pddEligible(lead(+k));}).length;
+  if(!n){toast("Select at least one file first");return;}
+  var m=document.getElementById("modal");m.className="modal";
+  m.innerHTML='<h2>Move to PDD?</h2><p>'+n+' disbursed file'+(n===1?"":"s")+' will move from Disbursement business to PDD Status (PDD status: Open). To undo a file, open it and use Move lead by category.</p><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="dsConfirm">Move '+n+' to PDD</button></div>';
+  m.classList.add("show");showOverlay(true);
+}
+function bulkMovePdd(){
+  if(!canDo("Leads","Move to PDD")){toast(DENY);return;}
+  var ids=Object.keys(state.dsel||{}).filter(function(k){return state.dsel[k];}),n=0,skip=0;
+  ids.forEach(function(k){
+    var l=lead(+k);if(!pddEligible(l)){skip++;return;}
+    ensure(l);l.pddMoved=true;if(!l.pddSt)l.pddSt="Open";if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
+    l.hist.unshift({ts:stamp(),text:"Lead moved to PDD Status (month-end bulk move, PDD status "+l.pddSt+")",type:"status"});
+    try{purgeEarlierCopies(l);}catch(e){}
+    n++;
+  });
+  state.dsel={};saveLeads();closeAll();render();
+  toast(n+" file"+(n===1?"":"s")+" moved to PDD"+(skip?" ("+skip+" skipped)":""));
+}
+document.addEventListener("change",function(e){
+  var t=e.target;if(!t||!t.hasAttribute)return;
+  if(t.id==="dsAll"){state.dsel=state.dsel||{};leadRows("Disbursed").filter(pddEligible).forEach(function(l){if(t.checked)state.dsel[l.id]=true;else delete state.dsel[l.id];});renderTable();return;}
+  if(t.hasAttribute("data-dsel")){state.dsel=state.dsel||{};if(t.checked)state.dsel[t.getAttribute("data-dsel")]=true;else delete state.dsel[t.getAttribute("data-dsel")];renderTable();}
+});
+document.addEventListener("click",function(e){
+  var t=e.target&&e.target.closest?e.target.closest("button"):null;if(!t)return;
+  if(t.hasAttribute("data-dsall")){state.dsel=state.dsel||{};leadRows("Disbursed").filter(pddEligible).forEach(function(l){state.dsel[l.id]=true;});renderTable();return;}
+  if(t.hasAttribute("data-dsclear")){state.dsel={};renderTable();return;}
+  if(t.hasAttribute("data-dsmove")){openBulkPdd();return;}
+  if(t.id==="dsConfirm"){bulkMovePdd();return;}
 },true);
 
 /* ---------- status pills, note and submit at the bottom of a lead ---------- */
@@ -3125,7 +3165,7 @@ function usersTab(){
   return '<div class="tcard"><div class="tscroll"><table class="center striped"><thead><tr><th>Sr No.</th><th class="l">Name</th><th>Role</th><th>Level</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
    rows.map(function(u,i){
      var r=roleById(u.roleId);
-     return '<tr><td>'+(i+1)+'</td><td class="l">'+esc(u.name)+'</td><td>'+(r?esc(r.name):"")+'</td><td>'+(r?roleLevel(r):"")+'</td><td><span class="'+(u.active?"st-active":"st-inactive")+'">'+(u.active?"Active":"Inactive")+'</span></td><td><button class="icon-btn seg-edit" data-uedit="'+u.id+'" aria-label="Edit '+esc(u.name)+'">'+ic("pencil")+'</button><button class="icon-btn seg-del" data-udel="'+u.id+'" aria-label="Remove '+esc(u.name)+'">'+ic("trash")+'</button></td></tr>';}).join("")+'</tbody></table></div></div>';
+     return '<tr><td>'+(i+1)+'</td><td class="l">'+esc(u.name)+'</td><td>'+(r?esc(r.name):"")+'</td><td>'+(r?roleLevel(r):"")+'</td><td><button type="button" class="st-btn '+(u.active?"st-active":"st-inactive")+'" data-ustatus="'+u.id+'" aria-pressed="'+(!!u.active)+'" title="'+(u.active?"Click to deactivate":"Click to activate")+'">'+(u.active?"Active":"Inactive")+'</button></td><td><button class="icon-btn seg-edit" data-uedit="'+u.id+'" aria-label="Edit '+esc(u.name)+'">'+ic("pencil")+'</button><button class="icon-btn seg-del" data-udel="'+u.id+'" aria-label="Remove '+esc(u.name)+'">'+ic("trash")+'</button></td></tr>';}).join("")+'</tbody></table></div></div>';
 }
 function permTab(){
   if(!roleById(state.permRole))state.permRole=roles[0].id;
@@ -3222,6 +3262,18 @@ function deleteRole(id){
 }
 var PLUGINS=["WABA","IVR","Telephony","Forms","Marketplace"];
 function sw(id,on,label){return '<button type="button" class="sw" id="'+id+'" role="switch" aria-checked="'+(!!on)+'" aria-label="'+label+'" data-sw></button>';}
+function setUserActive(id,on){
+  var u=userById(id);if(!u)return false;
+  if(typeof on!=="boolean")on=!u.active;
+  if(!on){
+    if(state.meUser===u.id){toast("You cannot deactivate your own account");return false;}
+    var rr=roleById(u.roleId);
+    if(rr&&rr.name==="Admin"){toast("The Admin account cannot be deactivated");return false;}
+  }
+  u.active=on;saveUsers();
+  toast(u.name+(on?" activated":" deactivated"));
+  return true;
+}
 function openEditUser(u,m){
   m.className="modal eu";
   m.innerHTML='<div class="eu-head"><h2>Edit User ('+esc(u.name)+')</h2><button class="icon-btn" data-close aria-label="Close">'+ldi("close")+'</button></div>'+
@@ -4696,9 +4748,10 @@ document.addEventListener("click",function(e){
   if(d.prole){state.permRole=+d.prole;renderUBody();return;}
   if(t.id==="permSubmit"){Object.keys(state.permDraft).forEach(function(k){state.perm[k]=state.permDraft[k];});state.permDraft={};if(state.perm[13])state.perm[13].m["User management"]=true;window.__pw=0;permSaveAll();toast("Permissions saved");render();return;}
   if(t.hasAttribute("data-sw")){t.setAttribute("aria-checked",String(t.getAttribute("aria-checked")!=="true"));return;}
-  if(t.hasAttribute("data-eutoggle")){var mm=document.getElementById("modal"),on=mm.dataset.active!=="1";mm.dataset.active=on?"1":"0";t.textContent=on?"Deactivate User":"Activate User";return;}
+  if(t.hasAttribute("data-eutoggle")){var mm=document.getElementById("modal"),on=mm.dataset.active!=="1";if(state.userEdit!==null&&state.userEdit!==undefined){if(!setUserActive(state.userEdit,on))return;renderUBody();}mm.dataset.active=on?"1":"0";t.textContent=on?"Deactivate User":"Activate User";return;}
   if(t.hasAttribute("data-euupdate")){euUpdate();return;}
   if(t.hasAttribute("data-euremove")){euRemove();return;}
+  if(d.ustatus){if(setUserActive(+d.ustatus))renderUBody();return;}
   if(d.uedit){openAddUser(+d.uedit);return;}
   if(d.udel){openUserDelete(+d.udel);return;}
   if(d.resend){toast("Marked as resent. No email is sent in this prototype.");return;}
@@ -5008,7 +5061,8 @@ var ALIAS={'puneet':['Puneet Kundra'],'ashish kumar saroj':['Ashish'],'ashish sa
 var sb=null,last={},pend=null,pushT=null,hierT=null,lastPoll=null,pollT=null,profs=[],meId=null;
 function ownerUid(name){var n=norm(name),hit=null;profs.forEach(function(p){if(hit)return;var ns=[p.name].concat(ALIAS[norm(p.name)]||[]);if(ns.some(function(x){return norm(x)===n;}))hit=p.id;});return hit||meId;}
 function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,' ').trim();}
-function findUser(name){var tries=[name].concat(ALIAS[norm(name)]||[]);for(var i=0;i<tries.length;i++){var u=users.filter(function(x){return norm(x.name)===norm(tries[i]);})[0];if(u)return u;}return null;}
+function loose(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function findUser(name){var tries=[name].concat(ALIAS[norm(name)]||[]);for(var i=0;i<tries.length;i++){var u=users.filter(function(x){return norm(x.name)===norm(tries[i]);})[0];if(u)return u;}for(var j=0;j<tries.length;j++){var v=users.filter(function(x){return loose(x.name)===loose(tries[j]);})[0];if(v)return v;}return null;}
 function fail(m){try{if(sb)sb.auth.signOut();}catch(e){}return loginErr(m);}
 function clean(h){var c=JSON.parse(JSON.stringify(h||{}));if(c.__users&&c.__users.users)c.__users.users.forEach(function(u){delete u.password;});return c;}
 var masterT=null,masterNotify=false,masterReady={},masterLast={};
@@ -5216,8 +5270,11 @@ document.addEventListener('click',async function(e){
   var pw=prompt('New login password for '+u.name+' (at least 8 characters):');if(!pw)return;
   if(pw.length<8){toast('Password must be at least 8 characters');return;}
   var pr=await sb.from('profiles').select('id,name'),pid=null;
-  (pr.data||[]).forEach(function(p){[p.name].concat(ALIAS[norm(p.name)]||[]).forEach(function(n){if(!pid&&norm(n)===norm(u.name))pid=p.id;});});
-  if(!pid){toast('No login found for '+u.name);return;}
+  var uNames=[u.name].concat(ALIAS[norm(u.name)]||[]);
+  (pr.data||[]).forEach(function(p){if(pid)return;var pNames=[p.name].concat(ALIAS[norm(p.name)]||[]);
+    pNames.forEach(function(n){uNames.forEach(function(m){if(!pid&&loose(n)&&loose(n)===loose(m))pid=p.id;});});});
+  if(!pid&&pr.error){toast('Could not read logins: '+pr.error.message);return;}
+  if(!pid){toast('No login found for '+u.name+'. Check that a Supabase profile with this name exists.');return;}
   var r=await sb.functions.invoke('admin-set-password',{body:{user_id:pid,password:pw}});
   var msg=(r.data&&r.data.error)||null;
   if(!msg&&r.error){
