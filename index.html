@@ -2514,7 +2514,7 @@ function renderDisbLead(l){
   var emailHtml=state.ldBox?bxe("email",l.email||"","text"):(l.email?'<span>'+esc(l.email)+'</span>':'&mdash;');
   var mob=state.ldBox?bxe("phone",l.phone||"","text"):(tel?'<a class="ld-link" href="tel:+91'+l.phone+'">'+esc(l.phone)+'</a>':esc(l.phone))+ldBtn('data-ldcopy="'+esc(l.phone)+'"','Copy number','copy')+
     (tel?'<a class="icon-btn" href="tel:+91'+l.phone+'" aria-label="Call" title="Call">'+ldi("phone")+'</a><a class="icon-btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">'+ldi("chat")+'</a>':'');
-  var dsbHide=l.stage==="Disbursed"&&!inPddNow(l); /* Disbursement business: hide follow-up/remarks summary */
+  var dsbHide=true; /* all stages: no follow-up/remarks/lead source in the summary box */
   var editBar=state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
   var h='<div class="ld-bar">'+editBar+'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
    '<div class="ld-top"><section class="ld-prof" aria-label="Lead summary"><div class="ld-who"><span class="ld-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span>'+nameHtml+'</div>'+
@@ -2526,7 +2526,7 @@ function renderDisbLead(l){
      sme("Vehicle Number","reg",l.reg||"","text",esc(l.reg||"—"))+sme("Loan Amount","amount",l.amount||"","num",l.amount?esc(money(l.amount)):"—")+
      sme("Vehicle","vehicle",l.vehicle||"","text",esc(l.vehicle||"—"))+sme("Product","product",l.product,"product",esc(l.product||"—"))+
      sme("Lender","lender",l.lender||"","lender",esc(l.lender||"—"))+
-     sme("Lead Source","source",l.source,"source",esc(l.source))+
+     (dsbHide?"":sme("Lead Source","source",l.source,"source",esc(l.source)))+
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
