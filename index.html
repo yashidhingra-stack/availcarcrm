@@ -2378,7 +2378,9 @@ function ldEditor(k,raw,kind){
   return '<input id="ldE" type="'+(kind==="num"?"number":"text")+'" value="'+esc(raw)+'" aria-label="Edit '+k+'"'+(k==="caseBooked"?' list="firmList2"><datalist id="firmList2">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist':'')+'>';
 }
 function ldShareText(l){
-  var x=ldx(l),nd=x.nd||{},L=[];
+  var x=ldx(l),nd=x.nd||{},L=[],loanV=l.amount;
+  function g(k){var c=document.querySelector(".nd-card"),e=c&&c.querySelector('[data-nd="'+k+'"]');return e?e.value.trim():"";}
+  if(document.querySelector(".nd-card")){var rm=document.querySelector("[data-ndrem]");nd={pf:g("pf"),ch:g("ch"),rto:g("rto"),oth:g("oth"),p1:g("p1"),p2:g("p2"),p3:g("p3"),rem:rm?rm.value.trim():""};if(parseFloat(g("loan")))loanV=parseFloat(g("loan"));}
   function add(k,v){if(v!==undefined&&v!==null&&String(v).trim()!==""&&v!=="—")L.push(k+": "+v);}
   function amt(v){var n=parseFloat(v);return(isNaN(n)||!n)?"":money(n);}
   function nn(v){var n=parseFloat(v);return isNaN(n)?0:n;}
@@ -2386,14 +2388,18 @@ function ldShareText(l){
   add("Name",l.name);add("Mobile",l.phone);add("Lead owner",l.owner);add("Status",l.status);
   add("Vehicle",l.vehicle);add("Vehicle number",l.reg);add("Product",l.product);add("Lender",l.lender);add("Loan amount",amt(l.amount));
   if(l.stage==="Disbursed"&&Object.keys(nd).some(function(k){return String(nd[k]||"").trim();})){
-    var ded=nn(nd.pf)+nn(nd.ch)+nn(nd.rto)+nn(nd.oth),net=nn(l.amount)-ded,paid=nn(nd.p1)+nn(nd.p2)+nn(nd.p3);
+    var ded=nn(nd.pf)+nn(nd.ch)+nn(nd.rto)+nn(nd.oth),net=nn(loanV)-ded,paid=nn(nd.p1)+nn(nd.p2)+nn(nd.p3);
     L.push("","*Net disbursement*");
-    add("Loan amount",amt(l.amount));add("Processing fees",amt(nd.pf));add("Challan charges",amt(nd.ch));add("RTO charges",amt(nd.rto));add("Other amount",amt(nd.oth));
+    add("Loan amount",amt(loanV));add("Processing fees",amt(nd.pf));add("Challan charges",amt(nd.ch));add("RTO charges",amt(nd.rto));add("Other amount",amt(nd.oth));
     add("Total deductions",amt(ded));add("Net disbursement",amt(net));
     add("Payment 1",amt(nd.p1));add("Payment 2",amt(nd.p2));add("Payment 3",amt(nd.p3));
     if(paid){add("Total paid",amt(paid));add("Balance",amt(net-paid));}
     add("Remarks",nd.rem);
   }
+  (state.payments||[]).filter(function(p){return p.status!=="void"&&(p.items||[]).some(function(it){return it.id===l.id;});}).forEach(function(p){
+    var it=p.items.filter(function(i){return i.id===l.id;})[0];
+    L.push("","*Dealer payout*");add("Dealer",p.dealer);add("Amount",amt(it.amount));add("Date",p.date?fmtDate(p.date):"");add("Mode",p.mode);add("Reference",p.ref);
+  });
   return L.join("\n");
 }
 function ndCalcHtml(l){
