@@ -860,7 +860,7 @@ function renderNav(){
   var dataKids=NAV.filter(function(x){return x.id==="data";})[0].kids;
   NAV.forEach(function(n){
     if(n.merged)return;
-    if(n.id==="backup"){if(!hierIsAdmin(userById(state.meUser)))return;}else if(!canMod(n.perm||n.label))return;
+    if(n.id==="backup"){if(!hierIsAdmin(userById(state.meUser)))return;}else if(n.id==="dealer-details"){if(!canDo("Major Reports","Dealer details"))return;}else if(!canMod(n.perm||n.label))return;
     var LEADS_MAIN=["Audience","Login","Hold","Disbursed","Rejected","pdd"];
     var hrMenu=!!hrUserKey(userById(state.meUser));
     var hrLabels={Audience:"Login",Login:"Login Business",Hold:"Hold",Disbursed:"Disbursement Pending",Rejected:"Reject",pdd:"PDD Status"};
@@ -3026,7 +3026,7 @@ function isSharedHRLead(l,u){
     console.info("Hold/Reject import: "+added+" missing records added; "+seedRows.length+" source records checked.");
   }catch(e){console.warn("Hold/Reject seed import failed",e);}
 })();
-var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;});
+var MODULES=NAV.filter(function(n){return !n.merged;}).map(function(n){return n.perm||n.label;}).filter(function(v,i,a){return a.indexOf(v)===i;});
 var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes","Category","Invoice & Quotations"];
 var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
 var PERM={
@@ -3113,7 +3113,7 @@ function routeOk(r){
   if(r==="data/download")return hierIsAdmin(userById(state.meUser))&&canDo("Major Reports","Download data"); /* Admin only */
   if(r==="major/staff")return canDo("Major Reports","Staff details");
   if(r==="major/dealers")return canDo("Major Reports","Dealer details");
-  if(r==="dealer-details")return canMod("Major Reports");
+  if(r==="dealer-details")return canDo("Major Reports","Dealer details");
   if(h==="integration")return INTEG[k]?canDo("Custom attributes",INTEG[k]):canMod("Custom attributes");
   if(h==="settings"){if(k==="category")return canDo("Category","Category");return canMod("Category");}
   var n=NAV.filter(function(x){return x.id===h;})[0];
