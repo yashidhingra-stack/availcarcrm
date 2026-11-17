@@ -362,6 +362,12 @@ td select{border:1px solid var(--line);background:var(--surface);border-radius:8
 .st-btn{border:1px solid currentColor;background:none;border-radius:99px;padding:3px 12px;font-size:12px;font-weight:600;min-width:84px}
 .st-btn.st-active{color:var(--ok)}.st-btn.st-inactive{color:var(--bad)}
 .st-btn:hover{background:var(--bg)}
+.nd-f select,.nd-f input[type=date],.nd-f input[type=text]{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:9px 10px;font:inherit;color:inherit}
+.pm-hold .nd-in{background:#e4f6ea;border-color:#2e9e5b}.pm-hold .nd-in input{background:transparent}.pm-hold label{color:#1f7a43;font-weight:600}
+.pm-hold.over .nd-in{background:#fde8e8;border-color:#d64545}.pm-hold.over label{color:#c0392b}
+.pm-msg{display:block;margin-top:4px;color:#c0392b;font-size:12px}
+.pm-tbl{width:100%;border-collapse:collapse;font-size:13px}.pm-tbl th,.pm-tbl td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.pm-chip{display:inline-block;padding:2px 10px;border-radius:999px;background:#e4f6ea;color:#1f7a43;border:1px solid #2e9e5b;font-weight:600}.pm-chip.over{background:#fde8e8;color:#c0392b;border-color:#d64545}
 .nd-card{margin-top:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px 16px}
 .nd-h{margin:0 0 12px;font-size:15px;font-weight:600}
 .nd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
@@ -2444,6 +2450,69 @@ function ndCalcHtml(l){
     '<div class="nd-foot"><button class="btn primary" data-ndsave>Save</button></div>'+
     '<p class="note">Net disbursement = Loan amount − (Processing fees + Challan charges + RTO charges + Other amount).</p></section>';
 }
+/* ---------- PDD: Payment Details (payment entries) and PDD Details (RTO / charges) ---------- */
+function payFormHtml(l){
+  var x=ldx(l),pays=Array.isArray(x.pays)?x.pays:[],dl=dealerFilterOptions(),bk=lenderOptions();
+  function opts(a,ph){return '<option value="">'+ph+'</option>'+a.map(function(o){return '<option>'+esc(o)+'</option>';}).join("");}
+  function nn0(v){var n=parseFloat(v);return isNaN(n)?0:n;}
+  var totAmt=0,totHold=0;pays.forEach(function(p){totAmt+=nn0(p.amt);totHold+=nn0(p.hold);});
+  var form='<section class="nd-card" aria-label="Add payment"><h3 class="nd-h">Payment Details</h3><div class="nd-grid">'+
+    '<div class="nd-f"><label for="pm_date">Date</label><input id="pm_date" type="date" value="'+ymd(TODAY)+'"></div>'+
+    '<div class="nd-f"><label for="pm_amt">Payment Amount</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pm_amt" type="number" min="0" step="any" inputmode="decimal"></div></div>'+
+    '<div class="nd-f"><label for="pm_dealer">Payment to dealer</label><select id="pm_dealer">'+opts(dl,"Select dealer")+'</select></div>'+
+    '<div class="nd-f"><label for="pm_from">Payment from</label><select id="pm_from">'+opts(bk,"Select bank")+'</select></div>'+
+    '<div class="nd-f pm-hold" id="pm_holdbox"><label for="pm_hold">Hold payment</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pm_hold" type="number" min="0" step="any" inputmode="decimal"></div><small id="pm_holdmsg" class="pm-msg" hidden>Hold payment is more than the payment amount</small></div>'+
+    '</div><div class="nd-f nd-rem"><label for="pm_rem">Remarks</label><textarea id="pm_rem" rows="3"></textarea></div>'+
+    '<div class="nd-foot"><button class="btn primary" id="pmAdd">Add payment</button></div></section>';
+  var list='<section class="nd-card" aria-label="Payments added"><h3 class="nd-h">Payments added</h3>'+(pays.length?
+    '<div class="tscroll"><table class="pm-tbl"><thead><tr><th>Date</th><th>Payment Amount</th><th>Payment to dealer</th><th>Payment from</th><th>Hold payment</th><th>Remarks</th><th></th></tr></thead><tbody>'+
+    pays.map(function(p,i){var over=nn0(p.hold)>nn0(p.amt);return '<tr><td>'+esc(p.date?fmtDate(p.date):"")+'</td><td>'+esc(money(nn0(p.amt)))+'</td><td>'+esc(p.dealer||"—")+'</td><td>'+esc(p.from||"—")+'</td><td><span class="pm-chip'+(over?" over":"")+'">'+esc(money(nn0(p.hold)))+'</span></td><td>'+esc(p.rem||"")+'</td><td><button class="btn" data-pmdel="'+i+'" aria-label="Delete payment">Delete</button></td></tr>';}).join("")+
+    '</tbody><tfoot><tr><th>Total</th><th>'+esc(money(totAmt))+'</th><th></th><th></th><th>'+esc(money(totHold))+'</th><th></th><th></th></tr></tfoot></table></div>':
+    '<p class="note">No payments added yet.</p>')+'</section>';
+  return form+list;
+}
+function payWire(l,v){
+  var amt=v.querySelector("#pm_amt"),hold=v.querySelector("#pm_hold"),box=v.querySelector("#pm_holdbox"),msg=v.querySelector("#pm_holdmsg");
+  if(!amt||!hold)return;
+  function chk(){var a=parseFloat(amt.value),h=parseFloat(hold.value);a=isNaN(a)?0:a;h=isNaN(h)?0:h;var over=h>a;box.classList.toggle("over",over);msg.hidden=!over;}
+  amt.oninput=chk;hold.oninput=chk;chk();
+  v.querySelector("#pmAdd").onclick=function(){
+    var a=parseFloat(amt.value),h=parseFloat(hold.value),dt=v.querySelector("#pm_date").value;
+    a=isNaN(a)?0:a;h=isNaN(h)?0:h;
+    if(!dt){toast("Select the payment date");return;}
+    if(a<=0&&h<=0){toast("Enter the payment amount");amt.focus();return;}
+    if(a<0||h<0){toast("Amounts cannot be negative");return;}
+    var x=ldx(l);if(!Array.isArray(x.pays))x.pays=[];
+    var e={id:Date.now(),date:dt,amt:a,dealer:v.querySelector("#pm_dealer").value,from:v.querySelector("#pm_from").value,hold:h,rem:v.querySelector("#pm_rem").value.trim()};
+    x.pays.unshift(e);
+    l.hist.unshift({ts:stamp(),text:"Payment added: "+money(a)+(e.dealer?" to "+e.dealer:"")+(e.from?" from "+e.from:"")+(h?" (hold "+money(h)+")":"")+(e.rem?" - "+e.rem:""),type:"system"});
+    saveLeads();toast("Payment added");renderLead();
+  };
+  v.querySelectorAll("[data-pmdel]").forEach(function(b){b.onclick=function(){var x=ldx(l),i=+b.getAttribute("data-pmdel");if(!Array.isArray(x.pays)||!x.pays[i])return;x.pays.splice(i,1);saveLeads();toast("Payment removed");renderLead();};});
+}
+function pddDetHtml(l){
+  var x=ldx(l),nd=x.nd||{};
+  function filled(a,b){return a!==undefined&&a!==null&&String(a).trim()!==""?a:(b||"");}
+  function n(k,label,val){return '<div class="nd-f"><label for="pd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pd_'+k+'" data-pd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val)+'"></div></div>';}
+  function t(k,label,val){return '<div class="nd-f"><label for="pd_'+k+'">'+label+'</label><input id="pd_'+k+'" data-pd="'+k+'" type="text" value="'+esc(val||"")+'"></div>';}
+  return '<section class="nd-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3><div class="nd-grid">'+
+    t("auth","RTO Authority",x.rtoAuth)+t("work","RTO Work",x.rtoWork)+
+    n("rto","RTO charges",filled(nd.rto,x.rto))+n("oth","Other charges",filled(nd.oth))+n("ch","Challan Charges",filled(nd.ch))+
+    '</div><div class="nd-foot"><button class="btn primary" id="pdSave">Save</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
+}
+function pddDetWire(l,v){
+  var b=v.querySelector("#pdSave");if(!b)return;
+  function raw(k){var e=v.querySelector('[data-pd="'+k+'"]');return e?e.value.trim():"";}
+  b.onclick=function(){
+    var ks=["rto","oth","ch"],i;
+    for(i=0;i<ks.length;i++){var n=parseFloat(raw(ks[i]));if(!isNaN(n)&&n<0){toast("Amounts cannot be negative");return;}}
+    var x=ldx(l);x.rtoAuth=raw("auth");x.rtoWork=raw("work");
+    x.nd=Object.assign({},x.nd||{},{rto:raw("rto"),oth:raw("oth"),ch:raw("ch")});
+    var r=parseFloat(raw("rto"));if(!isNaN(r)&&r>0)x.rto=String(r);
+    l.hist.unshift({ts:stamp(),text:"PDD details saved (RTO authority "+(x.rtoAuth||"—")+", RTO work "+(x.rtoWork||"—")+")",type:"system"});
+    saveLeads();toast("PDD details saved");renderLead();
+  };
+}
 function ndWire(l,v){
   var box=v.querySelector(".nd-card");if(!box)return;
   function raw(k){var e=box.querySelector('[data-nd="'+k+'"]');return e?e.value.trim():"";}
@@ -2587,7 +2656,8 @@ function renderDisbLead(l){
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
    '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-lmove="'+l.id+'"','Move lead by category','swap')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
-  var tabs=[["details","Lead Details"],["more","Additional Details"],["followups","Follow up"],["docs","Documents"]];
+  var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
+  var tabs=pddV?[["details","Lead Details"],["pay","Payment Details"],["calc","Calculations"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["more","Additional Details"],["followups","Follow up"],["docs","Documents"]];
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
   if(state.ldTab==="details"||state.ldTab==="more"){
@@ -2604,7 +2674,8 @@ function renderDisbLead(l){
       colR.push(Rb.map(ldRow).join(""));
       if(l.stage==="Disbursed")colR.push(ldArea("rto","RTO Charges to Customer",x.rto));
       colR.push(Rc.map(ldRow).join(""));
-    } else {
+    }
+    if(state.ldTab==="more"||(pddV&&state.ldTab==="details")){
       var mk=l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"";var A=[["make","Vehicle Make",mk,mk||"—","text"],["vehicle","Vehicle",l.vehicle||"",l.vehicle||"—","text"],["reg","Vehicle number",l.reg||"",l.reg||"—","text"],["lender","Lender",l.lender||"",l.lender||"—","lender"]];
       if(l.stage==="Disbursed")A.push(["pdd","PDD status","",l.pdd,null]);
       /* names already shown in Lead Details or in the lead header: never repeated */
@@ -2613,10 +2684,14 @@ function renderDisbLead(l){
       var ex=[];
       LG.forEach(function(G){G.attrs.forEach(function(a){var k=nk(a.label);if(seen[k]||seen["cx"+a.key])return;seen[k]=1;seen["cx"+a.key]=1;ex.push(cxRow(l,a));});});
       var all=A.concat(ex), half=Math.ceil(all.length/2);
-      colL=all.slice(0,half).map(ldRow); colR=all.slice(half).map(ldRow);
+      var mL=all.slice(0,half).map(function(r){return ldRow(r);}), mR=all.slice(half).map(function(r){return ldRow(r);});
+      if(state.ldTab==="details"){colL=colL.concat(mL);colR=colR.concat(mR);}else{colL=mL;colR=mR;} /* PDD: merged into Lead Details */
     }
     var boxBar='<div class="ld-boxbar">'+(state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit '+(state.ldTab==="more"?"additional details":"lead details")+'" title="Edit">'+ldi("pencil")+' Edit</button>')+'</div>';
-    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+(state.ldTab==="more"&&l.stage==="Disbursed"?ndCalcHtml(l):"")+'</section>';
+    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+(!pddV&&state.ldTab==="more"&&l.stage==="Disbursed"?ndCalcHtml(l):"")+'</section>';
+  } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Payment details">'+payFormHtml(l)+'</section>';
+  } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
+  } else if(state.ldTab==="pdet"){ h+='<section class="ld-box" aria-label="PDD details">'+pddDetHtml(l)+'</section>';
   } else if(state.ldTab==="docs"){ h+=ldDocsTab(l); } else { h+=ldFollow(l,today,tom); }
   h+='</div>';
   if(state.ldTab==="details"||state.ldTab==="more")h+=ldStatusBlock(l);
@@ -2638,7 +2713,9 @@ function renderDisbLead(l){
   q("[data-edcancel]",function(b){b.onmousedown=function(ev){ev.preventDefault();};b.onclick=function(){var ee=document.getElementById("ldE");if(ee)ee.onblur=null;state.ldEdit=null;renderLead();};});
   var dIn=document.getElementById("docIn");if(dIn)dIn.onchange=function(){ldAddFiles(l,dIn.files,state.docSlot);dIn.value="";};
   q("[data-ldarea]",function(t){t.oninput=function(){ldx(l)[t.getAttribute("data-ldarea")]=t.value;};});
-  if(state.ldTab==="more"&&l.stage==="Disbursed")ndWire(l,v);
+  if(((pddV&&state.ldTab==="calc")||(!pddV&&state.ldTab==="more"))&&l.stage==="Disbursed")ndWire(l,v);
+  if(pddV&&state.ldTab==="pay")payWire(l,v);
+  if(pddV&&state.ldTab==="pdet")pddDetWire(l,v);
   var e=document.getElementById("ldE");
   if(e){
     var done=false;
