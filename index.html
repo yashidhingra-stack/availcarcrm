@@ -1641,7 +1641,7 @@ function renderTable(){try{fpSync();}catch(_e){}
   var fbl=document.getElementById("fpLabel");if(fbl)fbl.textContent=nf?"Filter ("+nf+")":"Filter";
   var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing "+(state.rlabel[key]?state.rlabel[key]+", ":"")+"records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+(key==="Audience"&&!state.lrangeBy[key]?". All records are shown by default; use the Filter dates to narrow this.":". The last 30 days are shown by default"+(({Login:1,Disbursed:1})[key]?".":"; use the calendar to change this."));
   var sortable={ts:1,name:1,status:1,owner:1};
-  var dsOn=(key==="Disbursed"&&canDo("Leads","Move to PDD")),dsElig=dsOn?rows.filter(function(l){return pddEligible(l);}):[];state.dsel=state.dsel||{};
+  var dsOn=false /* bulk select / Move selected to PDD bar removed */,dsElig=dsOn?rows.filter(function(l){return pddEligible(l);}):[];state.dsel=state.dsel||{};
   var dsAllOn=dsElig.length>0&&dsElig.every(function(l){return state.dsel[l.id];}),dsN=Object.keys(state.dsel).filter(function(k){return state.dsel[k];}).length;
   var head='<tr>'+(dsOn?'<th><input type="checkbox" id="dsAll" aria-label="Select all disbursed files"'+(dsAllOn?" checked":"")+(dsElig.length?"":" disabled")+'></th>':"")+vis.map(function(c){
     var k=c[0]; if(!sortable[k])return '<th>'+c[1]+'</th>';
@@ -2683,6 +2683,7 @@ function submitMoveCat(){
   if(ck==="Disbursed"&&(ns==="Open"||ns==="Disbursed")){ns="Disburse";if(shown==="Open")l.pddSt="Open";}
   delete l.pddMoved; l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
+  if(ck==="Disbursed"&&shown==="Disbursed")pddAutoMove(l,""); /* a file marked Disbursed goes to PDD */
   l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" ("+(old!==ns?"status "+old+" to "+ns:"status "+ns)+")",type:"status"});
   purgeEarlierCopies(l);saveLeads();
   closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);
