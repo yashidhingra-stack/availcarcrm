@@ -222,6 +222,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .pop-top button{border:0;background:none;padding:2px 4px;font-weight:500}
 .pop-top button:hover{color:var(--accent)}
 .pop-list{max-height:280px;overflow-y:auto}
+#pop-status .pop-list{max-height:min(460px,70vh)}
+.audbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
 .chk{display:flex;gap:8px;align-items:center;padding:7px 6px;border-radius:6px;cursor:pointer;white-space:nowrap}
 .chk:hover{background:var(--bg)}
 .chk .dot{margin:0}
@@ -1486,6 +1488,10 @@ function renderLeads(){
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Hold"?"Upload Hold Excel":"Upload Reject Excel")+'</button><input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
+  if(key==="Audience"){
+    if(canDo("Leads","Import leads"))h+='<button class="btn" data-importcsv title="Import leads from an Excel or CSV file">'+ic("upload")+' Import Excel</button>';
+    h+='<button class="btn primary" data-fpdl title="Export the leads shown below as an Excel file">Export Excel</button>';
+  }
   var NOCAL={Audience:1,Login:1,Disbursed:1};
   if(!NOCAL[key]){
   h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r wide" id="pop-range" hidden>'+
@@ -1498,6 +1504,7 @@ function renderLeads(){
   h+='<div class="pw"><button class="btn sq" data-pop="cols" aria-label="Choose columns" aria-haspopup="true" aria-expanded="false">'+ic("cols")+'</button><div class="pop r" id="pop-cols" hidden><div class="pop-top"><strong>Columns</strong></div><div class="pop-list">'+
     pageCols(key).map(function(c){return '<label class="chk"><input type="checkbox" data-col="'+c[0]+'"'+(colState(key)[c[0]]?" checked":"")+'>'+c[1]+'</label>';}).join("")+'</div></div></div>';
   h+='</div></div>';
+  if(key==="Audience")h+='<div class="audbar" id="audbar"></div>';
   if(calcOn(key))h+='<div class="sumbar" id="sumbar"></div><section class="card repcard" id="repbox"></section>';
   if(!NOFILTER[key])h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'"><span id="fpLabel">Filter</span> '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
     '<div class="field"><label for="fpFrom">Date from</label><input type="date" id="fpFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="fpTo">Date to</label><input type="date" id="fpTo" value="'+getRange(key).to+'"></div><div class="field"><button class="btn" data-fpall title="Show files of all dates">All dates</button></div>'+
@@ -1614,6 +1621,13 @@ function renderReportCard(key){
    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Report Excel data"></textarea>';
 }
 function renderSummary(key){
+  if(key==="Audience"){var ab=document.getElementById("audbar");if(ab){
+    var arows=leadRows("Audience",true),AC=["Open","Follow Up","Call not picked"],cnt={},tot=0;
+    AC.forEach(function(c){cnt[c]=0;});arows.forEach(function(l){if(cnt[l.status]!==undefined){cnt[l.status]++;tot++;}});
+    var isOn=function(c){return state.sel.length===1&&state.sel[0]===c;};
+    ab.innerHTML=AC.map(function(c){return '<button class="sum-card'+(isOn(c)?" on":"")+'" data-audsum="'+c+'" aria-pressed="'+isOn(c)+'"><span class="sum-label">'+dotted(c)+c+'</span><b>'+cnt[c].toLocaleString("en-IN")+'</b><span class="sum-files">file'+(cnt[c]===1?"":"s")+'</span></button>';}).join("")+
+      '<button class="sum-card'+(state.sel.length===0?" on":"")+'" data-audsum="all" aria-pressed="'+(state.sel.length===0)+'"><span class="sum-label">Total (all three)</span><b>'+tot.toLocaleString("en-IN")+'</b><span class="sum-files">of '+arows.length.toLocaleString("en-IN")+' audience files</span></button>';}
+    return;}
   var box=document.getElementById("sumbar"), cfg=CALC[key]; if(!box||!cfg||!calcOn(key))return;
   var base=calcRows(key);
   var cards=[["all",cfg.total,base]].concat(cfg.cards.map(function(c){return [c,c,base.filter(function(l){return calcValue(l,cfg)===c;})];}));
@@ -1762,15 +1776,15 @@ function openAddLead(){
   }
   m.innerHTML='<h2>Add lead</h2><div class="row"><div class="field"><label for="aName">Name</label><input id="aName"></div><div class="field"><label for="aPhone">Mobile</label><input id="aPhone" inputmode="tel"></div></div>'+
    '<div class="row">'+sel("aOwner","Lead owner",(function(){var me=myOwnerName(),l2=owners.slice();if(me&&l2.indexOf(me)<0)l2.push(me);return l2;})())+sel("aProd","Product",products)+'</div>'+
-   (function(){var d0=statusOptions(pageKey())[0]||"Open";return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST;}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
+   (function(){var d0=statusOptions(pageKey())[0]||"Open";return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST&&(pageKey()!=="Audience"||x[1]==="Audience");}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
    '<div class="row"><div class="field"><label for="aAmt">Loan amount (₹)</label><input id="aAmt" type="number" min="0" step="10000" value="500000"></div><div class="field"><label for="aVeh">Vehicle</label><input id="aVeh" placeholder="For example, Swift"></div></div>'+
    '<div class="row"><div class="field"><label for="aYear">Year</label><input id="aYear" type="number" min="1900" max="2100" step="1" placeholder="Enter year"></div></div>'+
    '<div class="row">'+sel("aLender","Lender",lenderOptions())+sel("aDealer","Dealer",allLeadDealerOptions())+'</div>'+
    '<div class="field"><label for="aCase">Case booked in</label><input id="aCase" list="firmList" value="[Solution]" placeholder="Firm name"><datalist id="firmList">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist></div>'+
    '<div class="row"><div class="field"><label for="aEmail">Email</label><input id="aEmail" type="email"></div>'+sel("aSource","Lead source",["Walk-in"].concat(sources.filter(function(o){return o!=="Walk-in";})))+'</div>'+
    '<div class="row"><div class="field"><label for="aReg">Vehicle number</label><input id="aReg"></div><div class="field"><label for="aBankExec">Bank executive</label><input id="aBankExec"></div></div>'+
-   '<div class="row"><div class="field"><label for="aDob">DOB</label><input id="aDob" type="date"></div>'+sel("aPrev","Previous lead owner",[""].concat(owners))+'</div>'+
-   '<div class="row">'+sel("aMgr","Reporting manager",[""].concat(owners))+'</div>'+
+   (pageKey()==="Audience"?'<div class="row"><div class="field"><label for="aDob">DOB</label><input id="aDob" type="date"></div></div>':'<div class="row"><div class="field"><label for="aDob">DOB</label><input id="aDob" type="date"></div>'+sel("aPrev","Previous lead owner",[""].concat(owners))+'</div>'+
+   '<div class="row">'+sel("aMgr","Reporting manager",[""].concat(owners))+'</div>')+
    (function(){var al=attrsForPage(pageKey());return al.length?'<div class="sec-label" style="margin-top:6px">Additional details</div><div class="row" style="flex-wrap:wrap">'+al.map(function(a){return cxField({x:{cx:{}}},a).replace('id="ld_cx_','id="aCx_');}).join("")+'</div>':"";})()+
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveLead">Add lead</button></div>';
   m.classList.add("show");showOverlay(true);
@@ -4968,6 +4982,9 @@ document.addEventListener("click",function(e){
   if(t.id==="repDl"){if(!canDownloadLeadCategory()){toast("Only Admin can download category reports");return;}saveCsv(state.repName,state.repCsv);return;}
   if(d.pddGroupDownload!==undefined){if(!canDownloadLeadCategory()){toast("Only Admin can download category reports");return;}var pddParts=String(d.pddGroupDownload).split("|");downloadPddGroupExcel(pddParts[0],pddParts.slice(1).join("|"));return;}
   if(d.pddLenderDownload!==undefined){if(!canDownloadLeadCategory()){toast("Only Admin can download category reports");return;}downloadPddGroupExcel("lender",d.pddLenderDownload);return;}
+  if(d.audsum){state.sel=d.audsum==="all"?[]:[d.audsum];
+    var sc3=document.querySelectorAll("[data-status]"),q3;for(q3=0;q3<sc3.length;q3++)sc3[q3].checked=state.sel.indexOf(sc3[q3].dataset.status)>-1;
+    state.page=1;renderTable();return;}
   if(d.sum){
     state.sel=d.sum==="all"?(CALC[pageKey()]?CALC[pageKey()].cols.slice():[]):[d.sum];
     var sc=document.querySelectorAll("[data-status]"),q2;for(q2=0;q2<sc.length;q2++)sc[q2].checked=state.sel.indexOf(sc[q2].dataset.status)>-1;
@@ -5044,7 +5061,7 @@ document.addEventListener("click",function(e){
     if(rpRc.owner)rpOw=rpRc.owner;
     var aCx={}, aIn=[].slice.call(document.querySelectorAll("#modal [data-cx]")), ai;
     for(ai=0;ai<aIn.length;ai++){var aa=attrByKey(aIn[ai].getAttribute("data-cx")),av=aIn[ai].value.trim();if(aa&&aa.mandatory&&!av){toast(aa.label+" is required");aIn[ai].focus();return;}if(av)aCx[aa.key]=av;}
-    var nl0=newLead({name:nm,phone:rpPh,owner:rpOw,product:document.getElementById("aProd").value,amount:+document.getElementById("aAmt").value||0,vehicle:document.getElementById("aVeh").value.trim(),year:document.getElementById("aYear").value.trim(),lender:document.getElementById("aLender").value,dealer:document.getElementById("aDealer").value,caseBooked:document.getElementById("aCase").value.trim(),fromForm:true,status:document.getElementById("aStatus").value,email:document.getElementById("aEmail").value.trim(),source:document.getElementById("aSource").value,reg:document.getElementById("aReg").value.trim(),bankExec:document.getElementById("aBankExec").value.trim(),dob:document.getElementById("aDob").value,prevOwner:document.getElementById("aPrev").value,mgr:document.getElementById("aMgr").value});
+    var nl0=newLead({name:nm,phone:rpPh,owner:rpOw,product:document.getElementById("aProd").value,amount:+document.getElementById("aAmt").value||0,vehicle:document.getElementById("aVeh").value.trim(),year:document.getElementById("aYear").value.trim(),lender:document.getElementById("aLender").value,dealer:document.getElementById("aDealer").value,caseBooked:document.getElementById("aCase").value.trim(),fromForm:true,status:document.getElementById("aStatus").value,email:document.getElementById("aEmail").value.trim(),source:document.getElementById("aSource").value,reg:document.getElementById("aReg").value.trim(),bankExec:document.getElementById("aBankExec").value.trim(),dob:document.getElementById("aDob").value,prevOwner:(document.getElementById("aPrev")||{value:""}).value,mgr:(document.getElementById("aMgr")||{value:""}).value});
     if(Object.keys(aCx).length)ldx(nl0).cx=aCx;
     state.page=1;closeAll();renderTable();toast("Lead added as "+nl0.status+" ("+nl0.stage+")");return;}
   if(t.id==="saveCamp"){
