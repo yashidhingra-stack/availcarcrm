@@ -957,8 +957,15 @@ function inPddCtx(l){return state.leadCtx==="pdd"&&l.stage==="Disbursed"&&!l.cat
 /* ---------- PDD RULE ----------
    The moment a file's status becomes "Disburse" (for example moved from Login business), it moves to PDD Status.
    It keeps its dates, remarks, notes, history and every other detail. There is no month-end wait. */
+/* the file takes today's date/time (original kept) so the latest file moved to PDD shows first in the date-wise list */
+function bumpToTop(l){
+  if(!l.origDate){l.origDate=l.date;l.origTs=l.ts;}
+  var st=stamp();l.date=st.slice(0,10);l.ts=st;
+  if(state.lrange&&l.date>state.lrange.to)state.lrange.to=l.date;
+}
 function pddAutoMove(l,oldStatus){
   if(!l||l.cat||l.status!=="Disburse"||l.stage!=="Disbursed"||oldStatus===l.status)return false;
+  bumpToTop(l);
   l.pddMoved=true; if(!l.pddSt)l.pddSt="Open"; if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
   if(!l.hist)l.hist=[];
   l.hist.unshift({ts:stamp(),text:"Lead moved to PDD Status automatically on Disburse (PDD status "+l.pddSt+")",type:"status"});
@@ -981,7 +988,7 @@ function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,t
 function setRange(key,r){state.lrangeBy[key]=r;}
 var HIDDEN={Disbursed:["ts"],pdd:["pdd"],data:["ts","status","owner"]};
 var PAGELABEL={pdd:{ts:"Disbursed Date"}};
-var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddSt","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","audId"]};
+var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","audId"]};
 function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];}).concat(attrsForPage(key).map(function(a){return ["a_"+a.key,a.label];}));}
 function colState(key){
   var k=PAGECOLS[key]?key:"def"; state.colsBy=state.colsBy||{};
@@ -2187,6 +2194,8 @@ var DETAIL=[["name","Name"],["phone","Mobile"],["product","Product"],["amount","
 function lead(id){return leads.filter(function(x){return x.id===id;})[0];}
 function curLead(){return lead(+state.route.split("/")[1]);}
 function stamp(){var n=new Date();return ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds());}
+/* whatever is written in Notes is also saved into the lead's Remarks (shown in the Remarks column, PDD included) */
+function addRemark(l,tx){l.note=(l.note?String(l.note)+"\n":"")+stamp()+" :- "+tx;}
 function leadRemarkText(l){
   if(!l)return "";
   var v=l.note;
@@ -2676,6 +2685,7 @@ function submitMoveCat(){
     l.status="Disburse"; l.stage="Disbursed"; l.pddSt=ns; l.pddMoved=true; ns="Disburse";
     if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
     l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" (PDD status "+l.pddSt+")",type:"status"});
+    bumpToTop(l);
     purgeEarlierCopies(l);saveLeads();
     closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);return;
   }
@@ -2758,7 +2768,7 @@ function submitLeadStatus(){
   if(inPddCtx(l)){
     var po=pddSt(l);
     if(ns!==po){l.pddSt=ns;l.hist.unshift({ts:stamp(),text:"PDD status changed from "+po+" to "+ns,type:"status"});}
-    l.hist.unshift({ts:stamp(),text:tx,type:"note"});
+    l.hist.unshift({ts:stamp(),text:tx,type:"note"});addRemark(l,tx);saveLeads();
     renderLead();toast(ns!==po?"PDD status updated":"Note added");return;
   }
   var movedPdd=false;
@@ -2768,7 +2778,7 @@ function submitLeadStatus(){
     l.hist.unshift({ts:stamp(),text:"Status changed from "+old+" to "+ns,type:"status"});
     movedPdd=pddAutoMove(l,old);
   }
-  l.hist.unshift({ts:stamp(),text:tx,type:"note"});
+  l.hist.unshift({ts:stamp(),text:tx,type:"note"});addRemark(l,tx);
   if(!movedPdd)movedPdd=pddAutoMove(l,""); /* Disburse + remarks + Submit always sends the file to PDD, even if it was already on Disburse */
   purgeEarlierCopies(l);saveLeads();
   renderLead();toast(movedPdd?"Lead moved to PDD Status":(ns!==old?"Status updated":"Note added"));
