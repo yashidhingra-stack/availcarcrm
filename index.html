@@ -2769,6 +2769,7 @@ function submitLeadStatus(){
     movedPdd=pddAutoMove(l,old);
   }
   l.hist.unshift({ts:stamp(),text:tx,type:"note"});
+  if(!movedPdd)movedPdd=pddAutoMove(l,""); /* Disburse + remarks + Submit always sends the file to PDD, even if it was already on Disburse */
   purgeEarlierCopies(l);saveLeads();
   renderLead();toast(movedPdd?"Lead moved to PDD Status":(ns!==old?"Status updated":"Note added"));
 }
