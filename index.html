@@ -54,6 +54,9 @@ button{cursor:pointer}
 .nav-group.open>.nav-item .chev{transform:rotate(180deg)}
 .sub{display:none;padding:2px 0 6px 39px;flex-direction:column;gap:1px}
 .nav-group.open>.sub{display:flex}
+.sub-group{display:flex;flex-direction:column}.sub .sub-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+.sub-toggle .chev{width:14px;height:14px;transition:transform .15s}.sub-group.open>.sub-toggle .chev{transform:rotate(180deg)}
+.sub-group>.sub2{display:none;flex-direction:column;gap:2px;padding-left:12px}.sub-group.open>.sub2{display:flex}
 .sub button{border:0;background:none;color:inherit;text-align:left;padding:7px 10px;border-radius:6px;font-size:13px}
 .sub button:hover{background:var(--side-hover)}
 .sub button.active{color:#fff;background:var(--side-active)}
@@ -858,27 +861,54 @@ var NAV=[
  {id:"backup",label:"Backup",icon:"db"},
  {id:"settings/category",label:"Category",icon:"sliders"},
  {id:"invoice",label:"Invoice & Quotations",icon:"doc"}];
-var titles={backup:"Backup",channelwise:"Channel details","settings/category":"Category","integration/forms":"Forms","integration/marketplace":"Marketplace","integration/social":"Social media","integration/api":"API","integration/bulk":"Bulk","integration/custom":"Custom","integration/telephony":"Telephony","integration/ivr":"IVR","integration/generic":"Generic",invoice:"Invoice & Quotations",waba:"WABA",ivr:"IVR report",callassist:"Call assist",data:"Data",catalogue:"Catalogue",announcement:"Announcement",url:"URL shortener",assets:"Asset library",integration:"Custom attributes",subscription:"Subscription"};
+var titles={chlist:"Channel List",backup:"Backup",channelwise:"Channel details","settings/category":"Category","integration/forms":"Forms","integration/marketplace":"Marketplace","integration/social":"Social media","integration/api":"API","integration/bulk":"Bulk","integration/custom":"Custom","integration/telephony":"Telephony","integration/ivr":"IVR","integration/generic":"Generic",invoice:"Invoice & Quotations",waba:"WABA",ivr:"IVR report",callassist:"Call assist",data:"Data",catalogue:"Catalogue",announcement:"Announcement",url:"URL shortener",assets:"Asset library",integration:"Custom attributes",subscription:"Subscription"};
 var blurbs={teamwise:"Team-wise business, completed and pending amounts.",leadowner:"Individual lead-owner-wise business, completed and pending amounts.",channelwise:"Dealer-wise business, completed and pending amounts.","settings/category":"Group your leads, products and campaigns into categories.","integration/forms":"Build lead capture forms and embed them on your website.","integration/marketplace":"Connect lead sources from outside marketplaces and listing sites.","integration/social":"Bring in leads from Facebook and Instagram ads.","integration/api":"Create API keys and send leads in from your own systems.","integration/bulk":"Upload many leads at once from a spreadsheet.","integration/custom":"Set up your own integration with custom fields and webhooks.","integration/telephony":"Connect your calling provider to log calls against leads.","integration/ivr":"Connect your IVR number and route callers to your team.","integration/generic":"Send leads in from any tool that can call a web link.",invoice:"Create quotations and invoices for customers and track which are paid.",waba:"Connect your WhatsApp Business account and manage message templates.",ivr:"See call volumes and outcomes from your IVR number.",callassist:"Place calls from a lead page, record the outcome and schedule the next follow-up.",data:"Import contact files and map columns to lead fields.",catalogue:"Keep your loan products, rates and eligibility rules in one place.",announcement:"Post updates that every team member sees on login.",url:"Create short, trackable links for your campaigns.",assets:"Store images, PDFs and message templates.",integration:"Manage custom attributes for your leads.",subscription:"View your plan, active contact limit and billing history."};
 
 function navRoute(){return state.route.indexOf("lead/")===0?(state.listRoute||"leads/Login"):state.route.indexOf("segments/")===0?"segments":state.route;}
 function renderNav(){
-  var h="", cur=navRoute();
-  var dataKids=NAV.filter(function(x){return x.id==="data";})[0].kids;
-  NAV.forEach(function(n){
-    if(n.merged)return;
-    if(n.id==="backup"){if(!hierIsAdmin(userById(state.meUser)))return;}else if(n.id==="dealer-details"){if(!canDo("Major Reports","Dealer details"))return;}else if(!canMod(n.perm||n.label))return;
-    var LEADS_MAIN=["Audience","Login","Hold","Disbursed","Rejected","pdd"];
-    var hrMenu=!!hrUserKey(userById(state.meUser));
-    var hrLabels={Audience:"Login",Login:"Login Business",Hold:"Hold",Disbursed:"Disbursement Pending",Rejected:"Reject",pdd:"PDD Status"};
-    var kids=n.id==="leads"?LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:catName(k)];}):n.id==="major"?catKids().filter(function(k){return LEADS_MAIN.indexOf(k[0].slice(6))<0;}).concat(dataKids).concat([["major/staff","Staff details"]]):n.kids;
-    if(kids){kids=kids.filter(function(k){return routeOk(k[0]);});if(!kids.length)return;}
-    if(kids){
-      var open=state.open[n.id]||cur.indexOf(n.id+"/")===0||kids.some(function(k){return k[0]===cur;});
+  var h="", cur=navRoute(), cu=userById(state.meUser), hrMenu=!!hrUserKey(cu);
+  var LEADS_MAIN=["Audience","Login","Hold","Disbursed","Rejected","pdd"];
+  var hrLabels={Audience:"Login",Login:"Login Business",Hold:"Hold",Disbursed:"Disbursement Pending",Rejected:"Reject",pdd:"PDD Status"};
+  var leadKids=LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:catName(k)];}).concat([["data/download","Download Data"]]);
+  /* Menu order: Dashboard, Leads (up to PDD Status, then Download Data), Dealer Commission, Forms, Office Use Only, Reports, WABA */
+  var MENU=[
+    {id:"dashboard",label:"Dashboard",icon:"grid",route:"dashboard"},
+    {id:"leads",label:"Leads",icon:"users",kids:leadKids},
+    {id:"dealercomm",label:"Dealer Commission",icon:"card",kids:[["dealer-details","Dealer Details"]]},
+    {id:"forms",label:"Forms",icon:"doc",route:"integration/forms"},
+    {id:"office",label:"Office Use Only",icon:"db",kids:[["channelwise","More Reports"],["integration/custom","Custom attributes"],["users","User management"],["hierarchy","Hierarchy"],["major/staff","Staff Details"],["chlist","Channel List"]]},
+    {id:"reports",label:"Reports",icon:"chart",kids:[{group:"Major Reports",id:"rep-major",kids:[["data/report","Leads report"],["data/analysis","Analysis"],["leads/data","Data"]]}]},
+    {id:"waba",label:"WABA",icon:"chat",route:"waba"},
+    {id:"payments",label:"Payments",icon:"card",route:"payments"},
+    {id:"backup",label:"Backup",icon:"db",route:"backup",adminOnly:true},
+    {id:"settings/category",label:"Category",icon:"sliders",route:"settings/category"},
+    {id:"invoice",label:"Invoice & Quotations",icon:"doc",route:"invoice"}];
+  function okR(r){return routeOk(r);}
+  function flat(kids){var o=[];kids.forEach(function(k){if(k.group)o=o.concat(k.kids);else o.push(k);});return o;}
+  function btn(k){return '<button data-route="'+k[0]+'" class="'+(cur===k[0]?"active":"")+'">'+k[1]+'</button>';}
+  MENU.forEach(function(n){
+    if(n.kids){
+      var vis=[];
+      n.kids.forEach(function(k){
+        if(k.group){var gk=k.kids.filter(function(x){return okR(x[0]);});if(gk.length)vis.push({group:k.group,id:k.id,kids:gk});}
+        else if(okR(k[0]))vis.push(k);
+      });
+      if(!vis.length)return;
+      var all=flat(vis);
+      var open=state.open[n.id]||all.some(function(k){return k[0]===cur;});
       h+='<div class="nav-group'+(open?" open":"")+'"><button class="nav-item" data-toggle="'+n.id+'" aria-expanded="'+!!open+'">'+ic(n.icon)+'<span>'+n.label+'</span>'+ic("chev","chev")+'</button><div class="sub">';
-      kids.forEach(function(k){h+='<button data-route="'+k[0]+'" class="'+(cur===k[0]?"active":"")+'">'+k[1]+'</button>';});
+      vis.forEach(function(k){
+        if(k.group){
+          var gopen=state.open[k.id]||k.kids.some(function(x){return x[0]===cur;});
+          h+='<div class="sub-group'+(gopen?" open":"")+'"><button class="sub-toggle" data-toggle="'+k.id+'" aria-expanded="'+!!gopen+'"><span>'+k.group+'</span>'+ic("chev","chev")+'</button><div class="sub2">'+k.kids.map(btn).join("")+'</div></div>';
+        } else h+=btn(k);
+      });
       h+='</div></div>';
-    } else h+='<button class="nav-item'+(cur===n.id?" active":"")+'" data-route="'+n.id+'">'+ic(n.icon)+'<span>'+n.label+'</span></button>';
+    } else {
+      if(n.adminOnly&&!hierIsAdmin(cu))return;
+      if(!okR(n.route))return;
+      h+='<button class="nav-item'+(cur===n.route?" active":"")+'" data-route="'+n.route+'">'+ic(n.icon)+'<span>'+n.label+'</span></button>';
+    }
   });
   document.getElementById("nav").innerHTML=h;
 }
@@ -3254,6 +3284,8 @@ function routeOk(r){
   if(r==="major/staff")return canDo("Major Reports","Staff details");
   if(r==="major/dealers")return canDo("Major Reports","Dealer details");
   if(r==="dealer-details")return canDo("Major Reports","Dealer details");
+  if(r==="chlist")return canDo("Major Reports","Channel List");
+  if(r==="waba")return canMod("Custom attributes")||hierIsAdmin(userById(state.meUser));
   if(h==="integration")return INTEG[k]?canDo("Custom attributes",INTEG[k]):canMod("Custom attributes");
   if(h==="settings"){if(k==="category")return canDo("Category","Category");return canMod("Category");}
   var n=NAV.filter(function(x){return x.id===h;})[0];
@@ -4740,6 +4772,7 @@ function render(){
   if(r!=="dashboard")destroyCharts();
   if(r==="dashboard")renderDashboard();
   else if(r==="channelwise")renderChannelList();
+  else if(r==="chlist")renderChannelDirectory();
   else if(r.indexOf("lead/")===0)renderLead();
   else if(r.indexOf("leads/")===0)renderLeads();
   else if(r==="data/report")renderLeadsReport();
