@@ -274,10 +274,7 @@ td.dt{line-height:1.25}
 .st-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:16px}
 .st-pill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:12px 14px;cursor:pointer}
 .st-pill.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.st-note{margin-top:16px}.st-note textarea{width:100%;min-height:180px;resize:vertical}
-#noteText{min-height:160px;resize:vertical}.noteform{flex-direction:column;align-items:stretch}.noteform textarea{width:100%;min-height:160px}
-#dNote{min-height:180px;width:100%;resize:vertical}.nd-rem textarea{min-height:160px}
-#fuText{min-width:260px;flex:1}
+.st-note{margin-top:16px}.st-note textarea{width:100%;min-height:72px}
 .st-sub{display:flex;justify-content:flex-end;margin-top:12px}
 @media (max-width:1100px){.st-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:600px){.st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -297,6 +294,7 @@ a.btn{text-decoration:none;display:inline-block}
 .fu-add input[type=date]{width:auto}
 .fu-empty{color:var(--muted);margin:0}
 .remark-cell{display:block;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.remark-cell.remark-big{max-width:none;width:420px;min-width:420px;min-height:90px;white-space:pre-wrap;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.45}
 .ld-name-remark{margin:6px 0 10px;padding:7px 10px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:5px;font-size:12px;line-height:1.45;max-width:100%;overflow-wrap:anywhere}
 .ld-name-remark strong{font-weight:700}
 .noteform{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
@@ -1055,6 +1053,7 @@ function cell(l,k,i){
   if(k==="bankExec")return esc(ldx(l).bankExec||"");
   if(k==="remark"){
     var full=leadRemarkText(l), ln=String(full||"").replace(/<br\s*\/?\s*>/gi,"\n").split(/\n/).filter(Boolean);
+    if(pageKey()==="pdd")return '<span class="remark-cell remark-big">'+esc(ln.join("\n"))+'</span>'; /* PDD: full remarks in a big column */
     return '<span class="remark-cell" title="'+esc(String(full||""))+'">'+esc(ln.length?ln[ln.length-1]:"")+'</span>';
   }
   if(k==="caseBooked")return '<input class="cb-in" data-cb="'+l.id+'" list="firmListT" value="'+esc(ldx(l).caseBooked||"")+'" placeholder="Select firm" aria-label="Case booked in for '+esc(l.name)+'">';
