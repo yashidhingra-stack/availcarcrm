@@ -954,19 +954,17 @@ var RTO_ST="File Approved in RTO"; /* kept out of every normal status list */
 var PDD_ST=["Open","Fee Done File At Inward","Pending At Verification Stage","Pending At Approval Stage","File Approved In RTO","State NOC Pending","RTO Paper Pending"];
 function pddSt(l){return l.pddSt||(l.status===RTO_ST?"File Approved In RTO":"Open");}
 function inPddCtx(l){return state.leadCtx==="pdd"&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST);}
-/* ---------- MONTH-END RULE ----------
-   A disbursed file stays in Disbursement business (under its Lead Owner) for the whole month it was disbursed in.
-   It moves to PDD only once that month has ended (on the last day of the month, or later). Nothing moves earlier. */
-function pddMonthEnded(d){
-  var s=String(d||"").slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false; /* no valid date: never move to PDD */
-  var n=new Date(), today=ymd(new Date(n.getFullYear(),n.getMonth(),n.getDate()));
-  var y=+s.slice(0,4), m=+s.slice(5,7);
-  return today>=ymd(new Date(y,m,0)); /* m is 1-based, so day 0 of month index m is the last day of the disbursement month itself */
+/* ---------- PDD RULE ----------
+   The moment a file's status becomes "Disburse" (for example moved from Login business), it moves to PDD Status.
+   It keeps its dates, remarks, notes, history and every other detail. There is no month-end wait. */
+function pddAutoMove(l,oldStatus){
+  if(!l||l.cat||l.status!=="Disburse"||l.stage!=="Disbursed"||oldStatus===l.status)return false;
+  l.pddMoved=true; if(!l.pddSt)l.pddSt="Open"; if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
+  if(!l.hist)l.hist=[];
+  l.hist.unshift({ts:stamp(),text:"Lead moved to PDD Status automatically on Disburse (PDD status "+l.pddSt+")",type:"status"});
+  return true;
 }
-/* PDD holds (1) the files loaded from the PDD Excel upload, and (2) Disbursed files whose disbursement month has ended,
-   but only for files disbursed on or after PDD_AUTO_FROM. Older Disbursed files reach PDD only through the PDD upload. */
-var PDD_AUTO_FROM="2026-11-01";
-function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&(l.pddImp===true||l.pddMoved===true||(String(l.date||"").slice(0,10)>=PDD_AUTO_FROM&&pddMonthEnded(l.date)));}
+function inPddNow(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&(l.pddImp===true||l.pddMoved===true);}
 function pageStages(key){
   if(stages.indexOf(key)>-1)return [key]; /* Login shows only files still at Login; once moved to any other stage they leave it */
   if(key==="pdd")return ["Disbursed"];
@@ -1000,9 +998,9 @@ function leadRows(key,noSel){
     if(key.indexOf("cat")===0){if(l.cat!==key)return false;}else if(l.cat&&key!=="data"&&key!=="channel")return false;
     if(l.date<lr.from||l.date>lr.to)return false;
     if(key==="pdd"&&l.status!=="Disburse"&&l.status!==RTO_ST)return false;
-    if(key==="pdd"&&!inPddNow(l))return false; /* PDD only after month end */
+    if(key==="pdd"&&!inPddNow(l))return false; 
     if(key==="pdd"&&l.pddImp&&pddAdminHidden())return false;
-    if(key==="Disbursed"&&inPddNow(l))return false; /* once its month has ended the file lives in PDD; before that it stays in Disbursement business */
+    if(key==="Disbursed"&&inPddNow(l))return false; /* a file in PDD no longer shows in Disbursement business */
     if(key!=="pdd"&&key!=="data"&&l.status===RTO_ST&&!(key==="Disbursed"&&!inPddNow(l)))return false;
     if(!noSel&&state.sel.length&&state.sel.indexOf(key==="pdd"?pddSt(l):l.status)<0)return false;
     if(f.product&&l.product!==f.product)return false;
@@ -1651,12 +1649,12 @@ function renderTable(){try{fpSync();}catch(_e){}
     return '<th aria-sort="'+(on?(s.d>0?"ascending":"descending"):"none")+'"><button class="th-sort" data-sort="'+k+'">'+c[1]+' <span aria-hidden="true">'+(on?(s.d>0?"▲":"▼"):"↕")+'</span></button></th>';
   }).join("")+'<th>Action</th></tr>';
   var body=shown.map(function(l,i){
-    return '<tr>'+(dsOn?'<td><input type="checkbox" data-dsel="'+l.id+'"'+(state.dsel[l.id]?" checked":"")+(pddEligible(l)?"":' disabled title="Its disbursement month has not ended yet"')+' aria-label="Select '+esc(l.name)+'"></td>':"")+vis.map(function(c){return '<td'+(c[0]==="ts"?' class="dt"':"")+'>'+cell(l,c[0],start+i)+'</td>';}).join("")+
+    return '<tr>'+(dsOn?'<td><input type="checkbox" data-dsel="'+l.id+'"'+(state.dsel[l.id]?" checked":"")+(pddEligible(l)?"":' disabled')+' aria-label="Select '+esc(l.name)+'"></td>':"")+vis.map(function(c){return '<td'+(c[0]==="ts"?' class="dt"':"")+'>'+cell(l,c[0],start+i)+'</td>';}).join("")+
       '<td><div class="act"><button class="icon-btn" data-view="'+l.id+'" aria-label="View '+esc(l.name)+'">'+ic("eye")+'</button><button class="icon-btn" data-ledit2="'+l.id+'" aria-label="Edit '+esc(l.name)+'" title="Edit lead">'+ic("pencil")+'</button><button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move '+esc(l.name)+' by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete '+esc(l.name)+'">'+ic("trash")+'</button></div></td></tr>';
   }).join("");
   if(!rows.length)body='<tr><td colspan="'+(vis.length+1+(dsOn?1:0))+'" class="emptyrow">No leads match. Clear the filters or widen the date range.</td></tr>';
   var foot='<div class="foot"><label>Show <select id="pSize">'+[10,20,50,100].map(function(n){return '<option'+(n===size?" selected":"")+'>'+n+'</option>';}).join("")+'<option value="all"'+(size>=1e5?" selected":"")+'>All</option></select></label><span class="tc">Total count: '+rows.length+'</span><div class="pager"><button data-pg="prev"'+(state.page<=1?" disabled":"")+'>« Previous</button><span>'+state.page+' / '+pages+'</span><button data-pg="next"'+(state.page>=pages?" disabled":"")+'>Next »</button></div></div>';
-  box.innerHTML=(dsOn?'<div class="firmbar dsbar"><button class="btn" data-dsall'+(dsElig.length?"":" disabled")+'>Select all ('+dsElig.length+')</button><button class="btn" data-dsclear'+(dsN?"":" disabled")+'>Clear</button><button class="btn primary" data-dsmove'+(dsN?"":" disabled")+'>Move selected to PDD ('+dsN+')</button>'+(dsElig.length?"":'<span class="note">Files can be moved once their disbursement month has ended.</span>')+'</div>':"")+'<div class="tcard"><div class="tscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="hbar" id="hbar" aria-hidden="true"><div></div></div>'+foot+'</div>';
+  box.innerHTML=(dsOn?'<div class="firmbar dsbar"><button class="btn" data-dsall'+(dsElig.length?"":" disabled")+'>Select all ('+dsElig.length+')</button><button class="btn" data-dsclear'+(dsN?"":" disabled")+'>Clear</button><button class="btn primary" data-dsmove'+(dsN?"":" disabled")+'>Move selected to PDD ('+dsN+')</button>'+(dsElig.length?"":'<span class="note">No disbursed files are waiting to be moved to PDD.</span>')+'</div>':"")+'<div class="tcard"><div class="tscroll"><table><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div><div class="hbar" id="hbar" aria-hidden="true"><div></div></div>'+foot+'</div>';
   (function(){var ts=box.querySelector(".tscroll"),hb=document.getElementById("hbar");if(!ts||!hb)return;
     var inner=hb.firstChild,lock=false;
     function fit(){inner.style.width=ts.scrollWidth+"px";hb.style.display=ts.scrollWidth>ts.clientWidth+1?"":"none";}
@@ -2669,7 +2667,6 @@ function submitMoveCat(){
   if(!newOwner){toast("Select a lead owner");if(no)no.focus();return;}
   if(!ck){toast("Select a category");document.getElementById("mvCat").focus();return;}
   if(!ns){toast("Select a status");document.getElementById("mvStatus").focus();return;}
-  if(ck==="pdd"&&!(l.stage==="Disbursed"&&pddMonthEnded(l.date))){toast("Files move to PDD only at month end. This file stays in Disbursement business until then.");return;}
   var priorOwner=l.owner;
   if(priorOwner!==newOwner){l.owner=newOwner;l.hist.unshift({ts:stamp(),text:"Lead owner changed from "+(priorOwner||"Unassigned")+" to "+newOwner,type:"owner"});}
   var c=moveCats().filter(function(x){return x.key===ck;})[0], old=l.status, oldCat=l.cat;
@@ -2701,8 +2698,8 @@ document.addEventListener("click",function(e){
   if(e.target.id==="mvSubmit")submitMoveCat();
 },true);
 
-/* ---------- month-end bulk move: Disbursement business -> PDD ---------- */
-function pddEligible(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&pddMonthEnded(l.date)&&!inPddNow(l);}
+/* ---------- bulk move: Disbursement business -> PDD ---------- */
+function pddEligible(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&!inPddNow(l);}
 function openBulkPdd(){
   var ids=Object.keys(state.dsel||{}).filter(function(k){return state.dsel[k];}),n=ids.filter(function(k){return pddEligible(lead(+k));}).length;
   if(!n){toast("Select at least one file first");return;}
@@ -2716,7 +2713,7 @@ function bulkMovePdd(){
   ids.forEach(function(k){
     var l=lead(+k);if(!pddEligible(l)){skip++;return;}
     ensure(l);l.pddMoved=true;if(!l.pddSt)l.pddSt="Open";if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
-    l.hist.unshift({ts:stamp(),text:"Lead moved to PDD Status (month-end bulk move, PDD status "+l.pddSt+")",type:"status"});
+    l.hist.unshift({ts:stamp(),text:"Lead moved to PDD Status (bulk move, PDD status "+l.pddSt+")",type:"status"});
     try{purgeEarlierCopies(l);}catch(e){}
     n++;
   });
@@ -2763,14 +2760,16 @@ function submitLeadStatus(){
     l.hist.unshift({ts:stamp(),text:tx,type:"note"});
     renderLead();toast(ns!==po?"PDD status updated":"Note added");return;
   }
+  var movedPdd=false;
   if(ns!==old){
     l.status=ns;l.stage=statusStage[ns];
     l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
     l.hist.unshift({ts:stamp(),text:"Status changed from "+old+" to "+ns,type:"status"});
+    movedPdd=pddAutoMove(l,old);
   }
   l.hist.unshift({ts:stamp(),text:tx,type:"note"});
   purgeEarlierCopies(l);saveLeads();
-  renderLead();toast(ns!==old?"Status updated":"Note added");
+  renderLead();toast(movedPdd?"Lead moved to PDD Status":(ns!==old?"Status updated":"Note added"));
 }
 document.addEventListener("change",function(e){
   var t=e.target; if(!t||t.name!=="ldst")return;
@@ -2783,8 +2782,9 @@ function changeStatus(ns){
   l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"?"Pending":l.pdd):"—";
   l.hist.unshift({ts:stamp(),text:"Status changed from "+old+" to "+ns,type:"status"});
+  var mv=pddAutoMove(l,old);
   purgeEarlierCopies(l);saveLeads();
-  renderLead(); toast("Status updated");
+  renderLead(); toast(mv?"Lead moved to PDD Status":"Status updated");
 }
 function saveDetails(){
   var l=curLead(); if(!l)return; ensure(l);
@@ -4872,10 +4872,12 @@ document.addEventListener("click",function(e){
   if(d.newcamp!==undefined){if(!canChannel(+d.newcamp)){toast(DENY);return;}openCampaign(+d.newcamp);return;}
   if(d.save){
     var l=leads.filter(function(x){return x.id===+d.save;})[0], ns=document.getElementById("dStatus").value;
+    var oldSt=l.status;
     l.status=ns;l.stage=statusStage[ns];l.note=document.getElementById("dNote").value;
     l.pdd=l.stage==="Disbursed"?(l.pdd==="—"?"Pending":l.pdd):"—";
+    var mv2=pddAutoMove(l,oldSt);
     purgeEarlierCopies(l);saveLeads();
-    closeAll();renderTable();toast("Lead updated");return;}
+    closeAll();renderTable();toast(mv2?"Lead moved to PDD Status":"Lead updated");return;}
   if(d.tool){
     var card=t.closest("[data-w]"),w=state.widgets.filter(function(x){return x.id===card.dataset.w;})[0],a=d.tool;
     if(a==="del"){state.widgets=state.widgets.filter(function(x){return x!==w;});state.removed.push(w);renderDashboard();toast("Chart removed");}
