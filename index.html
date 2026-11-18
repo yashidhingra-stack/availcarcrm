@@ -573,6 +573,14 @@ body.no-del [data-del]{display:none}
 .dc-files small{color:var(--muted);white-space:nowrap}
 body.no-view .icon-btn[data-viewdocs]{display:none}
 .ed-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ed-wrap input,.ed-wrap select{min-width:0;max-width:100%}
+#notifPanel{position:fixed;top:58px;right:12px;width:340px;max-width:calc(100vw - 24px);max-height:70vh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.2);z-index:60;padding:6px}
+#notifPanel h4{margin:8px 10px 6px;font-size:13px}
+#notifPanel .nf-item{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:9px 10px}
+#notifPanel .nf-item:hover{background:var(--bg)}
+#notifPanel .nf-item b{display:block}
+#notifPanel .nf-item span{color:var(--muted);font-size:12.5px}
+#notifPanel .nf-empty{padding:14px 10px;color:var(--muted)}
+.badge[hidden]{display:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -592,7 +600,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
         <div class="who" id="who"></div>
         <button class="icon-btn" id="themeBtn" aria-label="Toggle light or dark theme"></button>
         <button class="icon-btn" id="searchBtn" aria-label="Search leads"></button>
-        <button class="icon-btn" id="bellBtn" aria-label="Notifications, 13 unread"><span class="badge">13</span></button>
+        <button class="icon-btn" id="bellBtn" aria-label="Notifications"><span class="badge" id="bellBadge" hidden>0</span></button>
         <button class="avatar" id="avatar" aria-label="Account">UD</button>
         <button class="btn" id="logout">Sign out</button>
       </div>
@@ -1028,7 +1036,7 @@ function statusOptions(key){
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
 var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
 var HR=["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"];
-var ALLTIME={Audience:1,Hold:1,Rejected:1,pdd:1,Close:1,data:1}, NOFILTER={Hold:1,Rejected:1,pdd:1,Close:1,data:1};
+var ALLTIME={Audience:1,Login:1,Hold:1,Rejected:1,pdd:1,Close:1,data:1}, NOFILTER={Login:1,Hold:1,Rejected:1,pdd:1,Close:1,data:1};
 state.lrangeBy={};state.rlabel={};state.fyBasis="fy";state.repTab="owner";
 function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,to:(ALLTO>ymd(TODAY)?ALLTO:ymd(TODAY))}:state.lrange);}
 function setRange(key,r){state.lrangeBy[key]=r;}
@@ -1490,16 +1498,12 @@ function renderLeads(){
     opts.map(function(s){return '<label class="chk"><input type="checkbox" data-status="'+s+'"'+(state.sel.indexOf(s)>-1?" checked":"")+'>'+dotted(s)+s+'</label>';}).join("")+'</div></div></div>';
   h+='<div class="searchbox pw"'+(key==="Login"||key==="Disbursed"||key==="pdd"?' hidden style="display:none"':'')+'><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
-  if(canDo("Leads","Add lead")||canDo("Leads","Import leads"))h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Add lead")?'<button class="menu-item" data-addlead>Add lead</button>':"")+(canDo("Leads","Import leads")?(key==="pdd"?'<button class="menu-item" data-importpdd>Import PDD file (CSV / Excel)</button>'+(hierIsAdmin(userById(state.meUser))?'<button class="menu-item" data-pddhide>'+(pddAdminHidden()?"Show PDD data (Admin view)":"Hide PDD data (Admin view)")+'</button>':""):"")+''+(hierIsAdmin(userById(state.meUser))?'<button class="menu-item" data-importwb>Import monthly workbook (all sheets)</button>':"")+'<button class="menu-item" data-importcsv>Import CSV / Excel</button><button class="menu-item" data-replacecsv>Clear all and upload fresh file</button><button class="menu-item" data-clearall>Clear all data</button>'+(canDownloadLeadCategory()?'<button class="menu-item" data-template>Download template</button>':"")+'':"")+'</div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="wbIn" accept=".xlsx,.xls" hidden>';
+  h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Import leads")?'<button class="menu-item" '+(key==="pdd"?'data-importpdd':'data-importcsv')+'>Import Excel</button>':"")+'<button class="menu-item" data-fpdl>Export Excel</button></div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="wbIn" accept=".xlsx,.xls" hidden>';
   if(key==="data"&&hierIsAdmin(userById(state.meUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button><button class="btn" id="removeDuplicateLeads">Remove duplicate entries</button>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Hold"?"Upload Hold Excel":"Upload Reject Excel")+'</button><input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
-  if(key==="Audience"){
-    if(canDo("Leads","Import leads"))h+='<button class="btn" data-importcsv title="Import leads from an Excel or CSV file">'+ic("upload")+' Import Excel</button>';
-    h+='<button class="btn primary" data-fpdl title="Export the leads shown below as an Excel file">Export Excel</button>';
-  }
   var NOCAL={Audience:1,Login:1,Disbursed:1};
   if(!NOCAL[key]){
   h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r wide" id="pop-range" hidden>'+
@@ -2759,7 +2763,7 @@ function renderDisbLead(l){
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
    '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-lmove="'+l.id+'"','Move lead by category','swap')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
   var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
-  var tabs=pddV?[["details","Lead Details"],["pay","Payment Details"],["calc","Calculations"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["more","Additional Details"],["followups","Follow up"],["docs","Documents"]];
+  var tabs=pddV?[["details","Lead Details"],["pay","Payment Details"],["calc","Calculations"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]];
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
   if(state.ldTab==="details"||state.ldTab==="more"){
@@ -2777,7 +2781,7 @@ function renderDisbLead(l){
       if(l.stage==="Disbursed")colR.push(ldArea("rto","RTO Charges to Customer",x.rto));
       colR.push(Rc.map(ldRow).join(""));
     }
-    if(state.ldTab==="more"||(pddV&&state.ldTab==="details")){
+    if(state.ldTab==="more"||state.ldTab==="details"){
       var mk=l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"";var A=[["make","Vehicle Make",mk,mk||"—","text"],["vehicle","Vehicle",l.vehicle||"",l.vehicle||"—","text"],["reg","Vehicle number",l.reg||"",l.reg||"—","text"],["lender","Lender",l.lender||"",l.lender||"—","lender"]];
       if(l.stage==="Disbursed")A.push(["pdd","PDD status","",l.pdd,null]);
       /* names already shown in Lead Details or in the lead header: never repeated */
@@ -2790,7 +2794,7 @@ function renderDisbLead(l){
       if(state.ldTab==="details"){colL=colL.concat(mL);colR=colR.concat(mR);}else{colL=mL;colR=mR;} /* PDD: merged into Lead Details */
     }
     var boxBar='<div class="ld-boxbar">'+(state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit '+(state.ldTab==="more"?"additional details":"lead details")+'" title="Edit">'+ldi("pencil")+' Edit</button>')+'</div>';
-    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+(!pddV&&state.ldTab==="more"&&l.stage==="Disbursed"?ndCalcHtml(l):"")+'</section>';
+    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+(!pddV&&state.ldTab==="details"&&l.stage==="Disbursed"?ndCalcHtml(l):"")+'</section>';
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Payment details">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
   } else if(state.ldTab==="pdet"){ h+='<section class="ld-box" aria-label="PDD details">'+pddDetHtml(l)+'</section>';
@@ -2815,7 +2819,7 @@ function renderDisbLead(l){
   q("[data-edcancel]",function(b){b.onmousedown=function(ev){ev.preventDefault();};b.onclick=function(){var ee=document.getElementById("ldE");if(ee)ee.onblur=null;state.ldEdit=null;renderLead();};});
   var dIn=document.getElementById("docIn");if(dIn)dIn.onchange=function(){ldAddFiles(l,dIn.files,state.docSlot);dIn.value="";};
   q("[data-ldarea]",function(t){t.oninput=function(){ldx(l)[t.getAttribute("data-ldarea")]=t.value;};});
-  if(((pddV&&state.ldTab==="calc")||(!pddV&&state.ldTab==="more"))&&l.stage==="Disbursed")ndWire(l,v);
+  if(((pddV&&state.ldTab==="calc")||(!pddV&&state.ldTab==="details"))&&l.stage==="Disbursed")ndWire(l,v);
   if(pddV&&state.ldTab==="pay")payWire(l,v);
   if(pddV&&state.ldTab==="pdet")pddDetWire(l,v);
   var e=document.getElementById("ldE");
@@ -5129,7 +5133,7 @@ document.addEventListener("click",function(e){
   if(t.id==="burger"){document.getElementById("side").classList.add("open");document.getElementById("scrim").classList.add("show");return;}
   if(t.id==="themeBtn"){var root=document.documentElement,dark=root.dataset.theme?root.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;root.dataset.theme=dark?"light":"dark";redrawCharts();return;}
   if(t.id==="searchBtn"){go("leads/data");setTimeout(function(){var q=document.getElementById("q");if(q)q.focus();},0);return;}
-  if(t.id==="bellBtn"){toast("13 new notifications");return;}
+  if(t.id==="bellBtn"||(t.closest&&t.closest("#bellBtn"))){toggleNotif();return;}
   if(t.id==="renameDash"){var sp=document.getElementById("dashName"),ip=document.createElement("input");ip.value=sp.textContent;ip.setAttribute("aria-label","Dashboard name");sp.replaceWith(ip);ip.focus();ip.select();
     var fin=function(){var n=document.createElement("strong");n.id="dashName";n.textContent=ip.value.trim()||"Dashboard";ip.replaceWith(n);};
     ip.addEventListener("blur",fin);ip.addEventListener("keydown",function(ev){if(ev.key==="Enter")ip.blur();});return;}
@@ -5611,6 +5615,38 @@ start();
 })();
 
 if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
+
+/* ---------- Follow-up notifications: date wise, to the lead owner only ---------- */
+function followupDue(){
+  var u=userById(state.meUser); if(!u)return [];
+  var today=ymd(new Date()),out=[];
+  (leads||[]).forEach(function(l){
+    if(l.owner!==u.name||!Array.isArray(l.fu))return;
+    l.fu.forEach(function(f){if(f&&!f.done&&f.date===today)out.push({l:l,f:f});});
+  });
+  return out;
+}
+function refreshNotif(){
+  var b=document.getElementById("bellBadge"),btn=document.getElementById("bellBtn"); if(!b||!btn)return;
+  var n=followupDue().length;
+  b.textContent=n;b.hidden=!n;
+  btn.setAttribute("aria-label","Notifications"+(n?", "+n+" follow-up"+(n===1?"":"s")+" due today":""));
+}
+function closeNotif(){var p=document.getElementById("notifPanel");if(p)p.remove();}
+function toggleNotif(){
+  if(document.getElementById("notifPanel")){closeNotif();return;}
+  var due=followupDue(),p=document.createElement("div");p.id="notifPanel";
+  p.innerHTML='<h4>Follow-ups due today</h4>'+(due.length?due.map(function(d){return '<button class="nf-item" data-nflead="'+d.l.id+'"><b>'+esc(d.l.name)+'</b><span>'+esc(d.f.text||"Follow-up")+(d.l.phone?' \u00b7 '+esc(d.l.phone):'')+'</span></button>';}).join(""):'<div class="nf-empty">No follow-ups scheduled for today.</div>');
+  document.body.appendChild(p);
+}
+document.addEventListener("click",function(e){
+  var it=e.target.closest&&e.target.closest("[data-nflead]");
+  if(it){var id=+it.getAttribute("data-nflead");closeNotif();openLead(id);return;}
+  if(!(e.target.closest&&(e.target.closest("#notifPanel")||e.target.closest("#bellBtn"))))closeNotif();
+});
+(function(){var r0=render;render=function(){var o=r0.apply(this,arguments);try{refreshNotif();}catch(x){}return o;};})();
+setInterval(function(){try{refreshNotif();}catch(x){}},30000);
+try{refreshNotif();}catch(x){}
 })();
 </script>
 <script>
