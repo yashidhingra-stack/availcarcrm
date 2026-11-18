@@ -5619,9 +5619,9 @@ if(su&&su.active&&su.verified&&roleById(su.roleId))signIn(su);else render();
 /* ---------- Follow-up notifications: date wise, to the lead owner only ---------- */
 function followupDue(){
   var u=userById(state.meUser); if(!u)return [];
-  var today=ymd(new Date()),out=[];
+  var today=ymd(new Date()),out=[],adm=hierIsAdmin(u);
   (leads||[]).forEach(function(l){
-    if(l.owner!==u.name||!Array.isArray(l.fu))return;
+    if((!adm&&l.owner!==u.name)||!Array.isArray(l.fu))return;
     l.fu.forEach(function(f){if(f&&!f.done&&f.date===today)out.push({l:l,f:f});});
   });
   return out;
@@ -5636,7 +5636,7 @@ function closeNotif(){var p=document.getElementById("notifPanel");if(p)p.remove(
 function toggleNotif(){
   if(document.getElementById("notifPanel")){closeNotif();return;}
   var due=followupDue(),p=document.createElement("div");p.id="notifPanel";
-  p.innerHTML='<h4>Follow-ups due today</h4>'+(due.length?due.map(function(d){return '<button class="nf-item" data-nflead="'+d.l.id+'"><b>'+esc(d.l.name)+'</b><span>'+esc(d.f.text||"Follow-up")+(d.l.phone?' \u00b7 '+esc(d.l.phone):'')+'</span></button>';}).join(""):'<div class="nf-empty">No follow-ups scheduled for today.</div>');
+  p.innerHTML='<h4>Follow-ups due today</h4>'+(due.length?due.map(function(d){return '<button class="nf-item" data-nflead="'+d.l.id+'"><b>'+esc(d.l.name)+'</b><span>'+esc(d.f.text||"Follow-up")+(d.l.phone?' \u00b7 '+esc(d.l.phone):'')+(hierIsAdmin(userById(state.meUser))?' \u00b7 Owner: '+esc(d.l.owner||"—"):'')+'</span></button>';}).join(""):'<div class="nf-empty">No follow-ups scheduled for today.</div>');
   document.body.appendChild(p);
 }
 document.addEventListener("click",function(e){
