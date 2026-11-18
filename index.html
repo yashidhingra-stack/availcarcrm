@@ -2761,7 +2761,7 @@ function renderDisbLead(l){
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
-   '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-lmove="'+l.id+'"','Move lead by category','swap')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
+   '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
   var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
   var tabs=pddV?[["details","Lead Details"],["pay","Payment Details"],["calc","Calculations"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]];
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
@@ -2793,8 +2793,8 @@ function renderDisbLead(l){
       var mL=all.slice(0,half).map(function(r){return ldRow(r);}), mR=all.slice(half).map(function(r){return ldRow(r);});
       if(state.ldTab==="details"){colL=colL.concat(mL);colR=colR.concat(mR);}else{colL=mL;colR=mR;} /* PDD: merged into Lead Details */
     }
-    var boxBar='<div class="ld-boxbar">'+(state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit '+(state.ldTab==="more"?"additional details":"lead details")+'" title="Edit">'+ldi("pencil")+' Edit</button>')+'</div>';
-    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+(!pddV&&state.ldTab==="details"&&l.stage==="Disbursed"?ndCalcHtml(l):"")+'</section>';
+    var boxBar=state.ldBox?'<div class="ld-boxbar"><button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button></div>':'';
+    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Payment details">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
   } else if(state.ldTab==="pdet"){ h+='<section class="ld-box" aria-label="PDD details">'+pddDetHtml(l)+'</section>';
@@ -2819,7 +2819,7 @@ function renderDisbLead(l){
   q("[data-edcancel]",function(b){b.onmousedown=function(ev){ev.preventDefault();};b.onclick=function(){var ee=document.getElementById("ldE");if(ee)ee.onblur=null;state.ldEdit=null;renderLead();};});
   var dIn=document.getElementById("docIn");if(dIn)dIn.onchange=function(){ldAddFiles(l,dIn.files,state.docSlot);dIn.value="";};
   q("[data-ldarea]",function(t){t.oninput=function(){ldx(l)[t.getAttribute("data-ldarea")]=t.value;};});
-  if(((pddV&&state.ldTab==="calc")||(!pddV&&state.ldTab==="details"))&&l.stage==="Disbursed")ndWire(l,v);
+  if((pddV&&state.ldTab==="calc")&&l.stage==="Disbursed")ndWire(l,v);
   if(pddV&&state.ldTab==="pay")payWire(l,v);
   if(pddV&&state.ldTab==="pdet")pddDetWire(l,v);
   var e=document.getElementById("ldE");
