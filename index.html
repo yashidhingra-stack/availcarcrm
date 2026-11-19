@@ -6005,5 +6005,153 @@ try{refreshNotif();}catch(x){}
   wrapX();window.addEventListener("load",wrapX);setTimeout(wrapX,1500);
 })();
 </script>
+<script>
+/* ---- Voice entry for "Add new lead" (English). Speak the details, review the filled form, then press Add new lead. Nothing is saved by voice alone. ---- */
+(function(){
+  var NUMW={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9};
+  var SMALL={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+  var LABELS=[
+    ["name",["lead name","customer name","client name","name"]],
+    ["phone",["mobile number","phone number","contact number","mobile no","phone no","mobile","phone","contact"]],
+    ["owner",["lead owner","owner"]],
+    ["product",["product","loan type"]],
+    ["status",["lead status","status"]],
+    ["amount",["loan amount","required amount","amount"]],
+    ["vehicle",["vehicle model","car model","vehicle"]],
+    ["year",["year of manufacturing","manufacturing year","year"]],
+    ["lender",["lender","bank name"]],
+    ["dealer",["dealer name","dealer","channel"]],
+    ["caseb",["case booked in","case booked","car booked in","booked in"]],
+    ["email",["email address","email id","email","e-mail"]],
+    ["source",["lead source","source"]],
+    ["reg",["vehicle number","vehicle no","registration number","registration","reg number","reg no","number plate"]],
+    ["bankexec",["bank executive"]]
+  ];
+  var FIELD={name:["aName","Name"],phone:["aPhone","Mobile"],owner:["aOwner","Lead owner"],product:["aProd","Product"],status:["aStatus","Lead status"],amount:["aAmt","Loan amount"],vehicle:["aVeh","Vehicle"],year:["aYear","Year"],lender:["aLender","Lender"],dealer:["aDealer","Dealer"],caseb:["aCase","Case booked in"],email:["aEmail","Email"],source:["aSource","Lead source"],reg:["aReg","Vehicle number"],bankexec:["aBankExec","Bank executive"]};
+  var PHRASE={},ALL=[];
+  LABELS.forEach(function(g){g[1].forEach(function(p){PHRASE[p]=g[0];ALL.push(p);});});
+  ALL.sort(function(a,b){return b.length-a.length;});
+  var LABEL_RE=new RegExp("\\b("+ALL.map(function(p){return p.replace(/[-]/g,"[- ]?").replace(/\s+/g,"\\s+");}).join("|")+")\\b","gi");
+
+  function digitsFromWords(s,keepText){
+    var out="",rep=1;
+    String(s).toLowerCase().split(/[\s,\-]+/).forEach(function(w){
+      if(!w)return;
+      if(w==="double"){rep=2;return;}
+      if(w==="triple"){rep=3;return;}
+      if(Object.prototype.hasOwnProperty.call(NUMW,w)){out+=String(NUMW[w]).repeat(rep);}
+      else out+=w;
+      rep=1;
+    });
+    return out;
+  }
+  function parseAmount(v){
+    var t=String(v).toLowerCase().replace(/,/g,"").replace(/₹|rupees?|rs\.?/g," ").replace(/(\d)\s*k\b/g,"$1 thousand");
+    var total=0,cur=0,any=false,pt=false;
+    t.split(/[\s-]+/).forEach(function(w){
+      if(!w||w==="and")return;
+      if(w==="point"){pt=true;return;}
+      if(pt){var dv=/^\d$/.test(w)?+w:(Object.prototype.hasOwnProperty.call(NUMW,w)?NUMW[w]:null);pt=false;if(dv!==null){cur+=dv/10;return;}}
+      if(/^\d+(\.\d+)?$/.test(w)){cur+=parseFloat(w);any=true;}
+      else if(Object.prototype.hasOwnProperty.call(SMALL,w)){cur+=SMALL[w];any=true;}
+      else if(w==="hundred"){cur=(cur||1)*100;any=true;}
+      else if(w==="thousand"){total+=(cur||1)*1000;cur=0;any=true;}
+      else if(/^(lakh|lakhs|lac|lacs)$/.test(w)){total+=(cur||1)*100000;cur=0;any=true;}
+      else if(/^(crore|crores)$/.test(w)){total+=(cur||1)*10000000;cur=0;any=true;}
+    });
+    total+=cur;
+    return any&&total>0?Math.round(total):null;
+  }
+  function clean(v){
+    return String(v).replace(/^[\s:,=\-]+/,"").replace(/^(is|are|equals?|equal to|of)\s+/i,"").replace(/\s+and\s*$/i,"").replace(/[\s,.:;\-]+$/,"").trim();
+  }
+  function titleCase(s){return s.split(/\s+/).map(function(w){return w?w.charAt(0).toUpperCase()+w.slice(1):w;}).join(" ");}
+
+  function parseVoice(text){
+    var res={},m,hits=[];
+    LABEL_RE.lastIndex=0;
+    text=String(text||"").replace(/\s+/g," ");
+    while((m=LABEL_RE.exec(text))){var nm0=m[1].toLowerCase().replace(/\s+/g," ");hits.push({key:PHRASE[nm0]||PHRASE[nm0.replace(/ /g,"-")]||PHRASE[nm0.replace(/-/g," ")],s:m.index,e:m.index+m[0].length});}
+    hits.forEach(function(h,i){
+      if(!h.key)return;
+      var raw=clean(text.slice(h.e,i+1<hits.length?hits[i+1].s:text.length));
+      if(!raw||res[h.key]!==undefined)return;
+      var v=raw;
+      if(h.key==="name")v=titleCase(raw.replace(/[0-9]/g,"").trim());
+      else if(h.key==="phone"){v=digitsFromWords(raw).replace(/\D/g,"");if(v.length>10)v=v.slice(-10);}
+      else if(h.key==="reg")v=digitsFromWords(raw).toUpperCase().replace(/[^A-Z0-9]/g,"");
+      else if(h.key==="amount")v=parseAmount(raw);
+      else if(h.key==="year"){var y=digitsFromWords(raw).match(/(19|20)\d{2}/);v=y?y[0]:null;}
+      else if(h.key==="email"){
+        v=raw.toLowerCase();
+        if(v.indexOf("@")<0)v=v.replace(/\s+at\s+the\s+rate\s+(of\s+)?/," @ ").replace(/\s+at\s+/," @ ");
+        v=v.replace(/\s+dot\s+/g,".").replace(/\s+underscore\s+/g,"_").replace(/\s+(dash|hyphen)\s+/g,"-").replace(/\s+/g,"");
+      }
+      if(v===null||v==="")return;
+      res[h.key]=v;
+    });
+    return res;
+  }
+  if(typeof module!=="undefined")module.exports={parseVoice:parseVoice,parseAmount:parseAmount};
+  if(typeof document==="undefined"||typeof window==="undefined")return;
+
+  /* ---------- matching spoken words to dropdown options ---------- */
+  var ALIAS={ucp:"used car purchase",ucr:"used car refinance",ncl:"new car loan"};
+  function nz(s){return String(s).toLowerCase().replace(/[^a-z0-9]/g,"");}
+  function pick(sel,spoken){
+    var sp=ALIAS[nz(spoken)]||spoken,t=nz(sp),opts=[].slice.call(sel.options).filter(function(o){return o.value!==""||o.text!=="";}),i,best=null,bs=0;
+    if(!t)return null;
+    for(i=0;i<opts.length;i++)if(nz(opts[i].value||opts[i].text)===t)return opts[i].value||opts[i].text;
+    if(t.length>=3)for(i=0;i<opts.length;i++){var on=nz(opts[i].value||opts[i].text);if(on.indexOf(t)>-1||(on.length>=3&&t.indexOf(on)>-1))return opts[i].value||opts[i].text;}
+    var toks=String(sp).toLowerCase().split(/[^a-z0-9]+/).filter(function(w){return w.length>=3;});
+    opts.forEach(function(o){var on=nz(o.value||o.text),sc=0;toks.forEach(function(w){if(on.indexOf(w)>-1)sc++;});if(sc>bs){bs=sc;best=o;}});
+    return best?(best.value||best.text):null;
+  }
+
+  /* ---------- UI ---------- */
+  var st=document.createElement("style");
+  st.textContent=".vbar{border:1px dashed var(--line);border-radius:10px;padding:10px;margin:0 0 12px;background:var(--bg)}.vrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vrow .btn{display:inline-flex;align-items:center;gap:6px}.vrow svg{width:16px;height:16px}.vstat{font-size:12px;color:var(--muted);flex:1;min-width:150px}#voiceText{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);resize:vertical}#voiceMic.rec{background:var(--bad);border-color:var(--bad);color:#fff}@keyframes vpulse{50%{opacity:.55}}#voiceMic.rec svg{animation:vpulse 1s infinite}";
+  document.head.appendChild(st);
+  var MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
+  var rec=null,listening=false,lastErr="";
+  function $(id){return document.getElementById(id);}
+  function stat(t){var e=$("voiceStat");if(e)e.textContent=t;}
+  function ui(){var b=$("voiceMic");if(!b)return;b.classList.toggle("rec",listening);b.innerHTML=MIC+(listening?" Stop":" Speak lead details");}
+  function stop(){try{if(rec)rec.stop();}catch(e){}}
+  function start(){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){stat("Voice input needs Chrome or Edge.");return;}
+    var box=$("voiceText"),base=box.value.trim()?box.value.trim()+" ":"";lastErr="";
+    rec=new SR();rec.lang="en-IN";rec.continuous=true;rec.interimResults=true;
+    rec.onresult=function(e){var t="",i;for(i=0;i<e.results.length;i++)t+=e.results[i][0].transcript+" ";box.value=(base+t).trim();};
+    rec.onerror=function(e){lastErr=e.error;stat({"not-allowed":"Microphone is blocked. Allow it in the browser's site settings.","service-not-allowed":"Microphone is blocked. Allow it in the browser's site settings.","no-speech":"Did not hear anything. Tap the mic and try again.","audio-capture":"No microphone found.","network":"Voice input needs an internet connection."}[e.error]||"Voice error: "+e.error);};
+    rec.onend=function(){listening=false;ui();if(!lastErr&&$("voiceText")&&$("voiceText").value.trim())fill();};
+    try{rec.start();listening=true;ui();stat("Listening... say the details, then tap Stop.");}catch(e){stat("Could not start the microphone.");}
+  }
+  function setVal(id,v){var el=$(id);if(!el)return false;el.value=v;el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}));el.style.outline="2px solid var(--ok)";setTimeout(function(){el.style.outline="";},3000);return true;}
+  function fill(){
+    if(!$("aName")||!$("voiceText"))return;
+    var p=parseVoice($("voiceText").value),done=[],bad=[],warn=[],k;
+    for(k in p){
+      var f=FIELD[k],el=$(f[0]),v=p[k];if(!el)continue;
+      if(el.tagName==="SELECT"){var o=pick(el,v);if(o===null)bad.push(f[1]+' "'+v+'"');else{setVal(f[0],o);done.push(f[1]);}}
+      else{setVal(f[0],v);done.push(f[1]);if(k==="phone"&&String(v).length!==10)warn.push("Mobile has "+String(v).length+" digits");}
+    }
+    if(!done.length&&!bad.length){stat('Nothing recognised. Start each detail with its field name, e.g. "name Rahul Sharma, mobile 9876543210".');return;}
+    stat((done.length?"Filled: "+done.join(", ")+". ":"")+(bad.length?"Not matched (pick manually): "+bad.join(", ")+". ":"")+(warn.length?warn.join(". ")+". ":"")+"Check the form, then press Add new lead.");
+  }
+  function inject(){
+    var m=$("modal");if(!m)return;
+    if(!m.querySelector("#aName")||!m.querySelector("#saveLead")){if(listening)try{rec.abort();}catch(e){}return;}
+    if(m.querySelector("#voiceBar"))return;
+    var bar=document.createElement("div");bar.id="voiceBar";bar.className="vbar";
+    bar.innerHTML='<div class="vrow"><button type="button" class="btn" id="voiceMic">'+MIC+' Speak lead details</button><button type="button" class="btn" id="voiceFill">Fill form</button><span class="vstat" id="voiceStat"></span></div><textarea id="voiceText" rows="2" aria-label="Spoken lead details" placeholder="Say, for example: name Rahul Sharma, mobile 9876543210, product used car purchase, amount 5 lakh, vehicle Swift, dealer Singh Motors"></textarea>';
+    var h=m.querySelector("h2");if(h)h.insertAdjacentElement("afterend",bar);else m.insertBefore(bar,m.firstChild);
+    $("voiceMic").addEventListener("click",function(){if(listening)stop();else start();});
+    $("voiceFill").addEventListener("click",fill);
+  }
+  var md=$("modal");if(md){new MutationObserver(inject).observe(md,{childList:true});inject();}
+})();
+</script>
 </body>
 </html>
