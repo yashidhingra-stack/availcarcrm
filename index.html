@@ -692,7 +692,7 @@ function canonOwner(n){var t=String(n==null?"":n).replace(/\s+/g," ").trim();ret
 var products=["Used Car Purchase","Used Car Refinance","New Car Loan","Car Top-up","Balance Transfer"];
 var pcolor=["#2b7de9","#3aa76d","#f2a900","#e4572e","#7c5cc4"];
 var stages=["Audience","Login","Hold","Disbursed","Rejected"];
-var stageName={Audience:"Audience",Login:"Login business",Hold:"Hold",Disbursed:"Approved business",Rejected:"Reject business"};
+var stageName={Audience:"Audience",Login:"Login business",Hold:"Hold",Disbursed:"Login disbursement",Rejected:"Reject business"};
 var STATUS=[["Open","Audience"],["Follow Up","Audience"],["Call not picked","Audience"],["Wrong No","Audience"],["Call later","Audience"],["Call Invalid","Audience"],["Not Interested","Audience"],["Interested","Audience"],["KYC Collected","Audience"],["Documents Collected","Audience"],["Login Pending","Login"],["Login","Login"],["Approval Pending","Login"],["Approved","Login"],["Finally Hold","Hold"],["Partially Hold","Hold"],["Approved But Hold","Hold"],["Postponed","Hold"],["Disburse","Disbursed"],["Disbursement Pending","Disbursed"],["File Approved in RTO","Disbursed"],["Reject","Rejected"],["Finally Reject","Rejected"]];
 var statusStage={}; STATUS.forEach(function(x){statusStage[x[0]]=x[1];});
 var SC={"Open":"#e8c33a","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#7c5cc4","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Postponed":"#e08a1e","Disburse":"#2f8f5b","Pending":"#e8c33a","Received":"#2f8f5b","Overdue":"#c43d3d","Disbursement Pending":"#e8c33a","Reject":"#c43d3d"};
@@ -851,7 +851,7 @@ var state={route:"dashboard",range:{from:ymd(new Date(TODAY.getTime()-29*864e5))
   sf:{name:true,phone:true,veh:true,lender:false,dealer:false},
   widgets:[
    {id:"w1",title:"Leads pending – Audience",kind:"stack",stage:"Audience"},
-   {id:"w2",title:"Approved business",kind:"stack",stage:"Disbursed"},
+   {id:"w2",title:"Login disbursement",kind:"stack",stage:"Disbursed"},
    {id:"w3",title:"Login business",kind:"stack",stages:["Login"]},
    {id:"w4",title:"PDD status",kind:"pdd"}],
   removed:[]};
@@ -862,7 +862,7 @@ var H0=280, charts={};
 /* ---------- nav ---------- */
 var NAV=[
  {id:"dashboard",label:"Dashboard",icon:"grid"},
- {id:"leads",label:"Leads",icon:"users",kids:[["leads/Audience","Audience"],["leads/Login","Login business"],["leads/Hold","Hold"],["leads/Disbursed","Approved business"],["leads/Rejected","Reject business"],["leads/pdd","PDD status"],["leads/data","Data"]]},
+ {id:"leads",label:"Leads",icon:"users",kids:[["leads/Audience","Audience"],["leads/Login","Login business"],["leads/Hold","Hold"],["leads/Disbursed","Login disbursement"],["leads/Rejected","Reject business"],["leads/pdd","PDD status"],["leads/data","Data"]]},
  {id:"major",label:"Major Reports",icon:"chart",kids:[]},
  {id:"dealer-details",label:"Dealer Details",icon:"db",perm:"Major Reports"},
  {id:"data",label:"Data",icon:"db",merged:true,kids:[["data/report","Leads report"],["data/analysis","Analysis"],["data/download","Download data"]]},
@@ -1067,7 +1067,7 @@ function leadRows(key,noSel){
     if(key==="Close"&&!inCloseNow(l))return false;
     if(key==="Close"&&l.pddImp&&pddAdminHidden())return false;
     if(key==="pdd"&&l.pddImp&&pddAdminHidden())return false;
-    if(key==="Disbursed"&&(inPddNow(l)||l.status==="Disburse"))return false; /* Disburse files live in PDD Status, not in Approved business */
+    if(key==="Disbursed"&&(inPddNow(l)||l.status==="Disburse"))return false; /* Disburse files live in PDD Status, not in Login disbursement */
     if(key!=="pdd"&&key!=="Close"&&key!=="data"&&l.status===RTO_ST&&!(key==="Disbursed"&&!inPddNow(l)))return false;
     if(!noSel&&state.sel.length&&state.sel.indexOf((key==="pdd"||key==="Close")?pddSt(l):l.status)<0)return false;
     if(f.product&&l.product!==f.product)return false;
@@ -1139,7 +1139,7 @@ function selectField(k,label,list){
 
 function lenderOptions(){
   /* Full lender/bank master list shown consistently in Audience, Login Business,
-     and Approved Business filters, plus every lender present in loaded data. */
+     and Login Disbursement filters, plus every lender present in loaded data. */
   var master=[
     "AU Small Finance Bank","Axis Bank","Bank of Baroda","Bank of India","Bank of Maharashtra",
     "Canara Bank","Central Bank of India","Cholamandalam Finance","City Union Bank",
@@ -1568,7 +1568,7 @@ async function saveCsv(name,csv,fid){
   }catch(e){toast("Could not create the Excel file");}
 }
 var CALC={
- Disbursed:{slug:"approved-business",total:"Total approved business",cards:["Disbursement Pending"],cols:["Disbursement Pending"],empty:"No approved business files in this period."},
+ Disbursed:{slug:"login-disbursement",total:"Total login disbursement",cards:["Disbursement Pending"],cols:["Disbursement Pending"],empty:"No login disbursement files in this period."},
  Login:{slug:"login-business",total:"Total login business",cards:["Login Pending","Login","Approval Pending","Approved"],cols:["Login Pending","Login","Approval Pending","Approved"],empty:"No login business files in this period."},
  pdd:{slug:"pdd",total:"Total PDD business",field:"pddSt",cards:pddOpenList(),cols:pddOpenList(),empty:"No PDD files in this period."}};
 function calcOn(key){return !!CALC[key]&&(key!=="Login"||canLoginCalc());}
@@ -2034,7 +2034,7 @@ function importPddRows(data,silent){
     l.status="Disburse";l.stage="Disbursed";l.pdd=l.pdd&&l.pdd!=="—"?l.pdd:"Pending";l.pddSt=stg;l.px=px;
     l.make=make||l.make;if(mdl||make)l.vehicle=mdl||make;if(reg)l.reg=reg;
     if(prod)l.product=prod;if(amt)l.amount=amt;if(lend)l.lender=lend;if(dlr)l.dealer=dlr;
-    if(own&&!(matched&&l.owner))l.owner=ownHit||own; /* a file already in Approved business keeps its Lead Owner */
+    if(own&&!(matched&&l.owner))l.owner=ownHit||own; /* a file already in Login disbursement keeps its Lead Owner */
     var yr=cleanVal(get("year_of_manufacturing","Year"));if(yr)l.year=yr;
     var em=cleanVal(get("email"));if(em)l.email=em;
     if(note)l.note=note;
@@ -2541,7 +2541,7 @@ function ndCalcHtml(l){
   return '<section class="nd-card" aria-label="Net disbursement calculator"><h3 class="nd-h">Net Disbursement Calculator</h3><div class="nd-grid">'+
     f("loan","Loan amount",l.amount||"")+f("pf","Processing fees",nd.pf)+f("ch","Challan charges",nd.ch)+f("rto","RTO charges",nd.rto)+f("oth","Other amount (if any)",nd.oth)+
     '</div><div class="nd-res"><div><small>Total deductions</small><strong id="ndDed">—</strong></div><div><small>Net disbursement</small><strong id="ndNet">—</strong></div></div>'+
-    '<h4 class="nd-sub">Payments to client</h4><div class="nd-grid">'+f("p1","Payment 1",nd.p1)+f("p2","Payment 2",nd.p2)+f("p3","Payment 3",nd.p3)+'</div>'+
+    '<h4 class="nd-sub">Payments to client</h4><div class="nd-grid">'+f("p1","Payment 1",nd.p1)+f("p2","Payment 2",nd.p2)+f("p3","Payment 3",nd.p3)+f("hold","Hold payment",nd.hold)+'</div>'+
     '<div class="nd-res"><div><small>Total paid</small><strong id="ndPaid">—</strong></div><div><small>Balance to pay</small><strong id="ndBal">—</strong></div></div>'+
     '<div class="nd-f nd-rem"><label for="nd_rem">Remarks (including any hold payment)</label><textarea id="nd_rem" data-ndrem rows="3">'+esc(nd.rem||"")+'</textarea></div>'+
     '<div class="nd-foot"><button class="btn primary" data-ndsave>Save</button></div>'+
@@ -2639,7 +2639,7 @@ function ndWire(l,v){
     document.getElementById("ndPaid").textContent=money(paid);b.textContent=money(bal);b.classList.toggle("neg",bal<0);}
   box.querySelectorAll("[data-nd]").forEach(function(e){e.oninput=upd;});upd();
   box.querySelector("[data-ndsave]").onclick=function(){
-    var ks=["loan","pf","ch","rto","oth","p1","p2","p3"];
+    var ks=["loan","pf","ch","rto","oth","p1","p2","p3","hold"];
     if(ks.some(function(k){return num(k)<0;})){toast("Amounts cannot be negative");return;}
     var loan=num("loan");if(!loan){toast("Enter the loan amount");return;}
     var ded=num("pf")+num("ch")+num("rto")+num("oth"),net=loan-ded;
@@ -2648,7 +2648,7 @@ function ndWire(l,v){
     if(paid>net){toast("Payments are more than the net disbursement");return;}
     var x=ldx(l);
     if(loan!==+l.amount){l.amount=loan;l.hist.unshift({ts:stamp(),text:"Loan amount updated to "+money(loan),type:"system"});}
-    x.nd={pf:raw("pf"),ch:raw("ch"),rto:raw("rto"),oth:raw("oth"),p1:raw("p1"),p2:raw("p2"),p3:raw("p3"),rem:box.querySelector("[data-ndrem]").value.trim()};
+    x.nd={pf:raw("pf"),ch:raw("ch"),rto:raw("rto"),oth:raw("oth"),p1:raw("p1"),p2:raw("p2"),p3:raw("p3"),hold:raw("hold"),rem:box.querySelector("[data-ndrem]").value.trim()};
     x.net=String(net);if(num("rto")>0)x.rto=String(num("rto"));
     l.hist.unshift({ts:stamp(),text:"Net disbursement saved: "+money(net)+" (loan "+money(loan)+" less charges "+money(ded)+")"+(paid?"; paid "+money(paid)+", balance "+money(net-paid):""),type:"system"});
     saveLeads();toast("Net disbursement saved");if(state.route.indexOf("payments")===0)renderPayments();else renderLead();
@@ -2844,7 +2844,7 @@ function renderDisbLead(l){
 
 /* ---------- move lead by category ---------- */
 function moveCats(){
-  var out=[],map={"Audience":"Audience","Login":"Login Business","Hold":"Hold","Disbursed":"Approved Business","Rejected":"Reject Business","pdd":"PDD Status"};
+  var out=[],map={"Audience":"Audience","Login":"Login Business","Hold":"Hold","Disbursed":"Login Disbursement","Rejected":"Reject Business","pdd":"PDD Status"};
   cats.forEach(function(c){
     if(c.key==="Disbursed"&&!canDo("Leads","Move to Disbursement"))return;
     if(c.key==="pdd"&&!canDo("Leads","Move to PDD"))return;
@@ -2879,7 +2879,7 @@ function moveOwnerOptions(){
 function moveNextKeys(l){
   if(!l||l.cat)return null; /* custom-category leads keep the full list */
   if(inPddNow(l))return [];
-  var map={Audience:["Login"],Login:["Disbursed","Hold","Rejected"],Hold:["Disbursed","Rejected"],Disbursed:["pdd"],Rejected:["Login"]};
+  var map={Audience:["Login"],Login:["Disbursed","Hold","Rejected"],Hold:["Disbursed","Rejected"],Disbursed:["pdd","Hold"],Rejected:["Login"]};
   return map[l.stage]||null;
 }
 function openMoveCat(id){
@@ -2916,7 +2916,7 @@ function submitMoveCat(){
     purgeEarlierCopies(l);saveLeads();
     closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);return;
   }
-  var shown=ns; /* Approved Business: Open / Disbursed / Disbursement Pending all keep the lead in that stage */
+  var shown=ns; /* Login Disbursement: Open / Disbursed / Disbursement Pending all keep the lead in that stage */
   if(ck==="Disbursed"&&(ns==="Open"||ns==="Disbursed")){ns="Disburse";if(shown==="Open")l.pddSt="Open";}
   delete l.pddMoved; l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
@@ -2936,13 +2936,13 @@ document.addEventListener("click",function(e){
   if(e.target.id==="mvSubmit")submitMoveCat();
 },true);
 
-/* ---------- bulk move: Approved business -> PDD ---------- */
+/* ---------- bulk move: Login disbursement -> PDD ---------- */
 function pddEligible(l){return !!l&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST)&&!inPddNow(l);}
 function openBulkPdd(){
   var ids=Object.keys(state.dsel||{}).filter(function(k){return state.dsel[k];}),n=ids.filter(function(k){return pddEligible(lead(+k));}).length;
   if(!n){toast("Select at least one file first");return;}
   var m=document.getElementById("modal");m.className="modal";
-  m.innerHTML='<h2>Move to PDD?</h2><p>'+n+' disbursed file'+(n===1?"":"s")+' will move from Approved business to PDD Status (PDD status: Open). To undo a file, open it and use Move lead by category.</p><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="dsConfirm">Move '+n+' to PDD</button></div>';
+  m.innerHTML='<h2>Move to PDD?</h2><p>'+n+' disbursed file'+(n===1?"":"s")+' will move from Login disbursement to PDD Status (PDD status: Open). To undo a file, open it and use Move lead by category.</p><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="dsConfirm">Move '+n+' to PDD</button></div>';
   m.classList.add("show");showOverlay(true);
 }
 function bulkMovePdd(){
@@ -3129,7 +3129,7 @@ function drawAnalysis(rows){
   mk("an4",{type:"bar",data:{labels:products,datasets:[{data:products.map(function(n){return rows.filter(function(l){return l.product===n;}).length;}),backgroundColor:pcolor}]},options:Object.assign({},base,{scales:axes(),plugins:{legend:{display:false}}})});
 }
 var EXP=[["id","Lead ID"],["ts","Entry date"],["name","Name"],["phone","Mobile"],["product","Product"],["amount","Loan amount"],["vehicle","Vehicle model"],["reg","Vehicle number"],["lender","Lender"],["dealer","Dealer name"],["status","Lead status"],["stage","Stage"],["owner","Lead owner"],["caseBooked","Case booked in"],["audId","Audience Id"],["source","Source"]];
-var DLTYPES=[["Audience","Audience"],["Login","Login Business"],["Hold","Hold"],["Disbursed","Approved Business"],["Rejected","Reject Business"]];
+var DLTYPES=[["Audience","Audience"],["Login","Login Business"],["Hold","Hold"],["Disbursed","Login Disbursement"],["Rejected","Reject Business"]];
 state.reports=[];state.dltype="Audience";state.segQ="";state.segEdit=null;
 var repNext=1;
 function typeLabel(k){return DLTYPES.filter(function(x){return x[0]===k;})[0][1];}
@@ -3298,7 +3298,7 @@ var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes
 var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
 var PERM={
  "Dashboard":[["Actions",DASH_ACTS]],
- "Leads":[["Pages",["Audience","Login Business","Hold","Approved Business","Reject Business","PDD Status"]],["Actions",["View lead","Add lead","Import leads","Delete lead","Move to Disbursement","Move to PDD"]],["Features",["Login Business Calculator"]]],
+ "Leads":[["Pages",["Audience","Login Business","Hold","Login Disbursement","Reject Business","PDD Status"]],["Actions",["View lead","Add lead","Import leads","Delete lead","Move to Disbursement","Move to PDD"]],["Features",["Login Business Calculator"]]],
  "Major Reports":[["Pages",["Channel List","Data","Leads report","Analysis","Download data","Staff details","Dealer details"]]],
  "Custom attributes":[["Pages",["Custom"]]],
  "Category":[["Pages",["Category"]]]};
@@ -3321,7 +3321,7 @@ roles.forEach(function(r){state.perm[r.id]=defPerm(r.id);});
   var p=state.perm[14];if(!p)return;
   p.m["Dashboard"]=true;p.m["Leads"]=true;
   (PERM["Leads"][0][1]||[]).forEach(function(it){p.i["Leads::"+it]=false;});
-  ["Audience","Login Business","Hold","Reject Business","Approved Business"].forEach(function(it){p.i["Leads::"+it]=true;});
+  ["Audience","Login Business","Hold","Reject Business","Login Disbursement"].forEach(function(it){p.i["Leads::"+it]=true;});
   ["View lead","Import leads","Add lead"].forEach(function(it){p.i["Leads::"+it]=true;});
   p.i["Leads::Delete lead"]=false;
   p.i["Leads::Move to Disbursement"]=false;p.i["Leads::Move to PDD"]=false;
@@ -3340,7 +3340,7 @@ function permAdopt(j){
   roleNext=Math.max(+j.next||0,roleNext,roles.reduce(function(m,r){return Math.max(m,r.id+1);},1));
   Object.keys(state.perm).forEach(function(k){delete state.perm[k];});
   roles.forEach(function(r){state.perm[r.id]=j.perm[r.id]||defPerm(r.id);});
-  Object.keys(state.perm).forEach(function(k){var i=state.perm[k]&&state.perm[k].i;if(i&&i["Leads::Disbursement Business"]!==undefined&&i["Leads::Approved Business"]===undefined)i["Leads::Approved Business"]=i["Leads::Disbursement Business"];});
+  Object.keys(state.perm).forEach(function(k){var i=state.perm[k]&&state.perm[k].i;if(!i||i["Leads::Login Disbursement"]!==undefined)return;["Leads::Approved Business","Leads::Disbursement Business"].forEach(function(o){if(i["Leads::Login Disbursement"]===undefined&&i[o]!==undefined)i["Leads::Login Disbursement"]=i[o];});});
   if(state.perm[13])state.perm[13].m["User management"]=true;
   return true;
 }
@@ -3353,7 +3353,7 @@ function anuEnsure(u){return;} /* no hard-wired user: access follows Roles, Perm
 function permNow(){return state.perm[state.meRole];} /* only the permissions Admin gave to the role */
 function canMod(m){var p=permNow();return !!(p&&p.m[m]);}
 function canDo(m,it){var p=permNow();return !!(p&&p.m[m]&&p.i[m+"::"+it]);}
-var LEAD_PAGE={Audience:"Audience",Login:"Login Business",Hold:"Hold",Disbursed:"Approved Business",Rejected:"Reject Business",pdd:"PDD Status",Close:"PDD Status"};
+var LEAD_PAGE={Audience:"Audience",Login:"Login Business",Hold:"Hold",Disbursed:"Login Disbursement",Rejected:"Reject Business",pdd:"PDD Status",Close:"PDD Status"};
 var INTEG={forms:"Forms",marketplace:"Marketplace",social:"Social Media",api:"API",bulk:"Bulk",custom:"Custom",telephony:"Telephony",ivr:"IVR",generic:"Generic"};
 var CH_ACT={"Push notification":"Create Push","SMS campaign":"Create SMS","Email campaign":"Create Email","WhatsApp campaign":"Create Whatsapp","In-app notification":"In-App Campaign","Journey campaign":"Create Journey","Auto call campaign":"IVR Campaign"};
 function canChannel(i){return canDo("Dashboard",CH_ACT[channels[i][0]]);}
@@ -4080,7 +4080,7 @@ function bulkImportClick(){
 }
 /* ---------- category ---------- */
 var MAXCAT=15, catNext=20;
-var cats=[[1,"Audience","Audience"],[2,"Login Business","Login"],[3,"Hold","Hold"],[4,"Approved Business","Disbursed"],[5,"Reject Business","Rejected"],[6,"Channel List","channel"],[7,"PDD Status","pdd"],[8,"Data","data"]]
+var cats=[[1,"Audience","Audience"],[2,"Login Business","Login"],[3,"Hold","Hold"],[4,"Login Disbursement","Disbursed"],[5,"Reject Business","Rejected"],[6,"Channel List","channel"],[7,"PDD Status","pdd"],[8,"Data","data"]]
   .map(function(x){return {id:x[0],name:x[1],key:x[2],built:true};});
 state.catEdit=null;
 function catKids(){return cats.map(function(c){return ["leads/"+c.key,c.key==="channel"?"Business Reports":c.name];});}
@@ -4371,6 +4371,7 @@ function lpCustRows(){
     if(l.stage!=="Disbursed"||l.cat)return;
     var pdd=inPddNow(l),net=lpNet(l),paid=0,hold=0;
     lpPays(l).forEach(function(e){if(lpType(e)==="customer"){paid+=lpNum(e.amt);hold+=lpNum(e.hold);}});
+    var nd0=ldx(l).nd||{};paid+=lpNum(nd0.p1)+lpNum(nd0.p2)+lpNum(nd0.p3);hold+=lpNum(nd0.hold);
     var r=lpNum(lpPddAmount(l,"RTO charges")),c=lpNum(lpPddAmount(l,"Challan charges")),o=lpNum(lpPddAmount(l,"Other charges"));
     var bal=net===null?null:Math.max(0,net-paid);
     var ps=paid<=0?"Pending":(bal!==null&&bal<=0?"Paid":"Part paid");
@@ -4396,16 +4397,16 @@ function lpDuesHtml(){
   function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' file'+(n===1?"":"s")+'</span></div>';}
   var cards='<div class="sumbar">'+card("Net disbursement",T.net,T.netN)+card("PDD charges",T.ch,T.chN)+card("Paid to customers",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'</div>';
   var filt='<div class="tb pfilt" style="margin:8px 0 12px;flex-wrap:wrap"><input id="cf_q" type="search" placeholder="Search name, mobile, vehicle no., dealer, lender" value="'+esc(f.q)+'" aria-label="Search customers">'+
-    '<select id="cf_stage" aria-label="Stage">'+lpOpt([["approved","Approved business"],["pdd","PDD status (Disburse)"]],f.stage,"All stages")+'</select>'+
+    '<select id="cf_stage" aria-label="Stage">'+lpOpt([["approved","Login disbursement"],["pdd","PDD status (Disburse)"]],f.stage,"All stages")+'</select>'+
     '<select id="cf_lender" aria-label="Lender">'+lpOpt(Object.keys(lenders).sort(),f.lender,"All lenders")+'</select>'+
     '<select id="cf_dealer" aria-label="Dealer">'+lpOpt(Object.keys(dealers).sort(),f.dealer,"All dealers")+'</select>'+
     '<select id="cf_pay" aria-label="Payment status">'+lpOpt(["Pending","Part paid","Paid"],f.pay,"All payment status")+'</select>'+
     '<select id="cf_hold" aria-label="Hold payment">'+lpOpt([["yes","With hold payment"]],f.hold,"Any hold")+'</select>'+
     '<button class="btn" id="cfClear">Clear</button><button class="btn" id="cfCsv">Download Excel</button></div>';
   var tbl=rows.length?'<div class="tscroll"><table class="pm-tbl" style="min-width:1100px"><thead><tr><th>Customer</th><th>Mobile</th><th>Vehicle no.</th><th>Lender</th><th>Stage</th><th>Loan amount</th><th>Net disbursement</th><th>PDD charges</th><th>Hold payment</th><th>Paid</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
-    rows.slice(0,200).map(function(r){var l=r.l,n=esc(l.name);return '<tr><td><button class="name-link" data-view="'+l.id+'" title="Open lead">'+n+'</button></td><td>'+esc(l.phone||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+(r.pdd?'PDD status':'Approved')+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.ch)+'</td><td>'+m(r.hold)+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td><td><div class="act"><button class="icon-btn seg-eye" data-view="'+l.id+'" aria-label="View '+n+'" title="View">'+ic("eye")+'</button><button class="icon-btn seg-edit" data-ledit2="'+l.id+'" aria-label="Edit '+n+'" title="Edit">'+ic("pencil")+'</button><button class="btn" data-lppay="'+l.id+'">Pay</button></div></td></tr>';}).join("")+
+    rows.slice(0,200).map(function(r){var l=r.l,n=esc(l.name);return '<tr><td><button class="name-link" data-view="'+l.id+'" title="Open lead">'+n+'</button></td><td>'+esc(l.phone||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+(r.pdd?'PDD status':'Login disbursement')+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.ch)+'</td><td>'+m(r.hold)+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td><td><div class="act"><button class="icon-btn seg-eye" data-view="'+l.id+'" aria-label="View '+n+'" title="View">'+ic("eye")+'</button><button class="icon-btn seg-edit" data-ledit2="'+l.id+'" aria-label="Edit '+n+'" title="Edit">'+ic("pencil")+'</button><button class="btn" data-lppay="'+l.id+'">Pay</button></div></td></tr>';}).join("")+
     '</tbody><tfoot><tr><th colspan="5">Total ('+rows.length+')</th><th>'+m(T.loan)+'</th><th>'+m(T.net)+'</th><th>'+m(T.ch)+'</th><th>'+m(T.hold)+'</th><th>'+m(T.paid)+'</th><th>'+m(T.bal)+'</th><th colspan="2"></th></tr></tfoot></table></div>'+(rows.length>200?'<p class="note">Showing the first 200. Use the filters to narrow the list.</p>':''):
-    '<p class="note">No files match. Files appear here once they move from Login business to Approved business or PDD status.</p>';
+    '<p class="note">No files match. Files appear here once they move from Login business to Login disbursement or PDD status.</p>';
   return cards+'<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer leads (approved and disbursed files)</h3>'+filt+tbl+'<p class="note">PDD charges come from PDD Details and net disbursement from the calculator below, so anything saved there shows here automatically. Click a name to open the lead, or use Pay to start a payment.</p></section>';
 }
 function lpTabHtml(kind){
@@ -4428,7 +4429,8 @@ function lpTabHtml(kind){
     rows.map(function(r){var e=r.e;return '<tr><td>'+esc(e.date?fmtDate(e.date):"")+'</td><td>'+esc(r.l.name)+'</td><td>'+esc(r.l.reg||"—")+'</td><td>'+esc(lpTypeName(e))+'</td><td>'+esc(e.cat||"—")+'</td><td>'+esc(lpParty(r.l,e))+'</td><td>'+esc(money(parseFloat(e.amt)||0))+'</td><td>'+esc(e.mode||"—")+'</td><td>'+esc(money(parseFloat(e.hold)||0))+'</td><td>'+esc(e.rem||"")+'</td><td><button class="btn" data-lpdel="'+r.l.id+'|'+r.i+'">Delete</button></td></tr>';}).join("")+
     '</tbody><tfoot><tr><th colspan="6">Total ('+rows.length+')</th><th>'+esc(money(tot))+'</th><th></th><th>'+esc(money(hold))+'</th><th></th><th></th></tr></tfoot></table></div>':'<p class="note">No payments match.</p>';
   var filt='<div class="tb pfilt" style="margin:14px 0 8px"><input id="lp_fq" type="search" placeholder="Search customer, mobile, vehicle, paid to" value="'+esc(f.fq)+'">'+(one?"":'<select id="lp_ft">'+lpOpt(cfg.types,f.ft,"All types")+'</select>')+'<select id="lp_fc">'+lpOpt(cfg.cats,f.fc,"All categories")+'</select><button class="btn" id="lpCsv">Download Excel</button></div>';
-  var calcBox=kind==="customer"?(f.lead&&lead(f.lead)?ndCalcHtml(lead(f.lead)):'<p class="note" style="margin-top:12px">Select a lead in the form above, or press Pay on a row, to open its net disbursement calculator here.</p>'):"";
+  var calcBox=kind==="customer"?(f.lead&&lead(f.lead)?'<p class="note" style="margin-top:14px">Calculator for <b>'+esc(lead(f.lead).name)+'</b></p>'+ndCalcHtml(lead(f.lead)):""):"";
+  if(kind==="customer")return lpDuesHtml()+calcBox;
   return (kind==="customer"?lpDuesHtml():"")+form+calcBox+'<section class="nd-card" aria-label="Payments added"><h3 class="nd-h">'+esc(cfg.title)+' added</h3>'+filt+table+'</section>';
 }
 function lpWire(kind){
@@ -4449,6 +4451,19 @@ function lpWire(kind){
     var l=cl(),c=g("lp_cat").value,h=g("lp_hint");
     if(l&&(LP_CHG.indexOf(c)>-1||c==="Net disbursement")){var a=lpPddAmount(l,c);if(a!==null){g("lp_amt").value=a;h.textContent="Fetched from "+(c==="Net disbursement"?"Calculations":"PDD Details")+": "+money(a);return;}h.textContent="No "+c+" saved for this lead yet.";return;}
     h.textContent="";
+  }
+  if(kind==="customer"){
+    var cf=state.lp.cf;if(state.lp.lead&&lead(state.lp.lead))ndWire(lead(state.lp.lead),v);
+    g("cf_q").onchange=function(){cf.q=this.value;renderPayments();};
+    [["cf_stage","stage"],["cf_lender","lender"],["cf_dealer","dealer"],["cf_pay","pay"],["cf_hold","hold"]].forEach(function(p){g(p[0]).onchange=function(){cf[p[1]]=this.value;renderPayments();};});
+    g("cfClear").onclick=function(){state.lp.cf={q:"",lender:"",dealer:"",stage:"",pay:"",hold:""};renderPayments();};
+    v.querySelectorAll("[data-lppay]").forEach(function(b){b.onclick=function(){state.lp.lead=+b.getAttribute("data-lppay");renderPayments();var c=v.querySelector('[aria-label="Net disbursement calculator"]');if(c)c.scrollIntoView({behavior:"smooth",block:"start"});};});
+    g("cfCsv").onclick=function(){
+      var rows=[["Customer","Mobile","Vehicle number","Lender","Dealer","Stage","Loan amount","Net disbursement","PDD charges","Hold payment","Paid","Balance","Payment status"]];
+      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Login disbursement",lpNum(l.amount),r.net===null?"":r.net,r.ch,r.hold,r.paid,r.bal===null?"":r.bal,r.ps]);});
+      saveCsv("customer-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
+    };
+    return;
   }
   g("lp_q").oninput=function(){state.lp.q=this.value;g("lp_lead").innerHTML=lpLeadSelectHtml(state.lp.lead,state.lp.q);};
   g("lp_lead").onchange=function(){state.lp.lead=+this.value||0;if(kind==="customer"){renderPayments();return;}fillParty();fillAmt();};
@@ -4481,7 +4496,7 @@ function lpWire(kind){
     v.querySelectorAll("[data-lppay]").forEach(function(b){b.onclick=function(){state.lp.lead=+b.getAttribute("data-lppay");state.lp.q="";renderPayments();var f=document.getElementById("lp_lead");if(f)f.scrollIntoView({behavior:"smooth",block:"center"});};});
     g("cfCsv").onclick=function(){
       var rows=[["Customer","Mobile","Vehicle number","Lender","Dealer","Stage","Loan amount","Net disbursement","PDD charges","Hold payment","Paid","Balance","Payment status"]];
-      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Approved",lpNum(l.amount),r.net===null?"":r.net,r.ch,r.hold,r.paid,r.bal===null?"":r.bal,r.ps]);});
+      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Login disbursement",lpNum(l.amount),r.net===null?"":r.net,r.ch,r.hold,r.paid,r.bal===null?"":r.bal,r.ps]);});
       saveCsv("customer-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
     };
   }
@@ -4697,10 +4712,10 @@ var segNext=9600;
 var segments=[
  {id:"SEG-9566",name:"Ravi Empire Motor dealer",cat:"Login",r:{dealer:"Ravi Empire Motor"},mod:"2026-10-06"},
  {id:"SEG-9556",name:"Disbursed above 10 lakh",cat:"Disbursed",r:{min:"1000000"},mod:"2026-10-02"},
- {id:"SEG-9492",name:"Harjot Team Approved Business",cat:"Disbursed",r:{owner:"Harjot Singh"},mod:"2026-10-02"},
- {id:"SEG-9491",name:"Puneet Team Approved Business",cat:"Disbursed",r:{owner:"Puneet Kundra"},mod:"2026-10-02"},
- {id:"SEG-9490",name:"Anil Team Approved Business",cat:"Disbursed",r:{owner:"Anil Gill"},mod:"2026-10-07"},
- {id:"SEG-9489",name:"Anu Team Approved Business",cat:"Disbursed",r:{owner:"Anu Kaushal"},mod:"2026-10-02"},
+ {id:"SEG-9492",name:"Harjot Team Login Disbursement",cat:"Disbursed",r:{owner:"Harjot Singh"},mod:"2026-10-02"},
+ {id:"SEG-9491",name:"Puneet Team Login Disbursement",cat:"Disbursed",r:{owner:"Puneet Kundra"},mod:"2026-10-02"},
+ {id:"SEG-9490",name:"Anil Team Login Disbursement",cat:"Disbursed",r:{owner:"Anil Gill"},mod:"2026-10-07"},
+ {id:"SEG-9489",name:"Anu Team Login Disbursement",cat:"Disbursed",r:{owner:"Anu Kaushal"},mod:"2026-10-02"},
  {id:"SEG-9190",name:"Harjot Team Login Business",cat:"Login",r:{owner:"Harjot Singh"},mod:"2026-10-07"},
  {id:"SEG-9188",name:"Puneet Team Login Business",cat:"Login",r:{owner:"Puneet Kundra"},mod:"2026-10-07"},
  {id:"SEG-9186",name:"Anil Team Login Business",cat:"Login",r:{owner:"Anil Gill"},mod:"2026-10-07"},
@@ -4753,7 +4768,7 @@ function sgSync(){
 function renderSegForm(){
   var d=state.sgd; if(state.route!=="segments/edit")state.sgOpen=null; if(!d){state.route="segments";renderSegments();return;}
   var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-segback aria-label="Back to segments">'+ic("back")+'</button><h1>Segments</h1></div></div>';
-  h+='<section class="sg-card"><h3>Step 1</h3><div class="sg-body"><div class="sg-row"><label for="sgName">Name</label><input id="sgName" class="grow" value="'+esc(d.name)+'" placeholder="e.g. Harjot Team Approved Business"><label for="sgCat" style="margin-left:24px">Category</label><select id="sgCat" class="grow" data-sgcat>'+DLTYPES.map(function(x){return '<option value="'+x[0]+'"'+(d.cat===x[0]?" selected":"")+'>'+x[1]+'</option>';}).join("")+'</select></div></div></section>';
+  h+='<section class="sg-card"><h3>Step 1</h3><div class="sg-body"><div class="sg-row"><label for="sgName">Name</label><input id="sgName" class="grow" value="'+esc(d.name)+'" placeholder="e.g. Harjot Team Login Disbursement"><label for="sgCat" style="margin-left:24px">Category</label><select id="sgCat" class="grow" data-sgcat>'+DLTYPES.map(function(x){return '<option value="'+x[0]+'"'+(d.cat===x[0]?" selected":"")+'>'+x[1]+'</option>';}).join("")+'</select></div></div></section>';
   h+='<section class="sg-card"><h3>Step 2</h3><div class="sg-body"><p class="sg-note">Add filters to choose which leads belong to this segment. Every filter must match (AND).</p>';
   d.f.forEach(function(f,i){
     var fd=segField(f.field);
