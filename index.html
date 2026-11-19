@@ -2868,15 +2868,26 @@ function moveOwnerOptions(){
   (users||[]).forEach(function(u){var r=roleById(u.roleId);if(r&&r.owner)add(u.name);});
   return out.sort(function(a,b){return a.localeCompare(b);});
 }
+/* step-by-step move: a lead can only go to the next category in the flow, not to every category */
+function moveNextKeys(l){
+  if(!l||l.cat)return null; /* custom-category leads keep the full list */
+  if(inPddNow(l))return [];
+  var map={Audience:["Login"],Login:["Disbursed","Hold","Rejected"],Hold:["Disbursed","Rejected"],Disbursed:["pdd"],Rejected:["Login"]};
+  return map[l.stage]||null;
+}
 function openMoveCat(id){
   var l=id?lead(+id):curLead(); if(!l)return; state.mvId=l.id;
+  var nk=moveNextKeys(l);
+  if(nk&&!nk.length){toast("This file is in PDD Status. There is no further category to move it to.");return;}
   var m=document.getElementById("modal"), ownerOpts=moveOwnerOptions();
   m.innerHTML='<div class="eu-head"><h2>Move Lead By Category</h2><button class="icon-btn" data-close aria-label="Close">'+ldi("close")+'</button></div>'+
    '<div class="field"><label for="mvOwner">Lead Owner<span style="color:#d6103c">*</span></label><select id="mvOwner"><option value="">Select Lead Owner</option>'+ownerOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===l.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
-   '<div class="field"><label for="mvCat">Category<span style="color:#d6103c">*</span></label><select id="mvCat"><option value="">Select Category</option>'+moveCats().map(function(c){return '<option value="'+c.key+'">'+esc(c.name)+'</option>';}).join("")+'</select></div>'+
+   '<div class="field"><label for="mvCat">Category<span style="color:#d6103c">*</span></label><select id="mvCat"><option value="">Select Category</option>'+moveCats().filter(function(c){return !nk||nk.indexOf(c.key)>-1;}).map(function(c){return '<option value="'+c.key+'">'+esc(c.name)+'</option>';}).join("")+'</select></div>'+
    '<div class="field"><label for="mvStatus">Status<span style="color:#d6103c">*</span></label><select id="mvStatus"><option value="">Select Status</option></select></div>'+
    '<div class="actions"><button class="btn primary" id="mvSubmit">Submit</button></div>';
-  m.classList.add("show");showOverlay(true);document.getElementById("mvOwner").focus();
+  m.classList.add("show");showOverlay(true);
+  (function(){var cs=document.getElementById("mvCat");if(cs&&cs.options.length===2){cs.selectedIndex=1;cs.dispatchEvent(new Event("change",{bubbles:true}));}})(); /* only one next step: pre-select it */
+  document.getElementById("mvOwner").focus();
 }
 function submitMoveCat(){
   var l=lead(state.mvId); if(!l)return; ensure(l);
