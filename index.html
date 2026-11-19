@@ -1500,6 +1500,7 @@ function renderLeads(){
     opts.map(function(s){return '<label class="chk"><input type="checkbox" data-status="'+s+'"'+(state.sel.indexOf(s)>-1?" checked":"")+'>'+dotted(s)+s+'</label>';}).join("")+'</div></div></div>';
   h+='<div class="searchbox pw"'+(key==="Login"||key==="Disbursed"||key==="pdd"?' hidden style="display:none"':'')+'><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
     [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
+  if((key==="Audience"||key==="Login")&&canDo("Leads","Add lead"))h+='<button class="btn primary" data-addlead>'+ic("plusS")+' Add new lead</button>';
   h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Import leads")?'<button class="menu-item" '+(key==="pdd"?'data-importpdd':'data-importcsv')+'>Import Excel</button>':"")+'<button class="menu-item" data-fpdl>Export Excel</button></div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="wbIn" accept=".xlsx,.xls" hidden>';
   if(key==="data"&&hierIsAdmin(userById(state.meUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button><button class="btn" id="removeDuplicateLeads">Remove duplicate entries</button>';
@@ -1788,9 +1789,9 @@ function openAddLead(){
     });
     return out.sort(function(a,b){return a.localeCompare(b);});
   }
-  m.innerHTML='<h2>Add lead</h2><div class="row"><div class="field"><label for="aName">Name</label><input id="aName"></div><div class="field"><label for="aPhone">Mobile</label><input id="aPhone" inputmode="tel"></div></div>'+
+  m.innerHTML='<h2>Add new lead</h2><div class="row"><div class="field"><label for="aName">Name</label><input id="aName"></div><div class="field"><label for="aPhone">Mobile</label><input id="aPhone" inputmode="tel"></div></div>'+
    '<div class="row">'+sel("aOwner","Lead owner",(function(){var me=myOwnerName(),l2=owners.slice();if(me&&l2.indexOf(me)<0)l2.push(me);return l2;})())+sel("aProd","Product",products)+'</div>'+
-   (function(){var d0=statusOptions(pageKey())[0]||"Open";return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST&&(pageKey()!=="Audience"||x[1]==="Audience");}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
+   (function(){var d0=statusOptions(pageKey())[0]||"Open";return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST&&((pageKey()!=="Audience"&&pageKey()!=="Login")||x[1]===pageKey());}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
    '<div class="row"><div class="field"><label for="aAmt">Loan amount (₹)</label><input id="aAmt" type="number" min="0" step="10000" value="500000"></div><div class="field"><label for="aVeh">Vehicle</label><input id="aVeh" placeholder="For example, Swift"></div></div>'+
    '<div class="row"><div class="field"><label for="aYear">Year</label><input id="aYear" type="number" min="1900" max="2100" step="1" placeholder="Enter year"></div></div>'+
    '<div class="row">'+sel("aLender","Lender",lenderOptions())+sel("aDealer","Dealer",allLeadDealerOptions())+'</div>'+
@@ -1800,7 +1801,7 @@ function openAddLead(){
    (pageKey()==="Audience"?'<div class="row"><div class="field"><label for="aDob">DOB</label><input id="aDob" type="date"></div></div>':'<div class="row"><div class="field"><label for="aDob">DOB</label><input id="aDob" type="date"></div>'+sel("aPrev","Previous lead owner",[""].concat(owners))+'</div>'+
    '<div class="row">'+sel("aMgr","Reporting manager",[""].concat(owners))+'</div>')+
    (function(){var al=attrsForPage(pageKey());return al.length?'<div class="sec-label" style="margin-top:6px">Additional details</div><div class="row" style="flex-wrap:wrap">'+al.map(function(a){return cxField({x:{cx:{}}},a).replace('id="ld_cx_','id="aCx_');}).join("")+'</div>':"";})()+
-   '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveLead">Add lead</button></div>';
+   '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveLead">Add new lead</button></div>';
   m.classList.add("show");showOverlay(true);
   (function(){var me=myOwnerName(),o=document.getElementById("aOwner");if(me&&o)o.value=me;})(); /* new lead is assigned to the signed-in user; change it here if needed */
   document.getElementById("aName").focus();
@@ -3279,7 +3280,7 @@ var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes
 var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
 var PERM={
  "Dashboard":[["Actions",DASH_ACTS]],
- "Leads":[["Pages",["Audience","Login Business","Hold","Approved Business","Reject Business","PDD Status"]],["Actions",["View lead","Import leads","Delete lead","Move to Disbursement","Move to PDD"]],["Features",["Login Business Calculator"]]],
+ "Leads":[["Pages",["Audience","Login Business","Hold","Approved Business","Reject Business","PDD Status"]],["Actions",["View lead","Add lead","Import leads","Delete lead","Move to Disbursement","Move to PDD"]],["Features",["Login Business Calculator"]]],
  "Major Reports":[["Pages",["Channel List","Data","Leads report","Analysis","Download data","Staff details","Dealer details"]]],
  "Custom attributes":[["Pages",["Custom"]]],
  "Category":[["Pages",["Category"]]]};
@@ -3303,7 +3304,7 @@ roles.forEach(function(r){state.perm[r.id]=defPerm(r.id);});
   p.m["Dashboard"]=true;p.m["Leads"]=true;
   (PERM["Leads"][0][1]||[]).forEach(function(it){p.i["Leads::"+it]=false;});
   ["Audience","Login Business","Hold","Reject Business","Approved Business"].forEach(function(it){p.i["Leads::"+it]=true;});
-  ["View lead","Import leads"].forEach(function(it){p.i["Leads::"+it]=true;});
+  ["View lead","Import leads","Add lead"].forEach(function(it){p.i["Leads::"+it]=true;});
   p.i["Leads::Delete lead"]=false;
   p.i["Leads::Move to Disbursement"]=false;p.i["Leads::Move to PDD"]=false;
 })();
@@ -4936,6 +4937,7 @@ document.addEventListener("click",function(e){
       hierSave();saveLeads();})();
     closeAll();if(state.route.indexOf("lead/")===0){state.route=state.listRoute||"leads/Login";render();}else renderTable();toast("Lead deleted");bkTick();return;}
   if(t.id==="hrUploadBtn"){pendingHRStage=pageKey();var hrf=document.getElementById("hrUploadFile");if(hrf)hrf.click();return;}
+  if(t.hasAttribute("data-addlead")){closePops();var _pk=pageKey();if(_pk!=="Audience"&&_pk!=="Login"){return;}if(!canDo("Leads","Add lead")){toast(DENY);return;}openAddLead();return;}
   if(t.hasAttribute("data-replacecsv")){closePops();if(!canDo("Leads","Import leads")||!canDo("Leads","Delete lead")){toast(DENY);return;}pendingReplace=true;document.getElementById("csvIn").click();return;}
   if(t.hasAttribute("data-clearall")){closePops();if(!canDo("Leads","Delete lead")){toast(DENY);return;}openClearData();return;}
   if(t.hasAttribute("data-template")){closePops();downloadTemplate();return;}
@@ -5127,7 +5129,7 @@ document.addEventListener("click",function(e){
     for(ai=0;ai<aIn.length;ai++){var aa=attrByKey(aIn[ai].getAttribute("data-cx")),av=aIn[ai].value.trim();if(aa&&aa.mandatory&&!av){toast(aa.label+" is required");aIn[ai].focus();return;}if(av)aCx[aa.key]=av;}
     var nl0=newLead({name:nm,phone:rpPh,owner:rpOw,product:document.getElementById("aProd").value,amount:+document.getElementById("aAmt").value||0,vehicle:document.getElementById("aVeh").value.trim(),year:document.getElementById("aYear").value.trim(),lender:document.getElementById("aLender").value,dealer:document.getElementById("aDealer").value,caseBooked:document.getElementById("aCase").value.trim(),fromForm:true,status:document.getElementById("aStatus").value,email:document.getElementById("aEmail").value.trim(),source:document.getElementById("aSource").value,reg:document.getElementById("aReg").value.trim(),bankExec:document.getElementById("aBankExec").value.trim(),dob:document.getElementById("aDob").value,prevOwner:(document.getElementById("aPrev")||{value:""}).value,mgr:(document.getElementById("aMgr")||{value:""}).value});
     if(Object.keys(aCx).length)ldx(nl0).cx=aCx;
-    state.page=1;closeAll();renderTable();toast("Lead added as "+nl0.status+" ("+nl0.stage+")");return;}
+    saveLeads();state.page=1;closeAll();renderTable();toast("Lead added as "+nl0.status+" ("+nl0.stage+")");return;}
   if(t.id==="saveCamp"){
     var cn=document.getElementById("cName").value.trim();if(!cn){document.getElementById("cName").focus();toast("Name the campaign");return;}
     campaigns.unshift({name:cn,channel:document.getElementById("cChan").value,segment:document.getElementById("cSeg").value,when:document.getElementById("cWhen").value,status:"Scheduled"});
