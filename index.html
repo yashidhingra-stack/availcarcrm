@@ -4328,7 +4328,7 @@ var ST_CATS=["Salary","Incentive","Commission","Reimbursement","Advance","Other"
 var ST_KEY="avail_crm_staffpays_v1";
 state.staffPays=[];try{state.staffPays=JSON.parse(localStorage.getItem(ST_KEY)||"[]")||[];}catch(e){}
 function stSave(){try{localStorage.setItem(ST_KEY,JSON.stringify(state.staffPays));}catch(e){toast("Could not save staff payments in this browser");}}
-state.lp={q:"",lead:0,ft:"",fc:"",fq:"",cq:"",calc:0};
+state.lp={q:"",lead:0,ft:"",fc:"",fq:"",cq:"",calc:0,cf:{q:"",lender:"",dealer:"",stage:"",pay:"",hold:""}};
 function lpType(e){return e.type||(e.dealer?"dealer":e.from?"lender":"");}
 function lpTypeName(e){var t=lpType(e),m=LP_TYPES.filter(function(x){return x[0]===t;})[0];return m?m[1]:"Payment";}
 function lpParty(l,e){var t=lpType(e);return e.party||(t==="dealer"?e.dealer:t==="lender"?e.from:t==="customer"?l.name:"")||"—";}
@@ -4356,22 +4356,54 @@ function lpLeadSelectHtml(cur,q){
   return '<option value="">Select lead</option>'+list.map(function(l){return '<option value="'+l.id+'"'+(l.id===cur?" selected":"")+'>'+esc(l.name+" - "+(l.phone||"")+(l.reg?" - "+l.reg:""))+'</option>';}).join("");
 }
 function lpOpt(a,cur,ph){return (ph?'<option value="">'+ph+'</option>':"")+a.map(function(o){var v=Array.isArray(o)?o[0]:o,n=Array.isArray(o)?o[1]:o;return '<option value="'+esc(v)+'"'+(v===cur?" selected":"")+'>'+esc(n)+'</option>';}).join("");}
-/* customer dues fetched live from PDD Details */
-function lpDuesHtml(){
-  function n0(v){var n=parseFloat(v);return isNaN(n)?0:n;}
-  var q=(state.lp.fq||"").toLowerCase(),rows=[],T={r:0,c:0,o:0,t:0,p:0,b:0};
+/* customer leads: every file that moved on from Login business (approved or disburse), with charges fetched live from PDD Details */
+function lpNum(v){var n=parseFloat(v);return isNaN(n)?0:n;}
+function lpNet(l){
+  var x=ldx(l),nd=x.nd||{};
+  if(x.net!==undefined&&String(x.net).trim()!=="")return lpNum(x.net);
+  if(["pf","ch","rto","oth"].some(function(k){return nd[k]!==undefined&&String(nd[k]).trim()!=="";}))return lpNum(l.amount)-(lpNum(nd.pf)+lpNum(nd.ch)+lpNum(nd.rto)+lpNum(nd.oth));
+  return null;
+}
+function lpCustRows(){
+  var f=state.lp.cf,q=(f.q||"").toLowerCase(),out=[];
   leads.forEach(function(l){
     if(l.stage!=="Disbursed"||l.cat)return;
-    var r=n0(lpPddAmount(l,"RTO charges")),c=n0(lpPddAmount(l,"Challan charges")),o=n0(lpPddAmount(l,"Other charges")),t=r+c+o;
-    if(t<=0)return;
-    if(q&&[l.name,l.phone,l.reg].join(" ").toLowerCase().indexOf(q)<0)return;
-    var paid=0;lpPays(l).forEach(function(e){if(lpType(e)==="customer"&&LP_CHG.indexOf(e.cat)>-1)paid+=n0(e.amt);});
-    var b=Math.max(0,t-paid);T.r+=r;T.c+=c;T.o+=o;T.t+=t;T.p+=paid;T.b+=b;
-    rows.push('<tr><td>'+esc(l.name)+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(money(r))+'</td><td>'+esc(money(c))+'</td><td>'+esc(money(o))+'</td><td>'+esc(money(t))+'</td><td>'+esc(money(paid))+'</td><td>'+esc(money(b))+'</td></tr>');
+    var pdd=inPddNow(l),net=lpNet(l),paid=0,hold=0;
+    lpPays(l).forEach(function(e){if(lpType(e)==="customer"){paid+=lpNum(e.amt);hold+=lpNum(e.hold);}});
+    var r=lpNum(lpPddAmount(l,"RTO charges")),c=lpNum(lpPddAmount(l,"Challan charges")),o=lpNum(lpPddAmount(l,"Other charges"));
+    var bal=net===null?null:Math.max(0,net-paid);
+    var ps=paid<=0?"Pending":(bal!==null&&bal<=0?"Paid":"Part paid");
+    if(q&&[l.name,l.phone,l.reg,l.dealer,l.lender].join(" ").toLowerCase().indexOf(q)<0)return;
+    if(f.lender&&l.lender!==f.lender)return;
+    if(f.dealer&&l.dealer!==f.dealer)return;
+    if(f.stage==="approved"&&pdd)return;
+    if(f.stage==="pdd"&&!pdd)return;
+    if(f.pay&&ps!==f.pay)return;
+    if(f.hold==="yes"&&hold<=0)return;
+    out.push({l:l,pdd:pdd,net:net,r:r,c:c,o:o,ch:r+c+o,paid:paid,hold:hold,bal:bal,ps:ps});
   });
-  return '<section class="nd-card" aria-label="Customer charges from PDD"><h3 class="nd-h">Customer charges (from PDD Details)</h3>'+(rows.length?
-    '<div class="tscroll"><table class="pm-tbl"><thead><tr><th>Customer</th><th>Vehicle no.</th><th>RTO charges</th><th>Challan charges</th><th>Other charges</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead><tbody>'+rows.slice(0,200).join("")+'</tbody><tfoot><tr><th colspan="2">Total ('+rows.length+')</th><th>'+esc(money(T.r))+'</th><th>'+esc(money(T.c))+'</th><th>'+esc(money(T.o))+'</th><th>'+esc(money(T.t))+'</th><th>'+esc(money(T.p))+'</th><th>'+esc(money(T.b))+'</th></tr></tfoot></table></div>':
-    '<p class="note">No customer charges entered in PDD Details yet. Charges added there appear here automatically.</p>')+'</section>';
+  out.sort(function(a,b){return String(a.l.ts||"")<String(b.l.ts||"")?1:-1;});
+  return out;
+}
+function lpDuesHtml(){
+  var f=state.lp.cf,rows=lpCustRows(),all=[];
+  var lenders={},dealers={};
+  leads.forEach(function(l){if(l.stage==="Disbursed"&&!l.cat){if(l.lender)lenders[l.lender]=1;if(l.dealer)dealers[l.dealer]=1;}});
+  var T={loan:0,net:0,ch:0,paid:0,hold:0,bal:0};
+  rows.forEach(function(r){T.loan+=lpNum(r.l.amount);T.net+=r.net||0;T.ch+=r.ch;T.paid+=r.paid;T.hold+=r.hold;T.bal+=r.bal||0;});
+  function m(v){return esc(money(v));}
+  var filt='<div class="tb pfilt" style="margin:8px 0 12px;flex-wrap:wrap"><input id="cf_q" type="search" placeholder="Search name, mobile, vehicle no., dealer, lender" value="'+esc(f.q)+'" aria-label="Search customers">'+
+    '<select id="cf_stage" aria-label="Stage">'+lpOpt([["approved","Approved business"],["pdd","PDD status (Disburse)"]],f.stage,"All stages")+'</select>'+
+    '<select id="cf_lender" aria-label="Lender">'+lpOpt(Object.keys(lenders).sort(),f.lender,"All lenders")+'</select>'+
+    '<select id="cf_dealer" aria-label="Dealer">'+lpOpt(Object.keys(dealers).sort(),f.dealer,"All dealers")+'</select>'+
+    '<select id="cf_pay" aria-label="Payment status">'+lpOpt(["Pending","Part paid","Paid"],f.pay,"All payment status")+'</select>'+
+    '<select id="cf_hold" aria-label="Hold payment">'+lpOpt([["yes","With hold payment"]],f.hold,"Any hold")+'</select>'+
+    '<button class="btn" id="cfClear">Clear</button><button class="btn" id="cfCsv">Download Excel</button></div>';
+  var tbl=rows.length?'<div class="tscroll"><table class="pm-tbl" style="min-width:1250px"><thead><tr><th>Customer</th><th>Mobile</th><th>Vehicle no.</th><th>Lender</th><th>Stage</th><th>Loan amount</th><th>Net disbursement</th><th>RTO</th><th>Challan</th><th>Other</th><th>Total charges</th><th>Hold payment</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead><tbody>'+
+    rows.slice(0,200).map(function(r){var l=r.l;return '<tr><td>'+esc(l.name)+'</td><td>'+esc(l.phone||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+(r.pdd?'PDD status':'Approved')+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.r)+'</td><td>'+m(r.c)+'</td><td>'+m(r.o)+'</td><td>'+m(r.ch)+'</td><td>'+m(r.hold)+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td><td><button class="btn" data-lppay="'+l.id+'">Pay</button></td></tr>';}).join("")+
+    '</tbody><tfoot><tr><th colspan="5">Total ('+rows.length+')</th><th>'+m(T.loan)+'</th><th>'+m(T.net)+'</th><th colspan="3"></th><th>'+m(T.ch)+'</th><th>'+m(T.hold)+'</th><th>'+m(T.paid)+'</th><th>'+m(T.bal)+'</th><th colspan="2"></th></tr></tfoot></table></div>'+(rows.length>200?'<p class="note">Showing the first 200. Use the filters to narrow the list.</p>':''):
+    '<p class="note">No files match. Files appear here once they move from Login business to Approved business or PDD status.</p>';
+  return '<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer leads (approved and disbursed files)</h3>'+filt+tbl+'<p class="note">Charges come from PDD Details and net disbursement from Calculations, so anything saved there shows here automatically. Use Pay to start a payment for that customer.</p></section>';
 }
 function lpTabHtml(kind){
   var cfg=LP_KIND[kind],f=state.lp,rows=lpRows(kind),tot=0,hold=0;
@@ -4437,6 +4469,18 @@ function lpWire(kind){
     saveLeads();toast("Payment added");renderPayments();
   };
   v.querySelectorAll("[data-lpdel]").forEach(function(b){b.onclick=function(){var p=b.getAttribute("data-lpdel").split("|"),l=lead(+p[0]);if(!l)return;var arr=ldx(l).pays;if(!Array.isArray(arr)||!arr[+p[1]])return;arr.splice(+p[1],1);saveLeads();toast("Payment removed");renderPayments();};});
+  if(kind==="customer"){
+    var cf=state.lp.cf;
+    g("cf_q").onchange=function(){cf.q=this.value;renderPayments();};
+    [["cf_stage","stage"],["cf_lender","lender"],["cf_dealer","dealer"],["cf_pay","pay"],["cf_hold","hold"]].forEach(function(p){g(p[0]).onchange=function(){cf[p[1]]=this.value;renderPayments();};});
+    g("cfClear").onclick=function(){state.lp.cf={q:"",lender:"",dealer:"",stage:"",pay:"",hold:""};renderPayments();};
+    v.querySelectorAll("[data-lppay]").forEach(function(b){b.onclick=function(){state.lp.lead=+b.getAttribute("data-lppay");state.lp.q="";renderPayments();var f=document.getElementById("lp_lead");if(f)f.scrollIntoView({behavior:"smooth",block:"center"});};});
+    g("cfCsv").onclick=function(){
+      var rows=[["Customer","Mobile","Vehicle number","Lender","Dealer","Stage","Loan amount","Net disbursement","RTO charges","Challan charges","Other charges","Total charges","Hold payment","Paid","Balance","Payment status"]];
+      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Approved",lpNum(l.amount),r.net===null?"":r.net,r.r,r.c,r.o,r.ch,r.hold,r.paid,r.bal===null?"":r.bal,r.ps]);});
+      saveCsv("customer-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
+    };
+  }
   g("lp_fq").onchange=function(){state.lp.fq=this.value;renderPayments();};
   if(g("lp_ft"))g("lp_ft").onchange=function(){state.lp.ft=this.value;renderPayments();};
   g("lp_fc").onchange=function(){state.lp.fc=this.value;renderPayments();};
