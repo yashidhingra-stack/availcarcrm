@@ -2489,11 +2489,8 @@ function ldShareText(l){
   if(l.stage==="Disbursed"){add("PDD status",l.pdd);add("RTO person",px.rtoPerson);add("RTO set status",px.rtoSet);add("Reason for pending",px.pendReason);add("Insurance expiry",px.insExp);}
   /* ---- whichever tab / box is open ---- */
   if(tab==="pay"){
-    var pays=Array.isArray(x.pays)?x.pays:[];
-    L.push("","*Payment details*");
-    if(pays.length){pays.forEach(function(p,i){L.push("Payment "+(pays.length-i)+": "+(p.date?fmtDate(p.date):"")+" | "+(amt(p.amt)||"₹0")+(p.dealer?" | To: "+p.dealer:"")+(p.from?" | From: "+p.from:"")+(nn(p.hold)?" | Hold: "+amt(p.hold):""));if(p.rem)bold("Remarks",p.rem);});}
-    var da=dv("#pm_amt"),dr=dv("#pm_rem");
-    if(da||dv("#pm_hold")||dr){L.push("","*Payment being entered*");add("Date",dv("#pm_date")?fmtDate(dv("#pm_date")):"");add("Payment amount",amt(da));add("Payment to dealer",dv("#pm_dealer"));add("Payment from",dv("#pm_from"));add("Hold payment",amt(dv("#pm_hold")));if(dr)bold("Remarks",dr);}
+    L.push("","*Customer charges*");
+    LP_CHG.forEach(function(c){var v=lpPddAmount(l,c);if(v!==null)add(c,amt(v));});
   }
   if(tab==="pdet"){
     var pe=function(k){var e=document.querySelector('[data-pd="'+k+'"]');return e?e.value.trim():null;};
@@ -2550,25 +2547,33 @@ function ndCalcHtml(l){
     '<p class="note">Net disbursement = Loan amount − (Processing fees + Challan charges + RTO charges + Other amount).</p></section>';
 }
 /* ---------- PDD: Payment Details (payment entries) and PDD Details (RTO / charges) ---------- */
+var LP_CHG=["RTO charges","Challan charges","Other charges"];
+var LP_CATS=LP_CHG.concat(["Loan disbursement","Dealer payout","Insurance","Other"]);
+var LP_TYPES=[["dealer","Payment to dealer"],["customer","Payment to customer"],["lender","Payment to lender"]];
+var LP_MODES=["Bank transfer","UPI","Cash","Cheque"];
+function lpPddAmount(l,cat){
+  var x=ldx(l),nd=x.nd||{},v=null;
+  if(cat==="RTO charges")v=(nd.rto!==undefined&&String(nd.rto).trim()!=="")?nd.rto:x.rto;
+  else if(cat==="Challan charges")v=nd.ch;
+  else if(cat==="Other charges")v=nd.oth;
+  if(v===null||v===undefined||String(v).trim()==="")return null;
+  var n=parseFloat(v);return isNaN(n)?null:n;
+}
+function lpPays(l){var p=ldx(l).pays;return Array.isArray(p)?p:[];}
+/* PDD Status shows only the customer's charges (RTO, challan, other). Dealer and lender payments are kept in the Payments module. */
 function payFormHtml(l){
-  var x=ldx(l),pays=Array.isArray(x.pays)?x.pays:[],dl=dealerFilterOptions(),bk=lenderOptions();
-  function opts(a,ph){return '<option value="">'+ph+'</option>'+a.map(function(o){return '<option>'+esc(o)+'</option>';}).join("");}
   function nn0(v){var n=parseFloat(v);return isNaN(n)?0:n;}
-  var totAmt=0,totHold=0;pays.forEach(function(p){totAmt+=nn0(p.amt);totHold+=nn0(p.hold);});
-  var form='<section class="nd-card" aria-label="Add payment"><h3 class="nd-h">Payment Details</h3><div class="nd-grid">'+
-    '<div class="nd-f"><label for="pm_date">Date</label><input id="pm_date" type="date" value="'+ymd(TODAY)+'"></div>'+
-    '<div class="nd-f"><label for="pm_amt">Payment Amount</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pm_amt" type="number" min="0" step="any" inputmode="decimal"></div></div>'+
-    '<div class="nd-f"><label for="pm_dealer">Payment to dealer</label><select id="pm_dealer">'+opts(dl,"Select dealer")+'</select></div>'+
-    '<div class="nd-f"><label for="pm_from">Payment from</label><select id="pm_from">'+opts(bk,"Select bank")+'</select></div>'+
-    '<div class="nd-f pm-hold" id="pm_holdbox"><label for="pm_hold">Hold payment</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pm_hold" type="number" min="0" step="any" inputmode="decimal"></div><small id="pm_holdmsg" class="pm-msg" hidden>Hold payment is more than the payment amount</small></div>'+
-    '</div><div class="nd-f nd-rem"><label for="pm_rem">Remarks</label><textarea id="pm_rem" rows="3"></textarea></div>'+
-    '<div class="nd-foot"><button class="btn primary" id="pmAdd">Add payment</button></div></section>';
-  var list='<section class="nd-card" aria-label="Payments added"><h3 class="nd-h">Payments added</h3>'+(pays.length?
-    '<div class="tscroll"><table class="pm-tbl"><thead><tr><th>Date</th><th>Payment Amount</th><th>Payment to dealer</th><th>Payment from</th><th>Hold payment</th><th>Remarks</th><th></th></tr></thead><tbody>'+
-    pays.map(function(p,i){var over=nn0(p.hold)>nn0(p.amt);return '<tr><td>'+esc(p.date?fmtDate(p.date):"")+'</td><td>'+esc(money(nn0(p.amt)))+'</td><td>'+esc(p.dealer||"—")+'</td><td>'+esc(p.from||"—")+'</td><td><span class="pm-chip'+(over?" over":"")+'">'+esc(money(nn0(p.hold)))+'</span></td><td>'+esc(p.rem||"")+'</td><td><button class="btn" data-pmdel="'+i+'" aria-label="Delete payment">Delete</button></td></tr>';}).join("")+
-    '</tbody><tfoot><tr><th>Total</th><th>'+esc(money(totAmt))+'</th><th></th><th></th><th>'+esc(money(totHold))+'</th><th></th><th></th></tr></tfoot></table></div>':
-    '<p class="note">No payments added yet.</p>')+'</section>';
-  return form+list;
+  var mine=lpPays(l).filter(function(e){return e.type==="customer"&&LP_CHG.indexOf(e.cat)>-1;});
+  var tp=0,tpd=0,tb=0;
+  var rows=LP_CHG.map(function(c){
+    var a=nn0(lpPddAmount(l,c)),paid=0;mine.forEach(function(e){if(e.cat===c)paid+=nn0(e.amt);});
+    tp+=a;tpd+=paid;tb+=Math.max(0,a-paid);
+    return '<tr><td>'+esc(c)+'</td><td>'+esc(money(a))+'</td><td>'+esc(money(paid))+'</td><td>'+esc(money(Math.max(0,a-paid)))+'</td></tr>';
+  }).join("");
+  var list=mine.length?'<h4 class="nd-h" style="margin-top:16px">Customer payments</h4><div class="tscroll"><table class="pm-tbl"><thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Mode</th><th>Remarks</th></tr></thead><tbody>'+mine.map(function(e){return '<tr><td>'+esc(e.date?fmtDate(e.date):"")+'</td><td>'+esc(e.cat||"")+'</td><td>'+esc(money(nn0(e.amt)))+'</td><td>'+esc(e.mode||"—")+'</td><td>'+esc(e.rem||"")+'</td></tr>';}).join("")+'</tbody></table></div>':'';
+  return '<section class="nd-card" aria-label="Customer charges"><h3 class="nd-h">Customer Charges</h3>'+
+    '<div class="tscroll"><table class="pm-tbl"><thead><tr><th>Charge</th><th>Amount (from PDD Details)</th><th>Paid</th><th>Balance</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr><th>Total</th><th>'+esc(money(tp))+'</th><th>'+esc(money(tpd))+'</th><th>'+esc(money(tb))+'</th></tr></tfoot></table></div>'+list+
+    '<p class="note">Amounts are fetched from PDD Details. Change them in the PDD Details tab. Dealer and lender payments are managed in Payments.</p></section>';
 }
 function payWire(l,v){
   var amt=v.querySelector("#pm_amt"),hold=v.querySelector("#pm_hold"),box=v.querySelector("#pm_holdbox"),msg=v.querySelector("#pm_holdmsg");
@@ -2766,7 +2771,7 @@ function renderDisbLead(l){
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
    '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
   var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
-  var tabs=pddV?[["details","Lead Details"],["pay","Payment Details"],["calc","Calculations"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]];
+  var tabs=pddV?[["details","Lead Details"],["pay","Customer Charges"],["calc","Calculations"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]];
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
   if(state.ldTab==="details"||state.ldTab==="more"){
@@ -2798,7 +2803,7 @@ function renderDisbLead(l){
     }
     var boxBar='';
     h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
-  } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Payment details">'+payFormHtml(l)+'</section>';
+  } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
   } else if(state.ldTab==="pdet"){ h+='<section class="ld-box" aria-label="PDD details">'+pddDetHtml(l)+'</section>';
   } else if(state.ldTab==="docs"){ h+=ldDocsTab(l); } else { h+=ldFollow(l,today,tom); }
@@ -4312,14 +4317,116 @@ function payPayoutsTab(list,tot){
    :'<div class="stub"><h2>'+(state.pf.q||state.pf.st!=="all"?"No dealers match your filters":"No disbursed files in this period")+'</h2>Choose another period or clear the filters above. Payouts are worked out from files with the Disburse status.</div>')+
    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Excel data"></textarea>';
 }
+
+/* ---------- Payments: lead payments (dealer / customer / lender). Charge categories fetch their amount from PDD ---------- */
+state.lp={q:"",lead:0,ft:"",fc:"",fq:""};
+function lpTypeName(e){var t=e.type||(e.dealer?"dealer":"");var m=LP_TYPES.filter(function(x){return x[0]===t;})[0];return m?m[1]:"Payment";}
+function lpParty(l,e){var t=e.type||(e.dealer?"dealer":"");return e.party||(t==="dealer"?e.dealer:t==="lender"?e.from:t==="customer"?l.name:"")||"—";}
+function lpRows(){
+  var out=[];
+  leads.forEach(function(l){lpPays(l).forEach(function(e,i){out.push({l:l,e:e,i:i});});});
+  out.sort(function(a,b){return String(a.e.date||"")<String(b.e.date||"")?1:-1;});
+  var f=state.lp,q=(f.fq||"").toLowerCase();
+  return out.filter(function(r){
+    var t=r.e.type||(r.e.dealer?"dealer":"");
+    if(f.ft&&t!==f.ft)return false;
+    if(f.fc&&r.e.cat!==f.fc)return false;
+    if(q&&[r.l.name,r.l.phone,r.l.reg,lpParty(r.l,r.e),r.e.rem].join(" ").toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+}
+function lpLeadOptions(q){
+  q=(q||"").trim().toLowerCase();
+  var pool=leads.filter(function(l){return l.stage==="Disbursed"&&!l.cat&&(!q||[l.name,l.phone,l.reg].join(" ").toLowerCase().indexOf(q)>-1);});
+  pool.sort(function(a,b){return String(a.ts||"")<String(b.ts||"")?1:-1;});
+  return pool.slice(0,40);
+}
+function lpLeadSelectHtml(){
+  var cur=state.lp.lead,list=lpLeadOptions(state.lp.q);
+  if(cur&&!list.some(function(l){return l.id===cur;})){var c=lead(cur);if(c)list.unshift(c);}
+  return '<option value="">Select lead</option>'+list.map(function(l){return '<option value="'+l.id+'"'+(l.id===cur?" selected":"")+'>'+esc(l.name+" - "+(l.phone||"")+(l.reg?" - "+l.reg:""))+'</option>';}).join("");
+}
+function lpTabHtml(){
+  var f=state.lp,rows=lpRows(),tot=0,hold=0;
+  function opt(a,cur,ph){return '<option value="">'+ph+'</option>'+a.map(function(o){var v=Array.isArray(o)?o[0]:o,n=Array.isArray(o)?o[1]:o;return '<option value="'+esc(v)+'"'+(v===cur?" selected":"")+'>'+esc(n)+'</option>';}).join("");}
+  rows.forEach(function(r){tot+=parseFloat(r.e.amt)||0;hold+=parseFloat(r.e.hold)||0;});
+  var form='<section class="nd-card" aria-label="Add lead payment"><h3 class="nd-h">Add payment</h3><div class="nd-grid">'+
+   '<div class="nd-f"><label for="lp_q">Find lead</label><input id="lp_q" type="search" placeholder="Name, mobile or vehicle number" value="'+esc(f.q)+'"></div>'+
+   '<div class="nd-f"><label for="lp_lead">Lead (PDD / disbursed files)</label><select id="lp_lead">'+lpLeadSelectHtml()+'</select></div>'+
+   '<div class="nd-f"><label for="lp_type">Payment type</label><select id="lp_type">'+opt(LP_TYPES,"dealer","Select type")+'</select></div>'+
+   '<div class="nd-f"><label for="lp_cat">Payment category</label><select id="lp_cat">'+opt(LP_CATS,"","Select category")+'</select></div>'+
+   '<div class="nd-f"><label for="lp_party">Paid to</label><select id="lp_party"><option value="">Select lead and type first</option></select></div>'+
+   '<div class="nd-f"><label for="lp_date">Date</label><input id="lp_date" type="date" value="'+ymd(TODAY)+'"></div>'+
+   '<div class="nd-f"><label for="lp_amt">Payment Amount</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="lp_amt" type="number" min="0" step="any" inputmode="decimal"></div><small id="lp_hint" class="note"></small></div>'+
+   '<div class="nd-f"><label for="lp_mode">Payment mode</label><select id="lp_mode">'+opt(LP_MODES,"Bank transfer","Select mode")+'</select></div>'+
+   '<div class="nd-f"><label for="lp_hold">Hold payment</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="lp_hold" type="number" min="0" step="any" inputmode="decimal"></div></div>'+
+   '</div><div class="nd-f nd-rem"><label for="lp_rem">Remarks</label><textarea id="lp_rem" rows="2"></textarea></div>'+
+   '<div class="nd-foot"><button class="btn primary" id="lpAdd">Add payment</button></div></section>';
+  var table=rows.length?'<div class="tscroll"><table class="pm-tbl"><thead><tr><th>Date</th><th>Customer</th><th>Vehicle no.</th><th>Type</th><th>Category</th><th>Paid to</th><th>Amount</th><th>Mode</th><th>Hold</th><th>Remarks</th><th></th></tr></thead><tbody>'+
+    rows.map(function(r){var e=r.e;return '<tr><td>'+esc(e.date?fmtDate(e.date):"")+'</td><td>'+esc(r.l.name)+'</td><td>'+esc(r.l.reg||"—")+'</td><td>'+esc(lpTypeName(e))+'</td><td>'+esc(e.cat||"—")+'</td><td>'+esc(lpParty(r.l,e))+'</td><td>'+esc(money(parseFloat(e.amt)||0))+'</td><td>'+esc(e.mode||"—")+'</td><td>'+esc(money(parseFloat(e.hold)||0))+'</td><td>'+esc(e.rem||"")+'</td><td><button class="btn" data-lpdel="'+r.l.id+'|'+r.i+'">Delete</button></td></tr>';}).join("")+
+    '</tbody><tfoot><tr><th colspan="6">Total ('+rows.length+')</th><th>'+esc(money(tot))+'</th><th></th><th>'+esc(money(hold))+'</th><th></th><th></th></tr></tfoot></table></div>':'<p class="note">No payments match.</p>';
+  var filt='<div class="tb pfilt" style="margin:14px 0 8px"><input id="lp_fq" type="search" placeholder="Search customer, mobile, vehicle, paid to" value="'+esc(f.fq)+'"><select id="lp_ft">'+opt(LP_TYPES,f.ft,"All types")+'</select><select id="lp_fc">'+opt(LP_CATS,f.fc,"All categories")+'</select><button class="btn" id="lpCsv">Download Excel</button></div>';
+  return form+'<section class="nd-card" aria-label="Payments added"><h3 class="nd-h">All payments</h3>'+filt+table+'</section>';
+}
+function lpWire(){
+  var v=document.getElementById("view");if(!v)return;
+  function g(id){return v.querySelector("#"+id);}
+  function curLead(){return state.lp.lead?lead(state.lp.lead):null;}
+  function fillParty(){
+    var l=curLead(),t=g("lp_type").value,sel=g("lp_party"),list=[],def="";
+    if(!l){sel.innerHTML='<option value="">Select lead and type first</option>';return;}
+    if(t==="dealer"){list=dealerFilterOptions().slice();def=l.dealer||"";}
+    else if(t==="lender"){list=lenderOptions().slice();def=l.lender||"";}
+    else if(t==="customer"){list=[l.name];def=l.name;}
+    if(def&&list.indexOf(def)<0)list.unshift(def);
+    sel.innerHTML=(t==="customer"?"":'<option value="">Select</option>')+list.map(function(o){return '<option'+(o===def?" selected":"")+'>'+esc(o)+'</option>';}).join("");
+  }
+  function fillAmt(){
+    var l=curLead(),c=g("lp_cat").value,h=g("lp_hint");
+    if(l&&LP_CHG.indexOf(c)>-1){var a=lpPddAmount(l,c);if(a!==null){g("lp_amt").value=a;h.textContent="Fetched from PDD: "+money(a);return;}h.textContent="No "+c+" entered in PDD Details for this lead.";return;}
+    h.textContent="";
+  }
+  g("lp_q").oninput=function(){state.lp.q=this.value;g("lp_lead").innerHTML=lpLeadSelectHtml();};
+  g("lp_lead").onchange=function(){state.lp.lead=+this.value||0;fillParty();fillAmt();};
+  g("lp_type").onchange=fillParty;
+  g("lp_cat").onchange=fillAmt;
+  fillParty();
+  g("lpAdd").onclick=function(){
+    var l=curLead();if(!l){toast("Select the lead");return;}
+    var t=g("lp_type").value,c=g("lp_cat").value,a=parseFloat(g("lp_amt").value),h=parseFloat(g("lp_hold").value),dt=g("lp_date").value;
+    a=isNaN(a)?0:a;h=isNaN(h)?0:h;
+    if(!t){toast("Select the payment type");return;}
+    if(!c){toast("Select the payment category");return;}
+    if(!dt){toast("Select the payment date");return;}
+    if(a<=0&&h<=0){toast("Enter the payment amount");g("lp_amt").focus();return;}
+    var party=g("lp_party").value;if(!party&&t!=="customer"){toast("Select who the payment is for");return;}
+    var x=ldx(l);if(!Array.isArray(x.pays))x.pays=[];
+    var e={id:Date.now(),date:dt,type:t,cat:c,party:party,amt:a,hold:h,mode:g("lp_mode").value,rem:g("lp_rem").value.trim()};
+    if(t==="dealer")e.dealer=party;if(t==="lender")e.from=party;
+    x.pays.unshift(e);
+    if(!l.hist)l.hist=[];
+    l.hist.unshift({ts:stamp(),text:"Payment added ("+lpTypeName(e)+", "+c+"): "+money(a)+(party?" - "+party:"")+(h?" (hold "+money(h)+")":"")+(e.rem?" - "+e.rem:""),type:"system"});
+    saveLeads();toast("Payment added");renderPayments();
+  };
+  v.querySelectorAll("[data-lpdel]").forEach(function(b){b.onclick=function(){var p=b.getAttribute("data-lpdel").split("|"),l=lead(+p[0]);if(!l)return;var arr=ldx(l).pays;if(!Array.isArray(arr)||!arr[+p[1]])return;arr.splice(+p[1],1);saveLeads();toast("Payment removed");renderPayments();};});
+  g("lp_fq").onchange=function(){state.lp.fq=this.value;renderPayments();};
+  g("lp_ft").onchange=function(){state.lp.ft=this.value;renderPayments();};
+  g("lp_fc").onchange=function(){state.lp.fc=this.value;renderPayments();};
+  g("lpCsv").onclick=function(){
+    var rows=[["Date","Customer","Mobile","Vehicle number","Type","Category","Paid to","Amount","Payment mode","Hold","Remarks"]];
+    lpRows().forEach(function(r){var e=r.e;rows.push([e.date||"",r.l.name,r.l.phone||"",r.l.reg||"",lpTypeName(e),e.cat||"",lpParty(r.l,e),parseFloat(e.amt)||0,e.mode||"",parseFloat(e.hold)||0,e.rem||""]);});
+    saveCsv("lead-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
+  };
+}
 function renderPayments(){
-  var tabs=[["payouts","Dealer payouts"],["history","Payment history"]], hist=state.ptab==="history";
+  var tabs=[["payouts","Dealer payouts"],["history","Payment history"],["lead","Lead payments"]], hist=state.ptab==="history", lpt=state.ptab==="lead";
   var list=allDealerSums();
   document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Payments</h1><p class="note" style="margin:0">Pay dealer payouts and send dealers their payout details.</p></div></div>'+
-   (hist?'<div class="tb"><button class="btn" id="payHistCsv">Download Excel</button></div>':'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download Excel</button></div>')+'</div>'+
+   (lpt?'':hist?'<div class="tb"><button class="btn" id="payHistCsv">Download Excel</button></div>':'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download Excel</button></div>')+'</div>'+
    '<div class="appcard"><div class="ai"><b>Dealer app (Android preview)</b><span>Preview build with sample data. It is not connected to this CRM yet, so it does not show real payments or receive in-app notifications. Debug build, 17.5M.</span></div><a class="btn primary" href="downloads/dealer-app.apk" download="dealer-app.apk">Download APK</a></div>'+
    '<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ptab===t[0])+'" data-ptab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>'+
-   '<p class="dlnote">'+storeNote()+'</p>'+(hist?'':payControls()+payFilterBar())+'<div style="margin-top:'+(hist?"14":"0")+'px">'+(hist?payHistoryTab():payPayoutsTab(list))+'</div>';
+   '<p class="dlnote">'+storeNote()+'</p>'+((hist||lpt)?'':payControls()+payFilterBar())+'<div style="margin-top:'+((hist||lpt)?"14":"0")+'px">'+(lpt?lpTabHtml():hist?payHistoryTab():payPayoutsTab(list))+'</div>';
+  if(lpt)lpWire();
 }
 function csvRowsFor(cases){
   var byCase={}; state.payments.forEach(function(p){if(p.status==="void")return;p.items.forEach(function(it){byCase[it.id]=p;});});
