@@ -1580,6 +1580,7 @@ async function saveCsv(name,csv,fid){
 var CALC={
  Disbursed:{slug:"login-disbursement",total:"Total login disbursement",cards:["Disbursement Pending","Approved (Disbursement)","Not Approved","Approved But Not Disbursed"],cols:["Disbursement Pending","Approved (Disbursement)","Not Approved","Approved But Not Disbursed"],empty:"No login disbursement files in this period."},
  Login:{slug:"login-business",total:"Total login business",cards:["Login Pending","Login","Approval Pending","Approved"],cols:["Login Pending","Login","Approval Pending","Approved"],empty:"No login business files in this period."},
+ Hold:{slug:"hold",total:"Total hold",cards:["Finally Hold","Partially Hold","Approved But Hold","Postponed"],cols:["Finally Hold","Partially Hold","Approved But Hold","Postponed"],empty:"No hold files in this period."},
  pdd:{slug:"pdd",total:"Total PDD business",field:"pddSt",cards:pddOpenList(),cols:pddOpenList(),empty:"No PDD files in this period."}};
 function calcOn(key){return !!CALC[key]&&(key!=="Login"||canLoginCalc());}
 function calcValue(l,cfg){return cfg.field==="pddSt"?pddSt(l):l.status;}
