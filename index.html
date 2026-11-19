@@ -692,7 +692,7 @@ function canonOwner(n){var t=String(n==null?"":n).replace(/\s+/g," ").trim();ret
 var products=["Used Car Purchase","Used Car Refinance","New Car Loan","Car Top-up","Balance Transfer"];
 var pcolor=["#2b7de9","#3aa76d","#f2a900","#e4572e","#7c5cc4"];
 var stages=["Audience","Login","Hold","Disbursed","Rejected"];
-var stageName={Audience:"Audience",Login:"Login business",Hold:"Hold",Disbursed:"Login disbursement",Rejected:"Reject business"};
+var stageName={Audience:"Audience",Login:"Login business",Hold:"Hold",Disbursed:"Disbursement business",Rejected:"Reject business"};
 var STATUS=[["Open","Audience"],["Follow Up","Audience"],["Call not picked","Audience"],["Wrong No","Audience"],["Call later","Audience"],["Call Invalid","Audience"],["Not Interested","Audience"],["Interested","Audience"],["KYC Collected","Audience"],["Documents Collected","Audience"],["Login Pending","Login"],["Login","Login"],["Approval Pending","Login"],["Approved","Login"],["Finally Hold","Hold"],["Partially Hold","Hold"],["Approved But Hold","Hold"],["Postponed","Hold"],["Disburse","Disbursed"],["Disbursement Pending","Disbursed"],["Approved (Disbursement)","Disbursed"],["Not Approved","Disbursed"],["Approved But Not Disbursed","Disbursed"],["File Approved in RTO","Disbursed"],["Reject","Rejected"],["Finally Reject","Rejected"]];
 var statusStage={}; STATUS.forEach(function(x){statusStage[x[0]]=x[1];});
 var SC={"Open":"#e8c33a","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#7c5cc4","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Postponed":"#e08a1e","Disburse":"#2f8f5b","Pending":"#e8c33a","Received":"#2f8f5b","Overdue":"#c43d3d","Disbursement Pending":"#e8c33a","Approved (Disbursement)":"#2f8f5b","Not Approved":"#c43d3d","Approved But Not Disbursed":"#e4572e","Reject":"#c43d3d"};
@@ -879,14 +879,13 @@ var blurbs={teamwise:"Team-wise business, completed and pending amounts.",leadow
 function navRoute(){return state.route.indexOf("lead/")===0?(state.listRoute||"leads/Login"):state.route.indexOf("segments/")===0?"segments":state.route;}
 function renderNav(){
   var h="", cur=navRoute(), cu=userById(state.meUser), hrMenu=!!hrUserKey(cu);
-  var LEADS_MAIN=["Audience","Login","Hold","Disbursed","Rejected","pdd"];
-  var hrLabels={Audience:"Login",Login:"Login Business",Hold:"Hold",Disbursed:"Disbursement Pending",Rejected:"Reject",pdd:"PDD Status"};
-  var leadKids=LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:catName(k)];}).concat([["data/download","Download Data"]]);
+  var LEADS_MAIN=["Audience","Login","Disbursed","pdd","Close","Hold"];
+  var hrLabels={Audience:"Login",Login:"Login Business",Hold:"Hold/Reject",Disbursed:"Disbursement Pending",Rejected:"Reject",pdd:"PDD Status",Close:"Closed"};
+  var leadKids=LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:(k==="Close"?"Closed":catName(k))];}).concat([["data/download","Download Data"]]);
   /* Menu order: Dashboard, Leads (up to PDD Status, then Download Data), Dealer Commission, Forms, Office Use Only, Reports, WABA */
   var MENU=[
     {id:"dashboard",label:"Dashboard",icon:"grid",route:"dashboard"},
     {id:"leads",label:"Leads",icon:"users",kids:leadKids},
-    {id:"close",label:"Close",icon:"doc",route:"leads/Close"},
     {id:"dealercomm",label:"Dealer Commission",icon:"card",kids:[["dealer-details","Dealer Details"]]},
     {id:"forms",label:"Forms",icon:"doc",route:"integration/forms"},
     {id:"office",label:"Office Use Only",icon:"db",kids:[["channelwise","More Reports"],["integration/custom","Custom attributes"],["users","User management"],["hierarchy","Hierarchy"],["major/staff","Staff Details"],["chlist","Channel List"]]},
@@ -1034,6 +1033,7 @@ function statusOptions(key){
   if(key==="Close")return [];
   if(key==="pdd")return pddOpenList();var st=pageStages(key);
   if(key==="Login")st=st.concat(["Hold","Rejected"]); /* Login Business can also be filtered by Hold and Reject statuses */
+  if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject is one common page */
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1&&hierStatusOk(x[0]);}).map(function(x){return x[0];});}
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
 var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
@@ -1055,10 +1055,13 @@ function colState(key){
 }
 function leadRows(key,noSel){
   var st=pageStages(key), q=state.q.trim().toLowerCase(), f=state.f, lr=getRange(key), sf=state.sf;
+  if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject: one common list */
+  var _cu0=userById(state.meUser), _hrOk0=!!hrUserKey(_cu0)||hierIsAdmin(_cu0);
   if(key==="Login"&&!noSel&&state.sel.length){var xst=STATUS.filter(function(x){return (x[1]==="Hold"||x[1]==="Rejected")&&state.sel.indexOf(x[0])>-1;}).map(function(x){return x[1];});if(xst.length)st=st.concat(xst);}
   var rows=leads.filter(function(l){
     if(!inTeam(l,f.team))return false;
     if(st.indexOf(l.stage)<0)return false;
+    if(key==="Hold"&&l.stage==="Rejected"&&!_hrOk0)return false; /* Reject files stay visible only to Admin, Rajinder and Kiran, as before */
     if(key.indexOf("cat")===0){if(l.cat!==key)return false;}else if(l.cat&&key!=="data"&&key!=="channel")return false;
     if(l.date<lr.from||l.date>lr.to)return false;
     if(key==="pdd"&&l.status!=="Disburse"&&l.status!==RTO_ST)return false;
@@ -1501,7 +1504,7 @@ document.addEventListener("change",function(e){
 function renderLeads(){
   var key=pageKey(), v=document.getElementById("view");
   if(key==="channel"){ renderChannelDirectory(); return; }
-  var title=key==="Close"?"Close":(catName(key)||stageName[key]||"Leads");
+  var title=key==="Close"?"Closed":key==="Hold"?"Hold/Reject":(catName(key)||stageName[key]||"Leads");
   var opts=statusOptions(key), caret=ic("caret");
   var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><h1>'+title+'</h1></div><div class="tb">';
   h+='<div class="pw"><button class="btn dark" data-pop="status" aria-haspopup="true" aria-expanded="false"><span id="selLabel"></span> '+caret+'</button><div class="pop" id="pop-status" hidden><div class="pop-top"><button data-sel="all">Select all</button><button data-sel="reset">Reset all</button></div><div class="pop-list">'+
@@ -1514,7 +1517,7 @@ function renderLeads(){
     h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button><button class="btn" id="removeDuplicateLeads">Remove duplicate entries</button>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
-    h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Hold"?"Upload Hold Excel":"Upload Reject Excel")+'</button><input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
+    h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Rejected"?"Upload Reject Excel":"Upload Hold Excel")+'</button>'+(key==="Hold"?'<button class="btn primary" id="hrUploadBtnRej">Upload Reject Excel</button>':'')+'<input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
   var NOCAL={Audience:1,Login:1,Disbursed:1};
   if(!NOCAL[key]){
   h+='<div class="pw"><button class="btn sq" data-pop="range" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false">'+ic("cal")+'</button><div class="pop r wide" id="pop-range" hidden>'+
@@ -3401,7 +3404,7 @@ function routeOk(r){
   if(r==="backup")return hierIsAdmin(cu);
   if(cu&&cu.holdOnly&&!hierIsAdmin(cu)){
     if(r==="dashboard")return canMod("Dashboard");
-    if(r==="leads/Hold")return canDo("Leads","Hold");
+    if(r==="leads/Hold")return canDo("Leads","Hold")||(!!hrUserKey(cu)&&canDo("Leads","Reject Business"));
     if(r==="leads/Rejected")return !!hrUserKey(cu)&&canDo("Leads","Reject Business");
     if(h==="lead"){var target=leads.filter(function(x){return String(x.id)===String(k);})[0];return !!target&&((isPartHold(target)&&(cu.holdLeadIds||[]).map(String).indexOf(String(target.id))>-1)||isSharedHRLead(target,cu))&&canDo("Leads","View lead");}
     return false;
@@ -3410,6 +3413,7 @@ function routeOk(r){
   if(r==="channelwise"||r==="leads/channel")return canDo("Major Reports","Channel List");
   if(h==="lead")return canDo("Leads","View lead");
   if(h==="leads"){
+    if(k==="Hold"&&!!hrUserKey(cu)&&canDo("Leads","Reject Business")&&hierPageOk(k))return true; /* common Hold/Reject page */
     if(LEAD_PAGE[k])return canDo("Leads",LEAD_PAGE[k])&&hierPageOk(k);
     if(k==="channel")return canDo("Major Reports","Channel List");
     if(k==="data")return canDo("Major Reports","Data");
@@ -4119,7 +4123,7 @@ function bulkImportClick(){
 }
 /* ---------- category ---------- */
 var MAXCAT=15, catNext=20;
-var cats=[[1,"Audience","Audience"],[2,"Login Business","Login"],[3,"Hold","Hold"],[4,"Login Disbursement","Disbursed"],[5,"Reject Business","Rejected"],[6,"Channel List","channel"],[7,"PDD Status","pdd"],[8,"Data","data"]]
+var cats=[[1,"Audience","Audience"],[2,"Login Business","Login"],[3,"Hold/Reject","Hold"],[4,"Disbursement Business","Disbursed"],[5,"Reject Business","Rejected"],[6,"Channel List","channel"],[7,"PDD Status","pdd"],[8,"Data","data"]]
   .map(function(x){return {id:x[0],name:x[1],key:x[2],built:true};});
 state.catEdit=null;
 function catKids(){return cats.map(function(c){return ["leads/"+c.key,c.key==="channel"?"Business Reports":c.name];});}
@@ -4975,7 +4979,7 @@ function hierSave(){try{localStorage.setItem(HIER_KEY,JSON.stringify(hier));}cat
 function hierGet(k){hierLoad();var c=hier[k];if(!c||typeof c!=="object")c=hier[k]=HIER_DEFAULT[k]?JSON.parse(JSON.stringify(HIER_DEFAULT[k])):{all:false,see:[]};if(!Array.isArray(c.see))c.see=[];return c;}
 /* ---- category access: which categories of files each user can open (empty setting = all) ---- */
 var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","Login"],["Approval Pending","Approval Pending"],["Approved","Approved"],["Hold","Hold"],["Disbursed","Disbursement"],["Rejected","Reject"],["pdd","PDD Status"]];
-var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
+var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold","Rejected"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
 function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&!!(r&&r.name==="Admin");}
 function canDownloadLeadCategory(){return hierIsAdmin(userById(state.meUser));}
 window.CRM_IS_ADMIN=function(){try{return canDownloadLeadCategory();}catch(e){return false;}};
@@ -5181,7 +5185,7 @@ function render(){
   else renderStub();
   document.getElementById("mainScroll").scrollTop=0;
 }
-function go(r){if(r==="leads/channel"){r="channelwise";state.chTab="business";state.trDetail=null;}state.bizDetail=null;state.route=r;resetList();document.getElementById("side").classList.remove("open");document.getElementById("scrim").classList.remove("show");render();}
+function go(r){if(r==="leads/Rejected")r="leads/Hold";if(r==="leads/channel"){r="channelwise";state.chTab="business";state.trDetail=null;}state.bizDetail=null;state.route=r;resetList();document.getElementById("side").classList.remove("open");document.getElementById("scrim").classList.remove("show");render();}
 
 /* ---------- events ---------- */
 document.getElementById("burger").innerHTML=ic("menu");
@@ -5242,6 +5246,7 @@ document.addEventListener("click",function(e){
       leads=all.filter(function(x){return gone.indexOf(x)<0;});MASTER=null;SCOPED=null;
       hierSave();saveLeads();})();
     closeAll();if(state.route.indexOf("lead/")===0){state.route=state.listRoute||"leads/Login";render();}else renderTable();toast("Lead deleted");bkTick();return;}
+  if(t.id==="hrUploadBtnRej"){pendingHRStage="Rejected";var hrf2=document.getElementById("hrUploadFile");if(hrf2)hrf2.click();return;}
   if(t.id==="hrUploadBtn"){pendingHRStage=pageKey();var hrf=document.getElementById("hrUploadFile");if(hrf)hrf.click();return;}
   if(t.hasAttribute("data-addlead")){closePops();var _pk=pageKey();if(_pk!=="Audience"&&_pk!=="Login"){return;}if(!canDo("Leads","Add lead")){toast(DENY);return;}openAddLead();return;}
   if(t.hasAttribute("data-replacecsv")){closePops();if(!canDo("Leads","Import leads")||!canDo("Leads","Delete lead")){toast(DENY);return;}pendingReplace=true;document.getElementById("csvIn").click();return;}
