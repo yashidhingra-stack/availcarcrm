@@ -4441,11 +4441,10 @@ function lpDuesHtml(){
     '<select id="cf_lender" aria-label="Lender">'+lpOpt(Object.keys(lenders).sort(),f.lender,"All lenders")+'</select>'+
     '<select id="cf_dealer" aria-label="Dealer">'+lpOpt(Object.keys(dealers).sort(),f.dealer,"All dealers")+'</select>'+
     '<select id="cf_pay" aria-label="Payment status">'+lpOpt(["Pending","Part paid","Paid"],f.pay,"All payment status")+'</select>'+
-    '<select id="cf_hold" aria-label="Hold payment">'+lpOpt([["yes","With hold payment"]],f.hold,"Any hold")+'</select>'+
     '<button class="btn" id="cfClear">Clear</button><button class="btn" id="cfCsv">Download Excel</button></div>';
-  var tbl=rows.length?'<div class="tscroll"><table class="pm-tbl" style="min-width:1100px"><thead><tr><th>Customer</th><th>Entry date</th><th>Mobile</th><th>Vehicle no.</th><th>Lender</th><th>Stage</th><th>Loan amount</th><th>Net disbursement</th><th>PDD charges</th><th>Hold payment</th><th>Paid</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
-    rows.slice(0,200).map(function(r){var l=r.l,n=esc(l.name);return '<tr><td><button class="name-link" data-view="'+l.id+'" title="Open lead">'+n+'</button></td><td>'+lpEntry(l)+'</td><td>'+esc(l.phone||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+(r.pdd?'PDD status':'Login disbursement')+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.ch)+'</td><td>'+m(r.hold)+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td><td><div class="act"><button class="icon-btn seg-eye" data-view="'+l.id+'" aria-label="View '+n+'" title="View">'+ic("eye")+'</button><button class="icon-btn seg-edit" data-ledit2="'+l.id+'" aria-label="Edit '+n+'" title="Edit">'+ic("pencil")+'</button><button class="btn" data-lppay="'+l.id+'">Pay</button></div></td></tr>';}).join("")+
-    '</tbody><tfoot><tr><th colspan="6">Total ('+rows.length+')</th><th>'+m(T.loan)+'</th><th>'+m(T.net)+'</th><th>'+m(T.ch)+'</th><th>'+m(T.hold)+'</th><th>'+m(T.paid)+'</th><th>'+m(T.bal)+'</th><th colspan="2"></th></tr></tfoot></table></div>'+(rows.length>200?'<p class="note">Showing the first 200. Use the filters to narrow the list.</p>':''):
+  var tbl=rows.length?'<div class="tscroll"><table class="pm-tbl" style="min-width:1100px"><thead><tr><th>Customer</th><th>Entry date</th><th>Mobile</th><th>Vehicle no.</th><th>Lender</th><th>Stage</th><th>Loan amount</th><th>Net disbursement</th><th>PDD charges</th><th>Paid</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
+    rows.slice(0,200).map(function(r){var l=r.l,n=esc(l.name);return '<tr><td><button class="name-link" data-view="'+l.id+'" title="Open lead">'+n+'</button></td><td>'+lpEntry(l)+'</td><td>'+esc(l.phone||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+(r.pdd?'PDD status':'Login disbursement')+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.ch)+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td><td><div class="act"><button class="icon-btn seg-eye" data-view="'+l.id+'" aria-label="View '+n+'" title="View">'+ic("eye")+'</button><button class="icon-btn seg-edit" data-ledit2="'+l.id+'" aria-label="Edit '+n+'" title="Edit">'+ic("pencil")+'</button><button class="btn" data-lppay="'+l.id+'">Pay</button></div></td></tr>';}).join("")+
+    '</tbody><tfoot><tr><th colspan="6">Total ('+rows.length+')</th><th>'+m(T.loan)+'</th><th>'+m(T.net)+'</th><th>'+m(T.ch)+'</th><th>'+m(T.paid)+'</th><th>'+m(T.bal)+'</th><th colspan="2"></th></tr></tfoot></table></div>'+(rows.length>200?'<p class="note">Showing the first 200. Use the filters to narrow the list.</p>':''):
     '<p class="note">No files match. Files appear here once they move from Login business to Login disbursement or PDD status.</p>';
   return cards+'<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer leads (approved and disbursed files)</h3>'+filt+tbl+'<p class="note">PDD charges come from PDD Details and net disbursement from the calculator below, so anything saved there shows here automatically. Click a name to open the lead, or use Pay to start a payment.</p></section>';
 }
@@ -4495,12 +4494,12 @@ function lpWire(kind){
   if(kind==="customer"){
     var cf=state.lp.cf;if(state.lp.lead&&lead(state.lp.lead))ndWire(lead(state.lp.lead),v);
     g("cf_q").onchange=function(){cf.q=this.value;renderPayments();};
-    [["cf_stage","stage"],["cf_lender","lender"],["cf_dealer","dealer"],["cf_pay","pay"],["cf_hold","hold"]].forEach(function(p){g(p[0]).onchange=function(){cf[p[1]]=this.value;renderPayments();};});
+    [["cf_stage","stage"],["cf_lender","lender"],["cf_dealer","dealer"],["cf_pay","pay"]].forEach(function(p){g(p[0]).onchange=function(){cf[p[1]]=this.value;renderPayments();};});
     g("cfClear").onclick=function(){state.lp.cf={q:"",lender:"",dealer:"",stage:"",pay:"",hold:""};renderPayments();};
     v.querySelectorAll("[data-lppay]").forEach(function(b){b.onclick=function(){state.lp.lead=+b.getAttribute("data-lppay");renderPayments();var c=v.querySelector('[aria-label="Net disbursement calculator"]');if(c)c.scrollIntoView({behavior:"smooth",block:"start"});};});
     g("cfCsv").onclick=function(){
-      var rows=[["Customer","Entry date","Mobile","Vehicle number","Lender","Dealer","Stage","Loan amount","Net disbursement","PDD charges","Hold payment","Paid","Balance","Payment status"]];
-      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,String(l.ts||l.date||"").slice(0,10),l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Login disbursement",lpNum(l.amount),r.net===null?"":r.net,r.ch,r.hold,r.paid,r.bal===null?"":r.bal,r.ps]);});
+      var rows=[["Customer","Entry date","Mobile","Vehicle number","Lender","Dealer","Stage","Loan amount","Net disbursement","PDD charges","Paid","Balance","Payment status"]];
+      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,String(l.ts||l.date||"").slice(0,10),l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Login disbursement",lpNum(l.amount),r.net===null?"":r.net,r.ch,r.paid,r.bal===null?"":r.bal,r.ps]);});
       saveCsv("customer-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
     };
     return;
@@ -4531,12 +4530,12 @@ function lpWire(kind){
   if(kind==="customer"){
     var cf=state.lp.cf;if(state.lp.lead&&lead(state.lp.lead))ndWire(lead(state.lp.lead),v);
     g("cf_q").onchange=function(){cf.q=this.value;renderPayments();};
-    [["cf_stage","stage"],["cf_lender","lender"],["cf_dealer","dealer"],["cf_pay","pay"],["cf_hold","hold"]].forEach(function(p){g(p[0]).onchange=function(){cf[p[1]]=this.value;renderPayments();};});
+    [["cf_stage","stage"],["cf_lender","lender"],["cf_dealer","dealer"],["cf_pay","pay"]].forEach(function(p){g(p[0]).onchange=function(){cf[p[1]]=this.value;renderPayments();};});
     g("cfClear").onclick=function(){state.lp.cf={q:"",lender:"",dealer:"",stage:"",pay:"",hold:""};renderPayments();};
     v.querySelectorAll("[data-lppay]").forEach(function(b){b.onclick=function(){state.lp.lead=+b.getAttribute("data-lppay");state.lp.q="";renderPayments();var f=document.getElementById("lp_lead");if(f)f.scrollIntoView({behavior:"smooth",block:"center"});};});
     g("cfCsv").onclick=function(){
-      var rows=[["Customer","Entry date","Mobile","Vehicle number","Lender","Dealer","Stage","Loan amount","Net disbursement","PDD charges","Hold payment","Paid","Balance","Payment status"]];
-      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,String(l.ts||l.date||"").slice(0,10),l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Login disbursement",lpNum(l.amount),r.net===null?"":r.net,r.ch,r.hold,r.paid,r.bal===null?"":r.bal,r.ps]);});
+      var rows=[["Customer","Entry date","Mobile","Vehicle number","Lender","Dealer","Stage","Loan amount","Net disbursement","PDD charges","Paid","Balance","Payment status"]];
+      lpCustRows().forEach(function(r){var l=r.l;rows.push([l.name,String(l.ts||l.date||"").slice(0,10),l.phone||"",l.reg||"",l.lender||"",l.dealer||"",r.pdd?"PDD status":"Login disbursement",lpNum(l.amount),r.net===null?"":r.net,r.ch,r.paid,r.bal===null?"":r.bal,r.ps]);});
       saveCsv("customer-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
     };
   }
@@ -5615,7 +5614,7 @@ function bkRestoreDels(list){
 }
 function bkWhen(ts){return new Date(ts).toLocaleString("en-IN",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});}
 function renderBackup(){
-  document.getElementById("view").innerHTML='<div class="page-head"><div><h1>Backup</h1><p>Leads are backed up automatically. Deleted or missing leads show here with their lead owner and can be restored.</p></div><div><button class="btn primary" data-bk="now">Back up now</button> <button class="btn" data-bk="file">Load backup file</button><input type="file" id="bkFile" accept=".json" hidden></div></div><div id="bkBody">Loading…</div>';
+  document.getElementById("view").innerHTML='<div class="page-head"><div><h1>Backup</h1><p>Leads are backed up automatically. Deleted or missing leads show here with their lead owner and can be restored.</p></div><div><button class="btn primary" data-bk="now">Back up now</button> <button class="btn" data-bk="file">Load backup file</button> <button class="btn" data-clearall title="Delete every lead from the CRM and the shared database">Clear all leads</button><input type="file" id="bkFile" accept=".json" hidden></div></div><div id="bkBody">Loading…</div>';
   bkAll("dels",function(d){bkAll("snaps",function(s){BK.dels=d;BK.snaps=s.sort(function(a,b){return b.ts-a.ts;});bkDraw();});});
 }
 function bkDraw(){
