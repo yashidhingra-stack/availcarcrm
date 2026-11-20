@@ -626,7 +626,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
     <input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
     <p class="login-err" id="loginErr" role="alert"></p>
     <button class="btn primary login-btn" type="submit">Sign in</button>
-    <p class="login-powered" style="margin-bottom:0">Build: users-hold-assign-8</p><p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
+    <p class="login-powered" style="margin-bottom:0">Build: users-hold-assign-9</p><p class="login-powered">Powered by <b>YASHU DHINGRA</b><br><span class="live-clock">Live time: --</span></p>
   </form>
 </div>
 
@@ -881,7 +881,7 @@ function navRoute(){return state.route.indexOf("lead/")===0?(state.listRoute||"l
 function renderNav(){
   var h="", cur=navRoute(), cu=userById(state.meUser), hrMenu=!!hrUserKey(cu);
   var LEADS_MAIN=["Audience","Login","Disbursed","pdd","Close","Hold"];
-  var hrLabels={Audience:"Login",Login:"Login Business",Hold:"Hold/Reject",Disbursed:"Disbursement Pending",Rejected:"Reject",pdd:"PDD Status",Close:"Closed"};
+  var hrLabels={Audience:"Audience",Login:"Login Business",Hold:"Hold/Reject",Disbursed:"Disbursement Business",Rejected:"Reject",pdd:"PDD Status",Close:"Closed"};
   var leadKids=LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:(k==="Close"?"Closed":catName(k))];}).concat([["data/download","Download Data"]]);
   /* Menu order: Dashboard, Leads (up to PDD Status, then Download Data), Dealer Commission, Forms, Office Use Only, Reports, WABA */
   var MENU=[
