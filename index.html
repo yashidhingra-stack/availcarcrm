@@ -850,10 +850,10 @@ var state={route:"dashboard",range:{from:ymd(new Date(TODAY.getTime()-29*864e5))
   cols:{sno:true,ts:true,name:true,phone:true,product:true,amount:true,vehicle:true,reg:true,lender:true,dealer:true,status:true,owner:false},
   sf:{name:true,phone:true,veh:true,lender:false,dealer:false},
   widgets:[
-   {id:"w1",title:"Leads pending – Audience",kind:"stack",stage:"Audience"},
-   {id:"w2",title:"Login disbursement",kind:"stack",stage:"Disbursed"},
-   {id:"w3",title:"Login business",kind:"stack",stages:["Login"]},
-   {id:"w4",title:"PDD status",kind:"pdd"}],
+   {id:"w1",title:"Leads pending – Audience",kind:"stack",stage:"Audience",page:"Audience"},
+   {id:"w2",title:"Login disbursement",kind:"stack",stage:"Disbursed",page:"Disbursed"},
+   {id:"w3",title:"Login business",kind:"stack",stages:["Login"],page:"Login"},
+   {id:"w4",title:"PDD status",kind:"pdd",page:"pdd"}],
   removed:[]};
 state.arange={from:"2026-09-12",to:"2026-10-11"};state.rprod="";
 state.dl={scope:"all",cols:{id:true,ts:true,name:true,phone:true,product:true,amount:true,vehicle:true,reg:true,lender:true,dealer:true,status:true,stage:false,owner:true,caseBooked:true,audId:true,source:false}};
@@ -957,6 +957,7 @@ function renderDashboard(){
   var showG=canDo("Dashboard","Leads Collected");
   if(showG)h+='<div class="sec-head"><h2>Analysis graph</h2><div class="range"><input type="date" id="rFrom" value="'+state.range.from+'" aria-label="From date"><span>to</span><input type="date" id="rTo" value="'+state.range.to+'" aria-label="To date"></div></div><div class="grid" id="grid">';
   (showG?state.widgets:[]).forEach(function(w){
+    if(w.page&&!hierPageOk(w.page))return; /* category not ticked for this user on the Hierarchy page */
     h+='<article class="card'+(w.wide?" wide":"")+'" data-w="'+w.id+'"><div class="card-head"><h3>'+esc(w.title)+'</h3><div class="tools">'+
       tool("edit","pencil","Rename chart")+tool("del","trash","Remove chart")+(w.kind==="stack"?tool("zin","plus","Make taller")+tool("zout","minus","Make shorter")+tool("wide","expand","Toggle full width")+tool("reset","reset","Reset size"):"")+
       '</div></div><div class="chart-box" style="height:'+(w.h||H0)+'px"></div></article>';
@@ -4979,7 +4980,7 @@ function hierSave(){try{localStorage.setItem(HIER_KEY,JSON.stringify(hier));}cat
 function hierGet(k){hierLoad();var c=hier[k];if(!c||typeof c!=="object")c=hier[k]=HIER_DEFAULT[k]?JSON.parse(JSON.stringify(HIER_DEFAULT[k])):{all:false,see:[]};if(!Array.isArray(c.see))c.see=[];return c;}
 /* ---- category access: which categories of files each user can open (empty setting = all) ---- */
 var HCATS=[["Audience","Audience"],["Login Pending","Login Pending"],["Login","Login"],["Approval Pending","Approval Pending"],["Approved","Approved"],["Hold","Hold"],["Disbursed","Disbursement"],["Rejected","Reject"],["pdd","PDD Status"]];
-var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold","Rejected"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"]};
+var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pending","Approved"],Hold:["Hold","Rejected"],Disbursed:["Disbursed"],Rejected:["Rejected"],pdd:["pdd"],Close:["pdd"]};
 function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&!!(r&&r.name==="Admin");}
 function canDownloadLeadCategory(){return hierIsAdmin(userById(state.meUser));}
 window.CRM_IS_ADMIN=function(){try{return canDownloadLeadCategory();}catch(e){return false;}};
@@ -5829,7 +5830,7 @@ window.CRM_SYNC={
       else if(nt)toast('Saved to Supabase');
     },800);
   },
-  pushHier:function(h){if(!sb||!state.meUser)return;clearTimeout(hierT);hierT=setTimeout(function(){sb.from('settings').upsert({key:'hier',value:clean(h),updated_at:new Date().toISOString()}).then(function(r){if(r.error)console.warn('settings not saved (Admin only):',r.error.message);});},1000);}
+  pushHier:function(h){if(!sb||!state.meUser)return;clearTimeout(hierT);hierT=setTimeout(function(){sb.from('settings').upsert({key:'hier',value:clean(h),updated_at:new Date().toISOString()}).then(function(r){if(r.error){console.warn('settings not saved (Admin only):',r.error.message);try{toast('Category access saved on this device only - other users will not get it: '+r.error.message);}catch(_){}}});},1000);}
 };
 /* "Clear leads and backups" must also empty the shared Supabase table, otherwise every old lead comes back on the next refresh. Admin only (the button already checks this). */
 window.CRM_SYNC.wipeCloud=async function(){
