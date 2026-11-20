@@ -818,6 +818,7 @@ window.CRM_APPLY_HIER=function(o){
   hier=mrg;try{localStorage.setItem(HIER_KEY,JSON.stringify(mrg));}catch(e){}
   try{if(o.__perm&&permAdopt(o.__perm))try{localStorage.setItem(PERM_KEY,JSON.stringify(o.__perm));}catch(e){}}catch(e){}
   if(o.__users){var ar=adoptUsers(o.__users);if(ar){syncOwners();if(ar==="push")saveUsers();}}
+  try{if(o.__attrs&&typeof attrsAdopt==="function")attrsAdopt(o.__attrs);}catch(_){}
   crmRerender();
 };
 /* same browser, other tab or window (for example Sapna in one window and Anu in another): when one saves a move, the others load it at once instead of keeping the old category and overwriting it later */
@@ -3892,6 +3893,22 @@ var attrGroups=[
  {id:1,label:"Lead Details",sort:0,def:true,keys:[]},
  {id:2,label:"PDD Details",sort:3,def:false,keys:["pdd_status","insurance_expiry_date","chasis_number","engine_number","rc_received","registration_date"]},
  {id:3,label:"Payout Details",sort:3,def:false,keys:["disbursed_amount","bank_executive","challan_charges","loan_tenure","commission_amount","payout_percentage","processing_fee"]}];
+/* ---------- custom attributes and groups are saved (this browser + shared database) so every user gets what Admin set ---------- */
+var ATTR_KEY="avail_crm_attrs_v1";
+function attrsSaveAll(){
+  var pl={attrs:attrs,groups:attrGroups,next:attrNext,gnext:grpNext};
+  try{localStorage.setItem(ATTR_KEY,JSON.stringify(pl));}catch(e){}
+  try{hierLoad().__attrs=pl;hierSave();}catch(e){}
+}
+function attrsAdopt(j){
+  if(!j||!Array.isArray(j.attrs)||!Array.isArray(j.groups)||!j.groups.length)return false;
+  attrs=j.attrs;attrGroups=j.groups;
+  attrNext=Math.max(attrNext,+j.next||0,attrs.reduce(function(m,a){return Math.max(m,(+a.id||0)+1);},0));
+  grpNext=Math.max(grpNext,+j.gnext||0,attrGroups.reduce(function(m,g){return Math.max(m,(+g.id||0)+1);},0));
+  try{localStorage.setItem(ATTR_KEY,JSON.stringify({attrs:attrs,groups:attrGroups,next:attrNext,gnext:grpNext}));}catch(e){}
+  return true;
+}
+(function(){try{attrsAdopt(JSON.parse(localStorage.getItem(ATTR_KEY)||"null"));}catch(e){}})();
 function groupKeys(g){
   if(!g.def)return g.keys;
   var used=[]; attrGroups.forEach(function(x){if(!x.def)used=used.concat(x.keys);});
@@ -3993,7 +4010,7 @@ function saveAttr(){
     var na={id:attrNext++,label:lb,cat:d.cat,type:d.type,key:key};Object.keys(extra).forEach(function(k){na[k]=extra[k];});attrs.push(na);
     attrs.sort(function(x,y){return x.label.toLowerCase()<y.label.toLowerCase()?-1:x.label.toLowerCase()>y.label.toLowerCase()?1:0;});
   }
-  state.attrEdit=null;state.atDraft=null;closeAll();renderIntegration();toast(edit?"Attribute updated":"Attribute added");
+  attrsSaveAll();state.attrEdit=null;state.atDraft=null;closeAll();renderIntegration();toast(edit?"Attribute updated":"Attribute added");
 }
 function openAttrDelete(id){
   var a=attrs.filter(function(x){return x.id===id;})[0]; if(!a)return;
@@ -4020,7 +4037,7 @@ function saveGrp(){
   attrGroups.forEach(function(x){if(!x.def&&x.id!==edit)x.keys=x.keys.filter(function(k){return keys.indexOf(k)<0;});});
   if(edit){var g=attrGroups.filter(function(x){return x.id===edit;})[0];g.label=nm;g.sort=+sv;g.keys=keys;}
   else attrGroups.push({id:grpNext++,label:nm,sort:+sv,def:false,keys:keys});
-  state.grpEdit=null;closeAll();renderIntegration();toast(edit?"Group updated":"Group added");
+  attrsSaveAll();state.grpEdit=null;closeAll();renderIntegration();toast(edit?"Group updated":"Group added");
 }
 function openGrpView(id){
   var g=attrGroups.filter(function(x){return x.id===id;})[0]; if(!g)return;
@@ -5349,12 +5366,12 @@ document.addEventListener("click",function(e){
   if(d.atx){attrKeep();state.atDraft.dyn=state.atDraft.dyn.filter(function(x){return x!==+d.atx;});drawAttr();return;}
   if(d.atrx){attrKeep();state.atDraft.roles=state.atDraft.roles.filter(function(x){return x!==+d.atrx;});drawAttr();return;}
   if(t.hasAttribute("data-atclr")){attrKeep();state.atDraft.dyn=[];drawAttr();return;}
-  if(d.confirmattr){var ai=+d.confirmattr,ak=(attrs.filter(function(x){return x.id===ai;})[0]||{}).key;attrs=attrs.filter(function(x){return x.id!==ai;});attrGroups.forEach(function(g){g.keys=g.keys.filter(function(k){return k!==ak;});});closeAll();renderIntegration();toast("Attribute deleted");return;}
+  if(d.confirmattr){var ai=+d.confirmattr,ak=(attrs.filter(function(x){return x.id===ai;})[0]||{}).key;attrs=attrs.filter(function(x){return x.id!==ai;});attrGroups.forEach(function(g){g.keys=g.keys.filter(function(k){return k!==ak;});});attrsSaveAll();closeAll();renderIntegration();toast("Attribute deleted");return;}
   if(d.grpview){openGrpView(+d.grpview);return;}
   if(d.grpedit){openGroup(+d.grpedit);return;}
   if(d.grpdel){openGrpDelete(+d.grpdel);return;}
   if(t.id==="saveGrp"){saveGrp();return;}
-  if(d.confirmgrp){var gi=+d.confirmgrp;attrGroups=attrGroups.filter(function(g){return g.id!==gi;});closeAll();renderIntegration();toast("Group deleted");return;}
+  if(d.confirmgrp){var gi=+d.confirmgrp;attrGroups=attrGroups.filter(function(g){return g.id!==gi;});attrsSaveAll();closeAll();renderIntegration();toast("Group deleted");return;}
   if(t.id==="apiKit"){openApiKit();return;}
   if(d.reptab){state.repTab=d.reptab;renderTable();return;}
   if(t.id==="repDl"){if(!canDownloadLeadCategory()){toast("Only Admin can download category reports");return;}saveCsv(state.repName,state.repCsv);return;}
