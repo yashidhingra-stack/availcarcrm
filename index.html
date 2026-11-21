@@ -478,6 +478,9 @@ tr.pvoid td.amt{text-decoration:line-through}
 td small{color:var(--muted)}
 /* ---- Disbursement lead view ---- */
 .name-link{border:0;background:none;padding:0;color:var(--focus);font-weight:500;text-align:left}
+.dd-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 4px}.dd-title{flex:1;min-width:200px}.dd-title h2{margin:0;font-size:20px}.dd-title .dlnote{margin:2px 0 0}
+.rate-edit{border:1px dashed var(--line);background:var(--surface);color:var(--focus);border-radius:6px;padding:2px 9px;font:inherit;font-weight:500;cursor:text}.rate-edit:hover{border-color:var(--focus)}.rate-edit.custom{background:#fff7e6;border-color:#e0a030;color:#8a5a00}
+.rate-in{width:74px;padding:3px 6px;border:1px solid var(--focus);border-radius:6px;font:inherit;text-align:center}
 .name-link:hover{text-decoration:underline}
 .ld-boxbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px}.ld-boxbar .btn{display:inline-flex;align-items:center;gap:6px}
 .ld-bar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px}
@@ -4314,6 +4317,7 @@ state.dcfg={};state.payments=[];state.paidAmt={};state.emailed={};state.ptab="pa
 var payNext=1;
 /* ---- saving, filters, receipts, audit trail ---- */
 P.printer='<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M6 14h12v7H6z"/>';
+P.share='<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>';
 state.pf={q:"",st:"all"};
 state.hf={q:"",dealer:"",mode:"",from:"",to:"",st:"active"};
 function whoAmI(){return window.CRM_USER||"Umesh Dhingra";}
@@ -4430,6 +4434,9 @@ function payApply(opt){
 payApply("last30");
 function dRate(d){var c=state.dcfg[d];if(c&&c.rate!==undefined)return c.rate;return DEALER_RATE[d]!==undefined?DEALER_RATE[d]:1;}
 function dApp(d){return (state.dcfg[d]&&state.dcfg[d].appId)||"";}
+/* rate for one file: a rate set on that file wins over the dealer's rate */
+function fRate(l){var c=state.dcfg[l.dealer];if(c&&c.fr&&c.fr[l.id]!==undefined)return c.fr[l.id];return dRate(l.dealer);}
+function fRateSet(l,r){var c=state.dcfg[l.dealer]=state.dcfg[l.dealer]||{};c.fr=c.fr||{};if(r===null)delete c.fr[l.id];else c.fr[l.id]=r;}
 state.notifLog=[];
 /* In-app notifications. Set window.CRM_NOTIFY (see firebase-connector.js) to deliver to the dealer app. */
 function sendDealerNotification(dealer,n){
@@ -4442,7 +4449,7 @@ function sendDealerNotification(dealer,n){
 function notifyToast(r,ok){toast(r&&r.delivered?ok:"Saved in the CRM only. Connect Firebase (firebase-connector.js) to reach the app.");}
 function dEmail(d){return (state.dcfg[d]&&state.dcfg[d].email)||"";}
 function payCases(dealer){var r=state.pay;return leads.filter(function(l){return l.status==="Disburse"&&!l.cat&&l.dealer&&l.date>=r.from&&l.date<=r.to&&(!dealer||l.dealer===dealer);});}
-function casePayout(l){return state.paidAmt[l.id]!==undefined?state.paidAmt[l.id]:Math.round(l.amount*dRate(l.dealer)/100);}
+function casePayout(l){return state.paidAmt[l.id]!==undefined?state.paidAmt[l.id]:Math.round(l.amount*fRate(l)/100);}
 function dealerSum(d){
   var cs=payCases(d),loan=0,tot=0,paid=0,paidN=0;
   cs.forEach(function(l){var p=casePayout(l);loan+=l.amount;tot+=p;if(state.paidAmt[l.id]!==undefined){paid+=p;paidN++;}});
@@ -4792,26 +4799,77 @@ function stWire(){
 }
 function renderPayments(){
   var kind=(state.route.split("/")[1]||"dealer");if(["customer","dealer","staff"].indexOf(kind)<0)kind="dealer";
-  var TABS={dealer:[["payouts","Dealer payouts"],["history","Payment history"],["lead","Other dealer payments"]],customer:[["lead","Customer payments"]],staff:[["lead","Staff payments"]]};
+  var TABS={dealer:[["payouts","Dealer payouts"]],customer:[["lead","Customer payments"]],staff:[["lead","Staff payments"]]};
   var tabs=TABS[kind];
-  if(state.payKindLast!==kind){state.payKindLast=kind;state.ptab=tabs[0][0];state.lp.fq="";state.lp.fc="";state.lp.ft="";}
+  if(state.payKindLast!==kind){state.payKindLast=kind;state.payDetail=null;state.ptab=tabs[0][0];state.lp.fq="";state.lp.fc="";state.lp.ft="";}
   if(!tabs.some(function(t){return t[0]===state.ptab;}))state.ptab=tabs[0][0];
   var tab=state.ptab,hist=tab==="history",lpt=tab==="lead",calc=tab==="calc",payout=kind==="dealer"&&tab==="payouts";
   var title=kind==="customer"?"Customer payments":kind==="staff"?"Staff payments":"Dealer payments";
+  if(payout&&state.payDetail&&!dealers.some(function(x){return x===state.payDetail;}))state.payDetail=null;
   var blurb=kind==="customer"?"Approved and disbursed files with PDD charges, net disbursement, payments and the net disbursement calculator.":kind==="staff"?"Salary, incentive, commission and other payments to staff.":"Pay dealer payouts and send dealers their payout details.";
-  var list=payout?allDealerSums():null;
-  var tools=hist?'<div class="tb"><button class="btn" id="payHistCsv">Download Excel</button></div>':payout?'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download Excel</button></div>':'';
-  var body=kind==="staff"?stHtml():calc?calcTabHtml():lpt?lpTabHtml(kind):hist?payHistoryTab():payPayoutsTab(list);
+  var list=payout&&!state.payDetail?allDealerSums():null;
+  var tools=hist?'<div class="tb"><button class="btn" id="payHistCsv">Download Excel</button></div>':payout&&!state.payDetail?'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download Excel</button></div>':'';
+  var body=kind==="staff"?stHtml():calc?calcTabHtml():lpt?lpTabHtml(kind):hist?payHistoryTab():(payout&&state.payDetail)?dealerDetailHtml(state.payDetail):payPayoutsTab(list);
   document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>'+title+'</h1><p class="note" style="margin:0">'+blurb+'</p></div></div>'+tools+'</div>'+
    (kind==="dealer"?'<div class="appcard"><div class="ai"><b>Dealer app (Android preview)</b><span>Preview build with sample data. It is not connected to this CRM yet, so it does not show real payments or receive in-app notifications. Debug build, 17.5M.</span></div><a class="btn primary" href="downloads/dealer-app.apk" download="dealer-app.apk">Download APK</a></div>':'')+
    (tabs.length>1?'<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ptab===t[0])+'" data-ptab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>':'')+
-   (kind==="dealer"&&!lpt?'<p class="dlnote">'+storeNote()+'</p>'+(payout?payControls()+payFilterBar():''):'')+'<div style="margin-top:14px">'+body+'</div>';
+   (kind==="dealer"&&!lpt?'<p class="dlnote">'+storeNote()+'</p>'+(payout?payControls()+(state.payDetail?'':payFilterBar()):''):'')+'<div style="margin-top:14px">'+body+'</div>';
   if(kind==="staff")stWire();else if(calc)calcWire();else if(lpt)lpWire(kind);
+}
+/* ---------- Dealer payments: click a dealer to see its files ---------- */
+function ddRateCell(l){
+  var paid=state.paidAmt[l.id]!==undefined;
+  if(paid){var pr=l.amount?Math.round(state.paidAmt[l.id]/l.amount*10000)/100:0;return '<span title="Paid files keep the rate they were paid at">'+pr+'%</span>';}
+  var c=state.dcfg[l.dealer],custom=c&&c.fr&&c.fr[l.id]!==undefined;
+  return '<button class="rate-edit'+(custom?' custom':'')+'" data-frate="'+l.id+'" title="Click to edit the rate for this file" aria-label="Edit payout rate for '+esc(l.name)+'">'+fRate(l)+'%</button>';
+}
+function dealerDetailHtml(d){
+  var s=dealerSum(d),cs=s.cases.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.id-a.id;}),dd=esc(d);
+  function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
+  var head='<div class="dd-head"><button class="btn" data-ddback="1">'+ic("back")+' All dealers</button><div class="dd-title"><h2>'+dd+'</h2><p class="dlnote">'+esc(state.pay.label)+(dApp(d)?'. App ID '+esc(dApp(d)):'. No app ID set')+'. Dealer rate '+s.rate+'%. Click a rate to change it for that file.</p></div>'+
+    '<div class="tb"><button class="btn" data-stcsv="'+dd+'">Download Excel</button><button class="btn" data-paemail="'+dd+'">'+ic("bell")+' Notify in app</button><button class="icon-btn" data-paset="'+dd+'" aria-label="Rate and app ID for '+dd+'" title="Rate and app ID">'+ic("cog")+'</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+dd+'">Record payment</button>':'')+'</div></div>';
+  var kp='<div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(s.total),"Total payout")+kpi(money(s.paid),"Paid")+kpi(money(s.bal),"Balance")+'</div>';
+  if(!cs.length)return head+kp+'<div class="stub"><h2>No disbursed files in this period</h2>Choose another period above.</div>';
+  var rows=cs.map(function(l,i){var paid=state.paidAmt[l.id]!==undefined;
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(fmtDate(l.date))+'</td><td class="l"><button class="name-link" data-lpview="'+l.id+'" title="Open details">'+esc(l.name)+'</button></td><td>'+esc(l.phone||"-")+'</td><td>'+esc(l.vehicle||"-")+'</td><td>'+esc(l.reg||"-")+'</td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+ddRateCell(l)+'</td><td>'+money(casePayout(l))+'</td><td><span class="pill '+(paid?"Disbursed":"Hold")+'">'+(paid?"Paid":"Pending")+'</span></td>'+
+      '<td><button class="icon-btn seg-eye" data-fshare="'+l.id+'" aria-label="Share file of '+esc(l.name)+'" title="Share this file">'+ic("share")+'</button></td></tr>';}).join("");
+  return head+kp+'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:1100px"><thead><tr><th>Sr. No.</th><th>Disbursal date</th><th class="l">Customer</th><th>Mobile</th><th>Vehicle</th><th>Vehicle no.</th><th>Lender</th><th>Loan amount</th><th>Rate %</th><th>Payout</th><th>Status</th><th>Share</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr><td colspan="7" class="l"><b>Total ('+s.n+' file'+(s.n===1?"":"s")+')</b></td><td><b>'+money(s.loan)+'</b></td><td></td><td><b>'+money(s.total)+'</b></td><td colspan="2"></td></tr></tfoot></table></div></div>'+
+    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Excel data"></textarea>';
+}
+function startRateEdit(btn){
+  var id=+btn.getAttribute("data-frate"),l=lead(id);if(!l)return;
+  if(state.paidAmt[id]!==undefined){toast("This file is already paid, so its rate cannot be changed");return;}
+  var td=btn.parentNode,cur=fRate(l),done=false;
+  td.innerHTML='<input type="number" class="rate-in" min="0" max="100" step="0.05" value="'+cur+'" aria-label="Payout rate percent for '+esc(l.name)+'">';
+  var inp=td.firstChild;inp.focus();inp.select();
+  function commit(save){
+    if(done)return;done=true;
+    if(save){var v=parseFloat(inp.value);
+      if(isNaN(v)||v<0||v>100){toast("Enter a rate between 0 and 100");}
+      else if(v!==cur){fRateSet(l,v===dRate(l.dealer)?null:v);toast("Rate for "+l.name+" is now "+v+"%");persistCfg().catch(function(e){toast("Shown here but NOT saved to Firebase: "+(e&&e.message||e));});}}
+    renderPayments();
+  }
+  inp.onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();commit(true);}else if(e.key==="Escape"){commit(false);}};
+  inp.onblur=function(){commit(true);};
+}
+function fileShareText(l){
+  var paid=state.paidAmt[l.id]!==undefined,rate=paid&&l.amount?Math.round(state.paidAmt[l.id]/l.amount*10000)/100:fRate(l);
+  return ["Avail Car - dealer payout file","Dealer: "+l.dealer,"Customer: "+l.name,"Disbursal date: "+fmtDate(l.date),"Vehicle: "+(((l.vehicle||"")+" "+(l.reg||"")).trim()||"-"),"Lender: "+(l.lender||"-"),"Loan amount: "+money(l.amount),"Payout rate: "+rate+"%","Payout: "+money(casePayout(l)),"Status: "+(paid?"Paid":"Pending")].join("\n");
+}
+function shareFallback(txt){
+  try{if(navigator.clipboard)navigator.clipboard.writeText(txt);}catch(e){}
+  window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank","noopener");
+  toast("File details copied. Opening WhatsApp to share");
+}
+function shareFile(id){
+  var l=lead(id);if(!l)return;var txt=fileShareText(l);
+  if(navigator.share){navigator.share({title:"Payout file: "+l.name,text:txt}).catch(function(e){if(e&&e.name==="AbortError")return;shareFallback(txt);});}
+  else shareFallback(txt);
 }
 function csvRowsFor(cases){
   var byCase={}; state.payments.forEach(function(p){if(p.status==="void")return;p.items.forEach(function(it){byCase[it.id]=p;});});
   var rows=[["Dealer","Disbursal date","Customer","Vehicle","Vehicle number","Lender","Loan amount","Payout rate %","Payout amount","Status","Payment date","Payment reference"]];
-  cases.forEach(function(l){var pm=byCase[l.id];rows.push([l.dealer,l.date,l.name,l.vehicle,l.reg,l.lender,l.amount,dRate(l.dealer),casePayout(l),pm?"Paid":"Pending",pm?pm.date:"",pm?pm.ref:""]);});
+  cases.forEach(function(l){var pm=byCase[l.id];rows.push([l.dealer,l.date,l.name,l.vehicle,l.reg,l.lender,l.amount,fRate(l),casePayout(l),pm?"Paid":"Pending",pm?pm.date:"",pm?pm.ref:""]);});
   return rows;
 }
 function csvText(rows){return "\ufeff"+rows.map(function(r){return r.map(q).join(",");}).join("\r\n");}
@@ -4829,7 +4887,7 @@ function openStatement(dealer){
 }
 function openPay(dealer){
   var s=dealerSum(dealer), cs=s.cases.filter(function(l){return state.paidAmt[l.id]===undefined;});
-  if(s.rate<=0){toast(dealer+" has no payout rate. Set one with the gear icon first.");return;}
+  if(s.rate<=0&&!cs.some(function(l){return casePayout(l)>0;})){toast(dealer+" has no payout rate. Set one with the gear icon, or on a file, first.");return;}
   if(!cs.length){toast("Nothing left to pay for "+dealer+" in this period");return;}
   state.payDealer=dealer; state.payMap={}; var tot=0; cs.forEach(function(l){var v=casePayout(l);state.payMap[l.id]=v;tot+=v;});
   var m=openPayModal('<h2>Pay '+esc(dealer)+'</h2><p class="dlnote">'+esc(state.pay.label)+'. Tick the files you are paying now.</p>'+
@@ -4881,7 +4939,7 @@ function openDealerCfg(dealer){
 function saveDealerCfg(dealer){
   var r=parseFloat(document.getElementById("dcRate").value), ap=document.getElementById("dcApp").value.trim();
   if(isNaN(r)||r<0||r>100){toast("Enter a rate between 0 and 100");return;}
-  state.dcfg[dealer]={rate:r,email:dEmail(dealer),appId:ap};closeAll();renderPayments();toast("Saved");persistCfg().catch(function(e){toast("Saved here but NOT in Firebase: "+(e&&e.message||e));});
+  state.dcfg[dealer]={rate:r,email:dEmail(dealer),appId:ap,fr:(state.dcfg[dealer]&&state.dcfg[dealer].fr)||{}};closeAll();renderPayments();toast("Saved");persistCfg().catch(function(e){toast("Saved here but NOT in Firebase: "+(e&&e.message||e));});
 }
 function emailText(d){
   var s=dealerSum(d), L=["Payout statement for "+state.pay.label,"","Files disbursed: "+s.n,"Total loan amount: "+money(s.loan),"Payout rate: "+s.rate+"%","Total payout: "+money(s.total),"Paid so far: "+money(s.paid),"Balance to pay: "+money(s.bal),"","Open the app to see each file."];
@@ -5476,15 +5534,18 @@ document.addEventListener("click",function(e){
   if(t.id==="uAdd"){if(state.utab==="roles")openRole();else if(state.utab==="users")openAddUser();else if(state.utab==="teams")openTeam();return;}
   if(d.utab){state.utab=d.utab;renderUsers();return;}
   if(d.ptab){state.ptab=d.ptab;renderPayments();return;}
-  if(d.paview){openStatement(d.paview);return;}
+  if(d.paview){state.payDetail=d.paview;renderPayments();var ms=document.getElementById("mainScroll");if(ms)ms.scrollTop=0;return;}
+  if(d.ddback!==undefined){state.payDetail=null;renderPayments();return;}
+  if(d.frate){startRateEdit(t);return;}
+  if(d.fshare){shareFile(+d.fshare);return;}
   if(d.papay){openPay(d.papay);return;}
   if(d.paemail){openEmail(d.paemail,false);return;}
   if(d.paset){openDealerCfg(d.paset);return;}
   if(d.savedc){saveDealerCfg(d.savedc);return;}
   if(d.paprep){openEmail(d.paprep,true);return;}
   if(t.hasAttribute("data-emback")){openEmailAll();return;}
-  if(d.stcsv){var sd=dealerSum(d.stcsv);saveCsv(payFile(d.stcsv.toLowerCase().replace(/[^a-z0-9]+/g,"-")),csvText(csvRowsFor(sd.cases)),"modFallback");return;}
-  if(t.id==="payCsv"){var all=[];dealers.forEach(function(x){all=all.concat(payCases(x));});saveCsv(payFile("dealer-payouts"),csvText(csvRowsFor(all)));return;}
+  if(d.stcsv){if(!canDownloadLeadCategory()){toast("Only Admin can download Excel");return;}var sd=dealerSum(d.stcsv);saveCsv(payFile(d.stcsv.toLowerCase().replace(/[^a-z0-9]+/g,"-")),csvText(csvRowsFor(sd.cases)),"modFallback");return;}
+  if(t.id==="payCsv"){if(!canDownloadLeadCategory()){toast("Only Admin can download Excel");return;}var all=[];dealers.forEach(function(x){all=all.concat(payCases(x));});saveCsv(payFile("dealer-payouts"),csvText(csvRowsFor(all)));return;}
   if(t.id==="payEmailAll"){openEmailAll();return;}
   if(t.id==="savePay"){savePay();return;}
   if(d.payvoid){openVoid(+d.payvoid);return;}
@@ -6185,7 +6246,7 @@ try{refreshNotif();}catch(x){}
 <script>
 /* ---- Downloads are for Admin only: hide every download/export button for other users and block any download they might still trigger ---- */
 (function(){
-  var SEL='#bizExport,#channelMasterExport,[data-rep],#uExport,#dlBulkTpl,[data-stcsv],#masterTemplate,#dealerDetailsExportAll,#dealerDetailsExportFiltered,[data-template],#repDl,[data-pdd-group-download],[data-pdd-lender-download],[data-fpdl],#payHistCsv';
+  var SEL='#bizExport,#channelMasterExport,[data-rep],#uExport,#dlBulkTpl,[data-stcsv],#masterTemplate,#dealerDetailsExportAll,#dealerDetailsExportFiltered,[data-template],#repDl,[data-pdd-group-download],[data-pdd-lender-download],[data-fpdl],#payHistCsv,#payCsv';
   var st=document.createElement("style");st.textContent="html.nodl :is("+SEL+"){display:none!important}";document.head.appendChild(st);
   function isAdmin(){return !!(window.CRM_IS_ADMIN&&window.CRM_IS_ADMIN());}
   function sync(){document.documentElement.classList.toggle("nodl",!isAdmin());}
