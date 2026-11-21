@@ -2374,8 +2374,11 @@ function ensure(l){
 function openLead(id){
   if(state.route.indexOf("payments")===0){state.listRoute=state.route;state.leadCtx=null;}
   else if(state.route.indexOf("leads/")===0){state.listRoute=state.route;state.leadCtx=state.route.slice(6);}else if(state.route.indexOf("lead/")!==0)state.leadCtx=null;
-  state.route="lead/"+id; state.ldTab="details";state.ldSub="main";state.ldEdit=null; render();
+  state.ldPay=(state.ldPayFlag===id)&&String(state.listRoute||"").indexOf("payments")===0;state.ldPayFlag=0;
+  state.route="lead/"+id; state.ldTab=state.ldPay?"pview":"details";state.ldSub="main";state.ldEdit=null; render();
 }
+/* Customer / Dealer payments: clicking a person's name opens the lead with the payment view (calculator, received details, PDD details) */
+function openLeadPay(id){closeAll();state.ldPayFlag=+id;openLead(+id);}
 function fld(id,label,val,type){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><input id="ld_'+id+'"'+(type?' type="'+type+'"':"")+' value="'+esc(val)+'"></div>';}
 function fsel(id,label,list,val,blank){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><select id="ld_'+id+'">'+(blank?'<option value="">Not set</option>':"")+list.map(function(o){return '<option'+(o===val?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div>';}
 function renderLead(){
@@ -2560,6 +2563,47 @@ function ldShareText(l){
   });
   return L.join("\n");
 }
+/* ---------- Disbursement Business: IDV, insurance expiry, processing fees, auto net disbursement ---------- */
+function dsbHas(v){return v!==undefined&&v!==null&&String(v).trim()!=="";}
+function dsbNum(v){var n=parseFloat(v);return isNaN(n)?0:n;}
+function dsbIso(v){var t=String(v||"").slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(t)?t:"";}
+function dsbDateAttr(){ /* the Disbursement Date attribute set up by Admin is made mandatory here */
+  var a=attrs.filter(function(z){var n=String(z.label||"").toLowerCase().replace(/[^a-z0-9]/g,"");return n.indexOf("disburs")===0&&n.indexOf("date")>-1;})[0];
+  if(a&&!a.mandatory){a.mandatory=true;try{attrsSaveAll();}catch(e){}}
+  return a||null;
+}
+function dsbDateVal(l){var a=dsbDateAttr();return a?String(cxGet(l,a.key)||"").trim():String(ldx(l).disbDate||"").trim();}
+/* Net disbursement = Loan amount - (Processing fees + RTO charges + Challan charges + Other charges). Same formula as the calculator. */
+function dsbNetVal(l){
+  var x=ldx(l),nd=x.nd||{};
+  if(!dsbHas(nd.pf)||!(dsbNum(l.amount)>0))return null;
+  return dsbNum(l.amount)-(dsbNum(nd.pf)+dsbNum(lpPddAmount(l,"RTO charges"))+dsbNum(lpPddAmount(l,"Challan charges"))+dsbNum(lpPddAmount(l,"Other charges")));
+}
+function dsbSyncNet(l){if(l.stage!=="Disbursed")return;var n=dsbNetVal(l);if(n!==null)ldx(l).net=String(n);}
+function dsbNetHtml(l){var n=dsbNetVal(l);return n===null?"—":'<span'+(n<0?' style="color:var(--bad)"':'')+'>'+esc(money(n))+'</span>';}
+function dsbMissing(l){
+  var px=l.px||{},m=[];
+  if(!dsbHas(px.idv))m.push("IDV Value");
+  if(!dsbHas(px.insExp))m.push("Insurance Expiry");
+  if(!dsbHas((ldx(l).nd||{}).pf))m.push("Processing Fees");
+  if(!dsbDateVal(l))m.push("Disbursement Date");
+  return m;
+}
+function dsbRowsHtml(l){
+  var x=ldx(l),px=l.px||{},nd=x.nd||{},req='<span class="req">*</span>';
+  var idv=dsbHas(px.idv)?px.idv:"",ins=dsbIso(px.insExp),pf=dsbHas(nd.pf)?nd.pf:"";
+  var rows=[
+    ["idv","IDV Value"+req,idv,dsbHas(idv)&&!isNaN(parseFloat(idv))?money(parseFloat(idv)):String(idv),"num"],
+    ["insExp","Insurance Expiry"+req,ins,ins?fmtDate(ins):String(px.insExp||""),"cxDate"],
+    ["pf","Processing Fees"+req,pf,dsbHas(pf)?money(dsbNum(pf)):"","num"]];
+  if(!dsbDateAttr()){var dd=dsbIso(x.disbDate);rows.push(["disbDate","Disbursement Date"+req,dd,dd?fmtDate(dd):String(x.disbDate||""),"cxDate"]);}
+  return rows.map(ldRow).join("")+'<tr><td class="k">Net Disbursement To Client'+req+'</td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetHtml(l)+'</strong></div><small class="note">Auto-calculated from Loan Amount and charges</small></td></tr>';
+}
+/* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
+function payViewHtml(l){
+  return '<section class="ld-box" aria-label="Payment details">'+ndCalcHtml(l)+
+    '<div class="ld-two" style="gap:16px;margin-top:16px"><div class="nd-card" id="recvHost" aria-label="Received details"></div><div>'+pddDetHtml(l)+'</div></div></section>';
+}
 function ndCalcHtml(l){
   var nd=ldx(l).nd||{};
   function f(k,label,val){return '<div class="nd-f"><label for="nd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="nd_'+k+'" data-nd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val===undefined||val===null?"":val)+'"></div></div>';}
@@ -2723,6 +2767,19 @@ function ldSave(l,k,val,q){
     if(val!==String(cxo[ck]||"")){cxo[ck]=val;l.hist.unshift({ts:stamp(),text:(ca?ca.label:ck)+" updated",type:"system"});toast("Saved");}
     rl();return;
   }
+  if(k==="idv"||k==="insExp"||k==="pf"||k==="disbDate"){
+    var dxl={idv:"IDV Value",insExp:"Insurance Expiry",pf:"Processing Fees",disbDate:"Disbursement Date"};
+    if(!val){toast(dxl[k]+" is required");return false;}
+    if((k==="idv"||k==="pf")&&(isNaN(parseFloat(val))||parseFloat(val)<0)){toast(dxl[k]+" must be a valid amount");return false;}
+    var dx=ldx(l);l.px=l.px||{};state.ldEdit=null;
+    var oldv=k==="idv"?l.px.idv:k==="insExp"?l.px.insExp:k==="pf"?(dx.nd||{}).pf:dx.disbDate;
+    if(String(oldv==null?"":oldv)!==val){
+      if(k==="idv")l.px.idv=val;else if(k==="insExp")l.px.insExp=val;else if(k==="pf")dx.nd=Object.assign({},dx.nd||{},{pf:val});else dx.disbDate=val;
+      dsbSyncNet(l);
+      l.hist.unshift({ts:stamp(),text:dxl[k]+" updated",type:"system"});toast("Saved");
+    }
+    rl();return;
+  }
   var x=ldx(l), names={phone:"Mobile",lender:"Lender",prevOwner:"Previous lead owner",mgr:"Reporting manager",name:"Name",email:"Email",owner:"Lead owner",year:"Year of manufacturing",make:"Vehicle make",bankExec:"Bank Executive",caseBooked:"Case booked in",dob:"DOB",dealer:"Dealer",rtoSet:"RTO Set Status",amount:"Loan amount",product:"Product",vehicle:"Vehicle",reg:"Vehicle number",source:"Lead source"};
   if(k==="status"){state.ldEdit=null;if(val&&val!==l.status)changeStatus(val);else rl();return;}
   if(k==="name"&&!val){toast("Enter a name");return false;}
@@ -2734,6 +2791,7 @@ function ldSave(l,k,val,q){
   state.ldEdit=null;
   if(String(val)!==String(old||"")){
     if(inL)l[k]=val;else if(k==="rtoSet")l.px.rtoSet=val;else x[k]=val;
+    if(k==="amount")dsbSyncNet(l);
     l.hist.unshift({ts:stamp(),text:names[k]+" updated"+(k==="amount"?" to "+money(val):""),type:"system"});
     toast("Saved");
   }
@@ -2823,7 +2881,10 @@ function renderDisbLead(l){
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
    '</dl><div class="ld-ico">'+ldBtn('data-ldgo="followups"','Add follow-up','plus')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
   var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
-  var tabs=pddV?[["details","Lead Details"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]];
+  var pdetOn=pddV&&state.leadCtx==="pdd"; /* PDD Details lives in PDD Status only, not in Closed */
+  var payV=!!state.ldPay&&String(state.listRoute||"").indexOf("payments")===0&&l.stage==="Disbursed";
+  var dsbV=state.leadCtx==="Disbursed"&&l.stage==="Disbursed"&&!l.cat&&!pddV; /* Disbursement Business */
+  var tabs=payV?[["pview","Payment Details"],["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]:(pdetOn?[["details","Lead Details"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]);
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
   if(state.ldTab==="details"||state.ldTab==="more"){
@@ -2836,7 +2897,8 @@ function renderDisbLead(l){
       var R=[["amount","Loan Amount",l.amount,l.amount,"num"],["rtoSet","RTO Set Status",(l.px||{}).rtoSet||"",(l.px||{}).rtoSet||"—","text"]], Rb=[["prevOwner","Previous Lead Owner",x.prevOwner||"",x.prevOwner,"text"],["product","Product",l.product,"["+l.product+"]","product"],["year","Year of Manufacturing",l.year||"",l.year||"—","text"]], Rc=[["mgr","Reporting Manager",x.mgr||"",x.mgr,"text"]];
       colL=L.map(function(r){return ldRow(r);});
       colR=[R.map(ldRow).join("")];
-      if(l.stage==="Disbursed")colR.push(ldArea("net","Net Disbursement To Client",x.net));
+      if(dsbV)colR.push(dsbRowsHtml(l));
+      else if(l.stage==="Disbursed")colR.push(ldArea("net","Net Disbursement To Client",x.net));
       colR.push(Rb.map(ldRow).join(""));
       if(l.stage==="Disbursed")colR.push(ldArea("rto","RTO Charges to Customer",x.rto));
       colR.push(Rc.map(ldRow).join(""));
@@ -2848,13 +2910,15 @@ function renderDisbLead(l){
       ["bankexecutive","casebookedin","dob","dealername","entrydate","leadcount","leadfollowdate","leadlastfollowdate","vehicle","vehiclenumber","loanamount","netdisbursementtoclient","previousleadowner","product","rtochargestocustomer","reportingmanager","lender","pddstatus",
        "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","vehiclemake","make","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec"].forEach(function(k){seen[k]=1;});
       var ex=[];
+      if(dsbV)["processingfee","processingfees","insuranceexpirydate","insuranceexpiry","idv","idvvalue","insuranceidvvalue","netdisbursementamount","rtochargesc"].forEach(function(k){seen[k]=1;});
       LG.forEach(function(G){G.attrs.forEach(function(a){var k=nk(a.label);if(seen[k]||seen["cx"+a.key])return;seen[k]=1;seen["cx"+a.key]=1;ex.push(cxRow(l,a));});});
       var all=A.concat(ex), half=Math.ceil(all.length/2);
       var mL=all.slice(0,half).map(function(r){return ldRow(r);}), mR=all.slice(half).map(function(r){return ldRow(r);});
       if(state.ldTab==="details"){colL=colL.concat(mL);colR=colR.concat(mR);}else{colL=mL;colR=mR;} /* PDD: merged into Lead Details */
     }
-    var boxBar='';
+    var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit to fill them in.</p>':'';
     h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
+  } else if(state.ldTab==="pview"){ h+=payViewHtml(l);
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
   } else if(state.ldTab==="pdet"){ h+='<section class="ld-box" aria-label="PDD details">'+pddDetHtml(l)+'</section>';
@@ -2878,10 +2942,11 @@ function renderDisbLead(l){
   q("[data-edsave]",function(b){b.onmousedown=function(ev){ev.preventDefault();};b.onclick=function(){var ee=document.getElementById("ldE");if(!ee)return;ee.onblur=null;if(ldSave(l,ed,ee.value)===false)ee.focus();};});
   q("[data-edcancel]",function(b){b.onmousedown=function(ev){ev.preventDefault();};b.onclick=function(){var ee=document.getElementById("ldE");if(ee)ee.onblur=null;state.ldEdit=null;renderLead();};});
   var dIn=document.getElementById("docIn");if(dIn)dIn.onchange=function(){ldAddFiles(l,dIn.files,state.docSlot);dIn.value="";};
-  q("[data-ldarea]",function(t){t.oninput=function(){ldx(l)[t.getAttribute("data-ldarea")]=t.value;};});
+  q("[data-ldarea]",function(t){t.oninput=function(){var ak=t.getAttribute("data-ldarea");ldx(l)[ak]=t.value;if(dsbV&&ak==="rto"){dsbSyncNet(l);var ne=document.getElementById("ldNetAuto");if(ne)ne.innerHTML=dsbNetHtml(l);saveLeadsSoon();}};});
   if((pddV&&state.ldTab==="calc")&&l.stage==="Disbursed")ndWire(l,v);
   if(pddV&&state.ldTab==="pay")payWire(l,v);
   if(pddV&&state.ldTab==="pdet")pddDetWire(l,v);
+  if(payV&&state.ldTab==="pview"){ndWire(l,v);pddDetWire(l,v);var rh=v.querySelector("#recvHost");if(rh)openCustPay(l.id,rh);}
   var e=document.getElementById("ldE");
   if(e){
     var done=false;
@@ -2953,6 +3018,7 @@ function submitMoveCat(){
   if(!newOwner){toast("Select a lead owner");if(no)no.focus();return;}
   if(!ck){toast("Select a category");document.getElementById("mvCat").focus();return;}
   if(!ns){toast("Select a status");document.getElementById("mvStatus").focus();return;}
+  if(l.stage==="Disbursed"&&!l.cat&&!inPddNow(l)&&(ck==="pdd"||(ck==="Disbursed"&&ns==="Disbursed"))){var dmiss=dsbMissing(l);if(dmiss.length){toast("Fill the mandatory details first: "+dmiss.join(", "));return;}}
   var priorOwner=l.owner;
   if(priorOwner!==newOwner){l.owner=newOwner;l.hist.unshift({ts:stamp(),text:"Lead owner changed from "+(priorOwner||"Unassigned")+" to "+newOwner,type:"owner"});}
   var c=moveCats().filter(function(x){return x.key===ck;})[0], old=l.status, oldCat=l.cat;
@@ -4498,7 +4564,7 @@ function lpDuesHtml(){
     '<p class="note">No files match. Files appear here once they move from Login business to Login disbursement or PDD status.</p>';
   return cards+'<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer payments</h3>'+filt+tbl+'<p class="note">Net after PDD = Net disbursement − PDD charges. Click a client name to open Payments 1 to 6 for that client.</p></section>';
 }
-function openCustPay(id){
+function openCustPay(id,host){
   var l=lead(id);if(!l)return;ensure(l);
   var rows=lpCustRows().filter(function(r){return r.l.id===id;})[0]||{net:lpNet(l),netD:null,ch:0};
   var net=lpNet(l),ch=rows.ch||0,netD=net===null?null:net+ch,x=ldx(l),cur=Array.isArray(x.cpay)?x.cpay:null;
@@ -4521,7 +4587,8 @@ function openCustPay(id){
      '<td><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></td>'+
      '<td class="l"><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Notes" aria-label="Payment '+(i+1)+' notes" style="width:100%;min-width:200px"></td></tr>';}
   h+='</tbody></table></div><div class="nd-res" id="cpSub"></div><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="cpSave">Save payments</button></div>';
-  var m=openPayModal(h);m.classList.add("wide");
+  if(host){h=h.replace(/^<h2>[\s\S]*?<\/h2>/,'<h3 class="nd-h">Received Details</h3>').replace('<button class="btn" data-close>Cancel</button>','');host.innerHTML=h;}
+  var m=host||openPayModal(h);if(!host)m.classList.add("wide");
   function q(sel,r){return r.querySelector(sel);}
   function trs(){return [].slice.call(m.querySelectorAll("tr[data-cprow]"));}
   function upd(src){
@@ -4561,7 +4628,7 @@ function openCustPay(id){
     var before=cpPaid(l);
     x.cpay=out;x.bank={amt:bAmt>0?bAmt:"",date:bAmt>0?bDate:"",note:m.querySelector("#cpBankN").value.trim()};
     l.hist.unshift({ts:stamp(),text:"Customer payments saved: total paid "+money(tot)+(net!==null?", balance "+money(net-tot):"")+" (was "+money(before)+"); received from bank "+money(bAmt),type:"system"});
-    saveLeads();closeAll();toast("Payments saved");renderPayments();
+    saveLeads();toast("Payments saved");if(host){renderLead();}else{closeAll();renderPayments();}
   };
 }
 function lpTabHtml(kind){
@@ -4581,7 +4648,7 @@ function lpTabHtml(kind){
    '</div><div class="nd-f nd-rem"><label for="lp_rem">Remarks</label><textarea id="lp_rem" rows="2"></textarea></div>'+
    '<div class="nd-foot"><button class="btn primary" id="lpAdd">Add payment</button></div></section>';
   var table=rows.length?'<div class="tscroll"><table class="pm-tbl"><thead><tr><th>Date</th><th>Customer</th><th>Vehicle no.</th><th>Type</th><th>Category</th><th>Paid to</th><th>Amount</th><th>Mode</th><th>Hold</th><th>Remarks</th><th></th></tr></thead><tbody>'+
-    rows.map(function(r){var e=r.e;return '<tr><td>'+esc(e.date?fmtDate(e.date):"")+'</td><td>'+esc(r.l.name)+'</td><td>'+esc(r.l.reg||"—")+'</td><td>'+esc(lpTypeName(e))+'</td><td>'+esc(e.cat||"—")+'</td><td>'+esc(lpParty(r.l,e))+'</td><td>'+esc(money(parseFloat(e.amt)||0))+'</td><td>'+esc(e.mode||"—")+'</td><td>'+esc(money(parseFloat(e.hold)||0))+'</td><td>'+esc(e.rem||"")+'</td><td><button class="btn" data-lpdel="'+r.l.id+'|'+r.i+'">Delete</button></td></tr>';}).join("")+
+    rows.map(function(r){var e=r.e;return '<tr><td>'+esc(e.date?fmtDate(e.date):"")+'</td><td><button class="name-link" data-lpview="'+r.l.id+'" title="Open details">'+esc(r.l.name)+'</button></td><td>'+esc(r.l.reg||"—")+'</td><td>'+esc(lpTypeName(e))+'</td><td>'+esc(e.cat||"—")+'</td><td>'+esc(lpParty(r.l,e))+'</td><td>'+esc(money(parseFloat(e.amt)||0))+'</td><td>'+esc(e.mode||"—")+'</td><td>'+esc(money(parseFloat(e.hold)||0))+'</td><td>'+esc(e.rem||"")+'</td><td><button class="btn" data-lpdel="'+r.l.id+'|'+r.i+'">Delete</button></td></tr>';}).join("")+
     '</tbody><tfoot><tr><th colspan="6">Total ('+rows.length+')</th><th>'+esc(money(tot))+'</th><th></th><th>'+esc(money(hold))+'</th><th></th><th></th></tr></tfoot></table></div>':'<p class="note">No payments match.</p>';
   var filt='<div class="tb pfilt" style="margin:14px 0 8px"><input id="lp_fq" type="search" placeholder="Search customer, mobile, vehicle, paid to" value="'+esc(f.fq)+'">'+(one?"":'<select id="lp_ft">'+lpOpt(cfg.types,f.ft,"All types")+'</select>')+'<select id="lp_fc">'+lpOpt(cfg.cats,f.fc,"All categories")+'</select><button class="btn" id="lpCsv">Download Excel</button></div>';
   var calcBox=kind==="customer"?(f.lead&&lead(f.lead)?'<p class="note" style="margin-top:14px">Calculator for <b>'+esc(lead(f.lead).name)+'</b></p>'+ndCalcHtml(lead(f.lead)):""):"";
@@ -4613,7 +4680,7 @@ function lpWire(kind){
     [["cf_stage","stage"],["cf_lender","lender"],["cf_dealer","dealer"],["cf_pay","pay"]].forEach(function(p){g(p[0]).onchange=function(){cf[p[1]]=this.value;renderPayments();};});
     g("cfClear").onclick=function(){state.lp.cf={q:"",lender:"",dealer:"",stage:"",pay:"",hold:""};renderPayments();};
     v.querySelectorAll("[data-lppay]").forEach(function(b){b.onclick=function(){state.lp.lead=+b.getAttribute("data-lppay");renderPayments();var c=v.querySelector('[aria-label="Net disbursement calculator"]');if(c)c.scrollIntoView({behavior:"smooth",block:"start"});};});
-    v.querySelectorAll("[data-cpay]").forEach(function(b){b.onclick=function(){openCustPay(+b.getAttribute("data-cpay"));};});
+    v.querySelectorAll("[data-cpay]").forEach(function(b){b.onclick=function(){openLeadPay(+b.getAttribute("data-cpay"));};});
     g("cfCsv").onclick=function(){
       var rows=[["Date","Client name","Vehicle model","Vehicle number","Lender","Loan amount","Net disbursement","PDD charges","Net after PDD","Total paid","Balance","Status"]];
       lpCustRows().forEach(function(r){var l=r.l;rows.push([String(l.ts||l.date||"").slice(0,10),l.name,l.vehicle||"",l.reg||"",l.lender||"",lpNum(l.amount),r.netD===null?"":r.netD,r.ch,r.net===null?"":r.net,r.paid,r.bal===null?"":r.bal,r.ps]);});
@@ -4747,7 +4814,7 @@ function openStatement(dealer){
   function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
   var m=openPayModal('<h2>Payout statement: '+esc(dealer)+'</h2><p class="dlnote">'+esc(state.pay.label)+'. Payout rate '+s.rate+'%.</p><div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(s.total),"Total payout")+kpi(money(s.paid),"Paid")+kpi(money(s.bal),"Balance")+'</div>'+
    '<div class="repscroll"><table class="center striped" style="min-width:720px"><thead><tr><th>Disbursal date</th><th class="l">Customer</th><th>Vehicle</th><th>Lender</th><th>Loan amount</th><th>Payout</th><th>Status</th></tr></thead><tbody>'+
-   cs.map(function(l){return '<tr><td>'+l.date+'</td><td class="l">'+esc(l.name)+'</td><td>'+esc((l.vehicle+" "+l.reg).trim())+'</td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+money(casePayout(l))+'</td><td>'+(state.paidAmt[l.id]!==undefined?"Paid":"Pending")+'</td></tr>';}).join("")+'</tbody></table></div>'+
+   cs.map(function(l){return '<tr><td>'+l.date+'</td><td class="l"><button class="name-link" data-lpview="'+l.id+'" title="Open details">'+esc(l.name)+'</button></td><td>'+esc((l.vehicle+" "+l.reg).trim())+'</td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+money(casePayout(l))+'</td><td>'+(state.paidAmt[l.id]!==undefined?"Paid":"Pending")+'</td></tr>';}).join("")+'</tbody></table></div>'+
    '<textarea class="csvbox" id="modFallback" rows="4" readonly hidden aria-label="Excel data"></textarea>'+
    '<div class="actions" style="flex-wrap:wrap"><button class="btn" data-close>Close</button><button class="btn" data-stcsv="'+esc(dealer)+'">Download Excel</button><button class="btn" data-paemail="'+esc(dealer)+'">'+ic("bell")+' Notify in app</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+esc(dealer)+'">Record payment</button>':"")+'</div>');
   m.classList.add("wide");
@@ -5350,6 +5417,7 @@ document.addEventListener("click",function(e){
   if(t.hasAttribute("data-pback")){openPending(state.pbKind);return;}
   if(d.viewdocs){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.viewdocs);state.ldTab="docs";renderLead();return;}
   if(d.ledit2){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.ledit2);state.ldBoxId=+d.ledit2;state.ldBox=true;renderLead();return;}
+  if(d.lpview){closeAll();openLeadPay(+d.lpview);return;}
   if(d.view){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.view);return;}
   if(d.del){if(!canDo("Leads","Delete lead")){toast(DENY);return;}openDelete(+d.del);return;}
   if(d.confirmdel){if(!canDo("Leads","Delete lead")){toast(DENY);return;}var id=+d.confirmdel;bkTick();
