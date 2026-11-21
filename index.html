@@ -586,6 +586,54 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 #notifPanel .nf-item span{color:var(--muted);font-size:12.5px}
 #notifPanel .nf-empty{padding:14px 10px;color:var(--muted)}
 .badge[hidden]{display:none}
+
+/* ---------- Payment Details redesign: summary on top, money in / money out on the left, PDD on the right ---------- */
+.pv-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.pv-kpis .kpi{padding:12px 14px;border-radius:12px}
+.pv-kpis .kpi b{font-size:20px}
+.pv-kpis .kpi-bal{background:var(--accent-soft);border-color:var(--accent)}
+.pv-kpis .kpi-bal b{color:var(--accent)}
+.pv-kpis b.neg{color:var(--bad)}
+#payKpiTop .pv-kpis{margin-bottom:16px}
+.pv-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+.pv-card.nd-card{margin-top:0;padding:18px 20px;border-radius:12px}
+.pv-card>.nd-h,.pv-head .nd-h{font-size:17px;margin-bottom:4px}
+.pv-head{margin-bottom:4px}
+.pv-sub{margin:0;color:var(--muted);font-size:13px}
+.pv-warn{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;color:var(--ink)}
+.pv-block{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:14px}
+.pv-bh{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px;font-weight:600}
+.pv-step{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700}
+.pv-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
+.pv-fields:last-child{margin-bottom:0}
+.pv-l,:is(.pv-card,.pv-block) .nd-f label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
+:is(.pv-card,.pv-block) :is(.nd-in,.nd-f select,.nd-f input[type=date],.nd-f input[type=text],.nd-rem textarea){background:var(--surface);border:1px solid var(--line);border-radius:10px;min-height:40px}
+:is(.pv-card,.pv-block) .nd-in:focus-within,:is(.pv-card,.pv-block) :is(.nd-f select,.nd-f input[type=date],.nd-f input[type=text],.nd-rem textarea):focus{border-color:var(--focus)}
+.pv-ro{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 16px;background:var(--bg);border-radius:10px;padding:12px 14px}
+.pv-ro-i span{display:block;font-size:12px;color:var(--muted)}
+.pv-ro-i b{font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+.pv-tag{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+.cp-rows{display:flex;flex-direction:column;gap:10px}
+.cp-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px;padding:12px 14px;background:var(--bg);border-radius:10px}
+.cp-n{grid-column:1/-1;font-weight:600;font-size:13px}
+.cp-note{grid-column:1/-1}
+.cp-row .nd-in:has(input[readonly]){background:var(--bg)}
+.cp-row input[readonly]{color:var(--muted)}
+.pv-add{width:100%;margin-top:10px;border-style:dashed;color:var(--muted)}
+.pv-add:hover{color:var(--ink)}
+.cp-sub{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.cp-sub small{display:block;font-size:12px;color:var(--muted)}
+.cp-sub strong{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.cp-sub>div:last-child strong{color:var(--accent)}
+.cp-sub strong.neg{color:var(--bad)}
+.pv-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.pv-foot .btn.primary,.pv-card .nd-foot .btn.primary{padding:10px 22px}
+.pd-remscroll{max-height:190px;overflow-y:auto;padding:2px 0 2px 8px}
+.pd-remscroll .timeline{margin:6px 0 0;gap:10px}
+.pd-remscroll .timeline li.note{margin:0;font-size:13px;color:var(--ink)}
+@media (max-width:1100px){.pv-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.pv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-row{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-sub{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -2617,8 +2665,7 @@ function dsbRowsHtml(l){
 }
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
-  return '<section class="ld-box" aria-label="Payment details">'+
-    '<div class="ld-two" style="gap:16px"><div class="nd-card" id="recvHost" aria-label="Received details"></div><div>'+pddDetHtml(l)+'</div></div></section>';
+  return '<div class="pv" aria-label="Payment details"><div id="payKpiTop"></div><div class="pv-grid"><section class="nd-card pv-card" id="recvHost" aria-label="Received details"></section>'+pddDetHtml(l)+'</div></div>';
 }
 function ndCalcHtml(l){
   var nd=ldx(l).nd||{};
@@ -2686,8 +2733,9 @@ function remarkLinesDesc(l){
 }
 function pddRemarksHtml(l){
   var ls=remarkLinesDesc(l);
-  return '<div class="nd-f nd-rem"><label>Previous remarks (latest on top)</label>'+(ls.length?'<ol class="timeline pd-remlist" style="max-height:200px;overflow:auto;margin:6px 0 0;padding-left:18px">'+ls.map(function(z,i){return '<li class="note"><p'+(i===0?' style="font-weight:600"':'')+'>'+esc(z)+'</p></li>';}).join("")+'</ol>':'<p class="note">No remarks yet.</p>')+'</div>'+
-    '<div class="nd-f nd-rem"><label for="pd_rem">Remarks</label><textarea id="pd_rem" data-pdrem rows="3" placeholder="Add a remark"></textarea></div>';
+  return '<h4 class="nd-sub">Remarks <small class="pv-tag">Required to save</small></h4>'+
+    '<div class="nd-f nd-rem" style="margin-top:0"><textarea id="pd_rem" data-pdrem rows="3" placeholder="Add a remark" aria-label="Add a remark"></textarea></div>'+
+    '<div class="nd-f nd-rem"><span class="pv-l">Previous remarks (latest on top)</span>'+(ls.length?'<div class="pd-remscroll"><ol class="timeline pd-remlist">'+ls.map(function(z,i){return '<li class="note"><p'+(i===0?' style="font-weight:600"':'')+'>'+esc(z)+'</p></li>';}).join("")+'</ol></div>':'<p class="note">No remarks yet.</p>')+'</div>';
 }
 var RTO_AUTH=["Chandigarh","Haryana","Punjab","Himachal","Kuwy","Gurgaon","Other"];
 var RTO_PERSONS=["Varun","Lovely","Ravi","Arvind","Sanjay Chawla","Harish","Honey","Joginder","Other"];
@@ -2714,17 +2762,17 @@ function pddDetHtml(l){
   function pk(k,label,val,list){var v=String(val||"").trim(),isOther=v!==""&&list.indexOf(v)<0||v==="Other";
     return '<div class="nd-f"><label for="pd_'+k+'_sel">'+label+'</label><select id="pd_'+k+'_sel" data-pdsel="'+k+'"><option value="">Select</option>'+list.map(function(o){return '<option'+((o==="Other"?isOther:o===v)?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select><input id="pd_'+k+'" data-pd="'+k+'" type="text" placeholder="Type '+label+'" aria-label="'+label+' (other)" value="'+esc(v==="Other"?"":v)+'" style="margin-top:6px'+(isOther?'':';display:none')+'"></div>';}
   var px0=l.px||{},dsbD=dsbIso(dsbDateVal(l)),insD=dsbIso(px0.insExp);
-  function ro(label,val){return '<div class="nd-f"><label>'+label+'</label><div class="nd-in"><input type="text" readonly value="'+esc(val||"")+'" aria-label="'+label+' (from Disbursement Business)"></div></div>';}
-  var dsbBox='<h4 class="nd-sub">Disbursement details (filled in Disbursement Business)</h4><div class="nd-grid">'+
+  function ro(label,val){var s=val===undefined||val===null?"":String(val).trim();return '<div class="pv-ro-i"><span>'+label+'</span><b>'+(s?esc(s):"—")+'</b></div>';}
+  var dsbBox='<h4 class="nd-sub">Disbursement details <small class="pv-tag">Filled in Disbursement Business</small></h4><div class="pv-ro">'+
     ro("IDV Value",dsbHas(px0.idv)&&!isNaN(parseFloat(px0.idv))?money(parseFloat(px0.idv)):px0.idv)+
     ro("Insurance Expiry",insD?fmtDate(insD):px0.insExp)+
     ro("Processing Fees",dsbHas(nd.pf)?money(dsbNum(nd.pf)):"")+
     ro("Disbursement Date",dsbD?fmtDate(dsbD):dsbDateVal(l))+
     ro("Net Disbursement",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
-  return '<section class="nd-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+dsbBox+'<h4 class="nd-sub">RTO and charges</h4><div class="nd-grid">'+
-    pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+
-    n("rto","RTO charges",filled(nd.rto,x.rto))+n("oth","Other charges",filled(nd.oth))+n("ch","Challan Charges",filled(nd.ch))+
-    '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
+  return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+dsbBox+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
+    pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields pv-amts">'+
+    n("rto","RTO charges",filled(nd.rto,x.rto))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
+    '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
 }
 function pddDetWire(l,v){
   var b=v.querySelector("#pdSave");if(!b)return;
@@ -4601,34 +4649,36 @@ function openCustPay(id,host){
   var mig=0;cur=cur.map(function(e){if(e&&e.type==="From bank"){mig+=lpNum(e.amt);return null;}return e;});
   if(mig>0&&!lpNum(bank.amt))bank={amt:mig,date:(cur.length?"":""),note:bank.note||""};
   function mm(v){return v===null?"—":esc(money(v));}
-  var h='<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)))+'</p>'+
-   '<div class="kpis"><div class="kpi"><b>'+mm(netD)+'</b><span>Net disbursement</span></div><div class="kpi"><b>'+esc(money(ch))+'</b><span>PDD charges</span></div><div class="kpi"><b>'+mm(net)+'</b><span>Net after PDD</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi"><b id="cpBal">—</b><span>Balance</span></div></div>';
-  if(net===null)h+='<p class="note">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
-  h+='<section class="nd-card" aria-label="Received from bank" style="margin:12px 0"><h3 class="nd-h">Received from bank</h3><div class="nd-grid">'+
+  var sub=esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
+  var h=(host?'<div class="pv-head"><h3 class="nd-h">Received Details</h3><p class="pv-sub">'+sub+'</p></div>':'<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+sub+'</p>')+
+   '<div class="pv-kpis"><div class="kpi"><b>'+mm(netD)+'</b><span>Net disbursement</span></div><div class="kpi"><b>'+esc(money(ch))+'</b><span>PDD charges</span></div><div class="kpi"><b'+(net!==null&&net<0?' class="neg"':'')+'>'+mm(net)+'</b><span>Net after PDD</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div></div>';
+  if(net===null)h+='<p class="note pv-warn">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
+  h+='<div class="pv-block" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank</h4><div class="pv-fields">'+
    '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
    '<div class="nd-f"><label for="cpBankD">Date received</label><input id="cpBankD" type="date" value="'+esc(bank.date||"")+'"></div>'+
-   '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></section>';
-  h+='<div class="repscroll"><table class="center striped" style="min-width:760px"><thead><tr><th>#</th><th>Type</th><th>Amount</th><th>Date</th><th class="l">Notes</th></tr></thead><tbody>';
+   '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></div>';
   function cpRowHtml(i,e){e=e||{};
-    return '<tr data-cprow="'+i+'"><td><b>Payment '+(i+1)+'</b></td><td><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></td>'+
-     '<td><input data-cpa type="number" min="0" step="any" inputmode="decimal" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount" style="width:130px"></td>'+
-     '<td><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></td>'+
-     '<td class="l"><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Notes" aria-label="Payment '+(i+1)+' notes" style="width:100%;min-width:200px"></td></tr>';}
+    return '<div class="cp-row" data-cprow="'+i+'"><div class="cp-n">Payment '+(i+1)+'</div>'+
+     '<div class="nd-f"><span class="pv-l">Type</span><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></div>'+
+     '<div class="nd-f"><span class="pv-l">Amount</span><div class="nd-in"><span aria-hidden="true">₹</span><input data-cpa type="number" min="0" step="any" inputmode="decimal" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount"></div></div>'+
+     '<div class="nd-f"><span class="pv-l">Date</span><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></div>'+
+     '<div class="nd-f cp-note"><span class="pv-l">Notes</span><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Notes" aria-label="Payment '+(i+1)+' notes"></div></div>';}
   var cpShow=1;for(var ci=0;ci<cur.length;ci++){if(cur[ci]&&lpNum(cur[ci].amt)>0)cpShow=ci+1;}
+  h+='<div class="pv-block" aria-label="Payments to customer"><h4 class="pv-bh"><span class="pv-step">2</span>Payments to customer</h4><div class="cp-rows">';
   for(var i=0;i<cpShow;i++){h+=cpRowHtml(i,cur[i]);}
-  h+='</tbody></table></div><div class="actions" style="justify-content:flex-start;margin:8px 0"><button class="btn" type="button" id="cpAddRow">+ Add new payment</button></div><div class="nd-res" id="cpSub"></div><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="cpSave">Save payments</button></div>';
-  if(host){h=h.replace(/^<h2>[\s\S]*?<\/h2>/,'<h3 class="nd-h">Received Details</h3>').replace('<button class="btn" data-close>Cancel</button>','');host.innerHTML=h;}
+  h+='</div><button class="btn pv-add" type="button" id="cpAddRow">+ Add new payment</button></div><div class="cp-sub" id="cpSub"></div><div class="pv-foot">'+(host?'':'<button class="btn" data-close>Cancel</button>')+'<button class="btn primary" id="cpSave">Save payments</button></div>';
+  if(host){host.innerHTML=h;var kt=document.getElementById("payKpiTop"),kb=host.querySelector(".pv-kpis");if(kt&&kb)kt.appendChild(kb);}
   var m=host||openPayModal(h);if(!host)m.classList.add("wide");
   function q(sel,r){return r.querySelector(sel);}
-  function trs(){return [].slice.call(m.querySelectorAll("tr[data-cprow]"));}
+  function trs(){return [].slice.call(m.querySelectorAll(".cp-row[data-cprow]"));}
   function upd(src){
     var rs=trs(),full=null,other=0,sub={};CP_TYPES.forEach(function(t){sub[t]=0;});
     rs.forEach(function(r){if(q("[data-cpt]",r).value==="Full payment"&&net!==null)full=r;});
     rs.forEach(function(r){var a=q("[data-cpa]",r);a.readOnly=(r===full);if(r!==full)other+=lpNum(a.value);});
     if(full){var fa=q("[data-cpa]",full);var v=Math.max(0,net-other);fa.value=v>0?String(Math.round(v*100)/100):"0";}
     var tot=0;rs.forEach(function(r){var a=lpNum(q("[data-cpa]",r).value);tot+=a;sub[q("[data-cpt]",r).value]+=a;});
-    m.querySelector("#cpPaid").textContent=money(tot);
-    var b=m.querySelector("#cpBal");b.textContent=net===null?"—":money(net-tot);b.classList.toggle("neg",net!==null&&net-tot<0);
+    document.getElementById("cpPaid").textContent=money(tot);
+    var b=document.getElementById("cpBal");b.textContent=net===null?"—":money(net-tot);b.classList.toggle("neg",net!==null&&net-tot<0);
     var bk=lpNum(m.querySelector("#cpBank").value),pend=netD===null?null:netD-bk;
     m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("")+
      '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Pending from bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
@@ -4642,7 +4692,7 @@ function openCustPay(id,host){
   }
   trs().forEach(wireRow);
   m.querySelector("#cpAddRow").onclick=function(){
-    var n=trs().length,tb=m.querySelector("tbody");
+    var n=trs().length,tb=m.querySelector(".cp-rows");
     tb.insertAdjacentHTML("beforeend",cpRowHtml(n,null));
     var nr=trs()[n];wireRow(nr);var d=q("[data-cpd]",nr);if(!d.value)d.value=ymd(TODAY);q("[data-cpa]",nr).focus();upd();
   };
