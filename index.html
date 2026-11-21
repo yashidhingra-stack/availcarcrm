@@ -2883,7 +2883,7 @@ function renderDisbLead(l){
   var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
   var pdetOn=pddV&&state.leadCtx==="pdd"; /* PDD Details lives in PDD Status only, not in Closed */
   var payV=!!state.ldPay&&String(state.listRoute||"").indexOf("payments")===0&&l.stage==="Disbursed";
-  var dsbV=state.leadCtx==="Disbursed"&&l.stage==="Disbursed"&&!l.cat&&!pddV; /* Disbursement Business */
+  var dsbV=(state.leadCtx==="Disbursed"||state.leadCtx==="pdd"||state.leadCtx==="Close")&&l.stage==="Disbursed"&&!l.cat; /* same lead details in Disbursement Business, PDD Status and Closed */
   var tabs=payV?[["pview","Payment Details"],["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]:(pdetOn?[["details","Lead Details"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]);
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
