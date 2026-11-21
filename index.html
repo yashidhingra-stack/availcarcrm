@@ -1045,7 +1045,7 @@ function statusOptions(key){
   if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject is one common page */
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1&&hierStatusOk(x[0]);}).map(function(x){return x[0];});}
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
-var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",pddType:"PDD Type",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
+var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",pddType:"PDD Type",idv:"IDV Value",pf:"Processing Fees",disbDate:"Disbursement Date",net:"Net Disbursement",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
 var HR=["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","insExp","audId"];
 var ALLTIME={Audience:1,Login:1,Hold:1,Rejected:1,pdd:1,Close:1,data:1}, NOFILTER={Login:1,Hold:1,Rejected:1,pdd:1,Close:1,data:1};
 state.lrangeBy={};state.rlabel={};state.fyBasis="fy";state.repTab="owner";
@@ -1053,8 +1053,8 @@ function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,t
 function setRange(key,r){state.lrangeBy[key]=r;}
 var HIDDEN={Disbursed:["ts"],pdd:["pdd"],Close:["pdd"],data:["ts","status","owner"]};
 var PAGELABEL={pdd:{ts:"Disbursed Date"},Close:{ts:"Disbursed Date"}};
-var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],Close:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"]};
-function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];}).concat(attrsForPage(key).map(function(a){return ["a_"+a.key,a.label];}));}
+var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","idv","pf","disbDate","net","caseBooked","audId"],Close:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","idv","pf","disbDate","net","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"]};
+function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];}).concat(attrsForPage(key).filter(function(a){var da=(key==="pdd"||key==="Close")?dsbDateAttr():null;return !(da&&da.key===a.key);}).map(function(a){return ["a_"+a.key,a.label];}));}
 function colState(key){
   var k=PAGECOLS[key]?key:"def"; state.colsBy=state.colsBy||{};
   if(!state.colsBy[k]){var o={};PAGECOLS[k].forEach(function(id){o[id]=(HIDDEN[k]||[]).indexOf(id)<0;});state.colsBy[k]=o;}
@@ -1118,6 +1118,10 @@ function cell(l,k,i){
   if(k==="make")return esc(l.make||MAKE[l.vehicle]||"");
   if(k==="pddSt")return esc(pddSt(l));
   if(k==="pddType")return esc(pddTp(l));
+  if(k==="idv"){var iv0=(l.px||{}).idv;return dsbHas(iv0)&&!isNaN(parseFloat(iv0))?money(parseFloat(iv0)):esc(iv0||"");}
+  if(k==="pf"){var pf0=(ldx(l).nd||{}).pf;return dsbHas(pf0)?money(dsbNum(pf0)):"";}
+  if(k==="disbDate"){var dd0=dsbDateVal(l),di0=dsbIso(dd0);return di0?esc(fmtDate(di0)):esc(dd0);}
+  if(k==="net"){var n0=dsbNetVal(l);return n0===null?"":money(n0);}
   if(k==="insExp"){var iv=String((l.px||{}).insExp||"");return /^\d{4}-\d{2}-\d{2}$/.test(iv.slice(0,10))&&iv.length<=10?esc(fmtDate(iv)):esc(iv);}
   if(k==="rtoPerson"||k==="rtoSet"||k==="pendReason")return esc((l.px||{})[k]||"");
   if(k==="audId")return esc(audOf(l));
@@ -2700,7 +2704,15 @@ function pddDetHtml(l){
   function n(k,label,val){return '<div class="nd-f"><label for="pd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pd_'+k+'" data-pd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val)+'"></div></div>';}
   function pk(k,label,val,list){var v=String(val||"").trim(),isOther=v!==""&&list.indexOf(v)<0||v==="Other";
     return '<div class="nd-f"><label for="pd_'+k+'_sel">'+label+'</label><select id="pd_'+k+'_sel" data-pdsel="'+k+'"><option value="">Select</option>'+list.map(function(o){return '<option'+((o==="Other"?isOther:o===v)?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select><input id="pd_'+k+'" data-pd="'+k+'" type="text" placeholder="Type '+label+'" aria-label="'+label+' (other)" value="'+esc(v==="Other"?"":v)+'" style="margin-top:6px'+(isOther?'':';display:none')+'"></div>';}
-  return '<section class="nd-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3><div class="nd-grid">'+
+  var px0=l.px||{},dsbD=dsbIso(dsbDateVal(l)),insD=dsbIso(px0.insExp);
+  function ro(label,val){return '<div class="nd-f"><label>'+label+'</label><div class="nd-in"><input type="text" readonly value="'+esc(val||"")+'" aria-label="'+label+' (from Disbursement Business)"></div></div>';}
+  var dsbBox='<h4 class="nd-sub">Disbursement details (filled in Disbursement Business)</h4><div class="nd-grid">'+
+    ro("IDV Value",dsbHas(px0.idv)&&!isNaN(parseFloat(px0.idv))?money(parseFloat(px0.idv)):px0.idv)+
+    ro("Insurance Expiry",insD?fmtDate(insD):px0.insExp)+
+    ro("Processing Fees",dsbHas(nd.pf)?money(dsbNum(nd.pf)):"")+
+    ro("Disbursement Date",dsbD?fmtDate(dsbD):dsbDateVal(l))+
+    ro("Net Disbursement",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
+  return '<section class="nd-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+dsbBox+'<h4 class="nd-sub">RTO and charges</h4><div class="nd-grid">'+
     pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+
     n("rto","RTO charges",filled(nd.rto,x.rto))+n("oth","Other charges",filled(nd.oth))+n("ch","Challan Charges",filled(nd.ch))+
     '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
@@ -4863,8 +4875,8 @@ function shareFallback(txt){
 }
 function shareFile(id){
   var l=lead(id);if(!l)return;var txt=fileShareText(l);
-  if(navigator.share){navigator.share({title:"Payout file: "+l.name,text:txt}).catch(function(e){if(e&&e.name==="AbortError")return;shareFallback(txt);});}
-  else shareFallback(txt);
+  window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank","noopener");
+  toast("Opening WhatsApp");
 }
 function csvRowsFor(cases){
   var byCase={}; state.payments.forEach(function(p){if(p.status==="void")return;p.items.forEach(function(it){byCase[it.id]=p;});});
