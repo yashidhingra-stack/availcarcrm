@@ -2601,8 +2601,8 @@ function dsbRowsHtml(l){
 }
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
-  return '<section class="ld-box" aria-label="Payment details">'+ndCalcHtml(l)+
-    '<div class="ld-two" style="gap:16px;margin-top:16px"><div class="nd-card" id="recvHost" aria-label="Received details"></div><div>'+pddDetHtml(l)+'</div></div></section>';
+  return '<section class="ld-box" aria-label="Payment details">'+
+    '<div class="ld-two" style="gap:16px"><div class="nd-card" id="recvHost" aria-label="Received details"></div><div>'+pddDetHtml(l)+'</div></div></section>';
 }
 function ndCalcHtml(l){
   var nd=ldx(l).nd||{};
@@ -2946,7 +2946,7 @@ function renderDisbLead(l){
   if((pddV&&state.ldTab==="calc")&&l.stage==="Disbursed")ndWire(l,v);
   if(pddV&&state.ldTab==="pay")payWire(l,v);
   if(pddV&&state.ldTab==="pdet")pddDetWire(l,v);
-  if(payV&&state.ldTab==="pview"){ndWire(l,v);pddDetWire(l,v);var rh=v.querySelector("#recvHost");if(rh)openCustPay(l.id,rh);}
+  if(payV&&state.ldTab==="pview"){pddDetWire(l,v);var rh=v.querySelector("#recvHost");if(rh)openCustPay(l.id,rh);}
   var e=document.getElementById("ldE");
   if(e){
     var done=false;
@@ -3109,8 +3109,8 @@ function ldStatusBlock(l){
     var stOpts=PDD_ST.filter(function(x){return x!==PDD_ST[0]&&x!==PDD_ST[4];});
     return ownSel+'<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
      '<div class="field"><label for="pddStage">PDD stage</label><select id="pddStage"><option value="Open"'+(curS==="Open"?' selected':'')+'>Select stage</option>'+stOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===curS?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
-     '<div class="field" style="align-self:end"><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div></div>'+noteH+
-     '<div class="st-sub"><button class="btn" id="ldSubmit">Submit</button></div>';
+     '</div>'+noteH+
+     '<div class="st-sub" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn" id="ldSubmit">Submit</button><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div>';
   }
   return ownSel+'<div class="st-grid" role="radiogroup" aria-label="Lead status">'+opts.map(function(o){
     return '<label class="st-pill'+(o===cur?" on":"")+'"><input type="radio" name="ldst" value="'+esc(o)+'"'+(o===cur?" checked":"")+'>'+esc(ST_LABEL[o]||o)+'</label>';}).join("")+'</div>'+noteH+
@@ -4581,12 +4581,14 @@ function openCustPay(id,host){
    '<div class="nd-f"><label for="cpBankD">Date received</label><input id="cpBankD" type="date" value="'+esc(bank.date||"")+'"></div>'+
    '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></section>';
   h+='<div class="repscroll"><table class="center striped" style="min-width:760px"><thead><tr><th>#</th><th>Type</th><th>Amount</th><th>Date</th><th class="l">Notes</th></tr></thead><tbody>';
-  for(var i=0;i<6;i++){var e=cur[i]||{};
-    h+='<tr data-cprow="'+i+'"><td><b>Payment '+(i+1)+'</b></td><td><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></td>'+
+  function cpRowHtml(i,e){e=e||{};
+    return '<tr data-cprow="'+i+'"><td><b>Payment '+(i+1)+'</b></td><td><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></td>'+
      '<td><input data-cpa type="number" min="0" step="any" inputmode="decimal" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount" style="width:130px"></td>'+
      '<td><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></td>'+
      '<td class="l"><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Notes" aria-label="Payment '+(i+1)+' notes" style="width:100%;min-width:200px"></td></tr>';}
-  h+='</tbody></table></div><div class="nd-res" id="cpSub"></div><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="cpSave">Save payments</button></div>';
+  var cpShow=1;for(var ci=0;ci<cur.length;ci++){if(cur[ci]&&lpNum(cur[ci].amt)>0)cpShow=ci+1;}
+  for(var i=0;i<cpShow;i++){h+=cpRowHtml(i,cur[i]);}
+  h+='</tbody></table></div><div class="actions" style="justify-content:flex-start;margin:8px 0"><button class="btn" type="button" id="cpAddRow">+ Add new payment</button></div><div class="nd-res" id="cpSub"></div><div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="cpSave">Save payments</button></div>';
   if(host){h=h.replace(/^<h2>[\s\S]*?<\/h2>/,'<h3 class="nd-h">Received Details</h3>').replace('<button class="btn" data-close>Cancel</button>','');host.innerHTML=h;}
   var m=host||openPayModal(h);if(!host)m.classList.add("wide");
   function q(sel,r){return r.querySelector(sel);}
@@ -4604,12 +4606,18 @@ function openCustPay(id,host){
      '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Pending from bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
     return tot;
   }
-  trs().forEach(function(r){
+  function wireRow(r){
     q("[data-cpa]",r).oninput=function(){upd();};
     q("[data-cpt]",r).onchange=function(){
       if(this.value==="Full payment"){var dup=trs().some(function(o){return o!==r&&q("[data-cpt]",o).value==="Full payment";});if(dup){toast("Only one Full payment is allowed");this.value="Partial payment";}}
       var d=q("[data-cpd]",r);if(!d.value)d.value=ymd(TODAY);upd();};
-  });
+  }
+  trs().forEach(wireRow);
+  m.querySelector("#cpAddRow").onclick=function(){
+    var n=trs().length,tb=m.querySelector("tbody");
+    tb.insertAdjacentHTML("beforeend",cpRowHtml(n,null));
+    var nr=trs()[n];wireRow(nr);var d=q("[data-cpd]",nr);if(!d.value)d.value=ymd(TODAY);q("[data-cpa]",nr).focus();upd();
+  };
   m.querySelector("#cpBank").oninput=function(){var d=m.querySelector("#cpBankD");if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
   upd();
   m.querySelector("#cpSave").onclick=function(){
