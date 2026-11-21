@@ -281,6 +281,8 @@ td.dt{line-height:1.25}
 .st-pill.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .st-note{margin-top:16px}.st-note textarea{width:100%;min-height:72px}
 .st-sub{display:flex;justify-content:flex-end;margin-top:12px}
+.pdd-grid{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
+.pdd-grid select{width:100%}
 @media (max-width:1100px){.st-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:600px){.st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .statusbar{display:flex;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:0 8px 0 12px}
@@ -1002,8 +1004,11 @@ function drawCharts(){
 function resetList(){state.permDraft={};state.sort=pageKey()==="data"?{k:"ts",d:1}:{k:"ts",d:-1};state.q="";state.repQ="";state.sel=[];state.f={product:"",lender:"",dealer:"",owner:"",source:"",team:"",year:"",month:"",min:"",max:""};state.page=1;}
 function pageKey(){return state.route.split("/")[1];}
 var RTO_ST="File Approved in RTO"; /* kept out of every normal status list */
-var PDD_ST=["Open","Fee Done File At Inward","Pending At Verification Stage","Pending At Approval Stage","File Approved In RTO","State NOC Pending","RTO Paper Pending"];
-function pddSt(l){return l.pddSt||(l.status===RTO_ST?"File Approved In RTO":"Open");}
+var PDD_ST=["Open","Fee Done/Applied","Verification Stage","Approval Stage","File Approved In RTO","Hold"];
+var PDD_TYPES=["Open","Mobile Number Updation","State NOC","Loan Termination","Transfer of Ownership","Hypo Addition"];
+var PDD_LEGACY={"fee done file at inward":"Fee Done/Applied","pending at verification stage":"Verification Stage","pending at approval stage":"Approval Stage","state noc pending":"Open","rto paper pending":"Open"};
+function pddTp(l){return l.pddType||"Open";}
+function pddSt(l){var v=l.pddSt||(l.status===RTO_ST?"File Approved In RTO":"Open");return PDD_LEGACY[String(v).toLowerCase()]||v;}
 function inPddCtx(l){return (state.leadCtx==="pdd"||state.leadCtx==="Close")&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST);}
 /* ---------- PDD RULE ----------
    The moment a file's status becomes "Disburse" (for example moved from Login business), it moves to PDD Status.
@@ -1038,7 +1043,7 @@ function statusOptions(key){
   if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject is one common page */
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1&&hierStatusOk(x[0]);}).map(function(x){return x[0];});}
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
-var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
+var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",pddType:"PDD Type",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
 var HR=["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","insExp","audId"];
 var ALLTIME={Audience:1,Login:1,Hold:1,Rejected:1,pdd:1,Close:1,data:1}, NOFILTER={Login:1,Hold:1,Rejected:1,pdd:1,Close:1,data:1};
 state.lrangeBy={};state.rlabel={};state.fyBasis="fy";state.repTab="owner";
@@ -1046,7 +1051,7 @@ function getRange(key){return state.lrangeBy[key]||(ALLTIME[key]?{from:ALLFROM,t
 function setRange(key,r){state.lrangeBy[key]=r;}
 var HIDDEN={Disbursed:["ts"],pdd:["pdd"],Close:["pdd"],data:["ts","status","owner"]};
 var PAGELABEL={pdd:{ts:"Disbursed Date"},Close:{ts:"Disbursed Date"}};
-var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],Close:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"]};
+var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],Close:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"]};
 function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];}).concat(attrsForPage(key).map(function(a){return ["a_"+a.key,a.label];}));}
 function colState(key){
   var k=PAGECOLS[key]?key:"def"; state.colsBy=state.colsBy||{};
@@ -1110,6 +1115,7 @@ function cell(l,k,i){
   if(k==="phone")return esc(l.phone)+(/^\d{10}$/.test(l.phone)?' <a class="wa" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="Message on WhatsApp">'+ic("chat")+'</a>':"");
   if(k==="make")return esc(l.make||MAKE[l.vehicle]||"");
   if(k==="pddSt")return esc(pddSt(l));
+  if(k==="pddType")return esc(pddTp(l));
   if(k==="insExp"){var iv=String((l.px||{}).insExp||"");return /^\d{4}-\d{2}-\d{2}$/.test(iv.slice(0,10))&&iv.length<=10?esc(fmtDate(iv)):esc(iv);}
   if(k==="rtoPerson"||k==="rtoSet"||k==="pendReason")return esc((l.px||{})[k]||"");
   if(k==="audId")return esc(audOf(l));
@@ -1618,7 +1624,7 @@ function downloadPddGroupExcel(kind,value){
   var data=rows.map(function(l){return {
     "Customer Name":l.name||"", "Mobile":l.phone||"", "Lead Owner":l.owner||"", "Dealer":l.dealer||"",
     "Lender":l.lender||"", "Case Booked In":ldx(l).caseBooked||"", "Vehicle":l.vehicle||"", "Vehicle Number":l.reg||"", "Loan Amount":l.amount||0,
-    "Product":l.product||"", "Lead Status":l.status||"", "PDD Status":l.pdd||"", "PDD Stage":pddSt(l),
+    "Product":l.product||"", "Lead Status":l.status||"", "PDD Status":l.pdd||"", "PDD Type":pddTp(l),"PDD Stage":pddSt(l),
     "Disbursement Date":l.date||"", "Latest Remarks":leadRemarkText(l), "Follow-up Notes":(Array.isArray(l.fu)?l.fu:[]).map(function(f){return [f.date||"",f.text||"",f.done?"Done":"Pending"].join(" - ");}).join(" | ")
   };});
   var wb=XLSX.utils.book_new(),ws=XLSX.utils.json_to_sheet(data);
@@ -2664,6 +2670,7 @@ function pddDetWire(l,v){
     var ks=["rto","oth","ch"],i;
     var ss=v.querySelectorAll("[data-pdsel]");for(i=0;i<ss.length;i++){if(ss[i].value==="Other"&&!raw(ss[i].getAttribute("data-pdsel"))){toast("Type the "+(ss[i].getAttribute("data-pdsel")==="auth"?"RTO authority":"RTO person"));return;}}
     for(i=0;i<ks.length;i++){var n=parseFloat(raw(ks[i]));if(!isNaN(n)&&n<0){toast("Amounts cannot be negative");return;}}
+    var remChk=v.querySelector("[data-pdrem]");if(remChk&&!remChk.value.trim()){toast("Remarks are required");remChk.focus();return;}
     var x=ldx(l);x.rtoAuth=raw("auth");x.rtoWork=raw("work");l.px=l.px||{};l.px.rtoPerson=raw("work");
     var remEl=v.querySelector("[data-pdrem]"),remTx=remEl?remEl.value.trim():"";
     if(remTx){l.hist.unshift({ts:stamp(),text:remTx,type:"note"});addRemark(l,remTx);}
@@ -3016,31 +3023,48 @@ document.addEventListener("click",function(e){
 },true);
 
 /* ---------- status pills, note and submit at the bottom of a lead ---------- */
+var ST_ALLOWED={Audience:["Open","Follow Up","Call not picked","Call Invalid","Interested","Not Interested"],
+ Login:["Login Pending","Login","Approval Pending","Approved","Approved But Not Disbursed","Partially Hold"],
+ Disbursed:["Disbursement Pending","Disburse"]};
+var ST_LABEL={"Disburse":"Disbursed"};
 function ldStatusList(l){
   var st=l.cat?null:(l.stage==="Login"||l.stage==="Hold"||l.stage==="Rejected")?["Login","Hold","Rejected"]:[l.stage];
   var fromPdd=(state.listRoute==="leads/pdd"||state.listRoute==="leads/Close")&&!l.cat&&l.stage==="Disbursed";
+  var allow=l.cat?null:(l.stage==="Login"||l.stage==="Hold"||l.stage==="Rejected")?ST_ALLOWED.Login:ST_ALLOWED[l.stage];
+  if(allow){var out=allow.filter(function(x){return x===l.status||hierStatusOk(x);});if(l.status&&out.indexOf(l.status)<0&&l.status!==RTO_ST)out.push(l.status);return out;}
   return STATUS.filter(function(x){return (!st||st.indexOf(x[1])>-1)&&(x[0]!==RTO_ST||fromPdd||l.status===RTO_ST)&&(x[0]===l.status||hierStatusOk(x[0]));}).map(function(x){return x[0];});
 }
 function ldStatusBlock(l){
   var pd=inPddCtx(l), opts=pd?PDD_ST:ldStatusList(l), cur=pd?pddSt(l):l.status;
   var ownSel='<div class="field" style="max-width:320px;margin-bottom:12px"><label for="ldOwner">Lead owner</label><select id="ldOwner">'+(function(){var ol=moveOwnerOptions();if(l.owner&&ol.indexOf(l.owner)<0)ol.push(l.owner);return ol.map(function(o){return '<option value="'+esc(o)+'"'+(o===l.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("");})()+'</select></div>';
-  return ownSel+'<div class="st-grid" role="radiogroup" aria-label="'+(pd?"PDD status":"Lead status")+'">'+opts.map(function(o){
-    return '<label class="st-pill'+(o===cur?" on":"")+'"><input type="radio" name="ldst" value="'+esc(o)+'"'+(o===cur?" checked":"")+'>'+esc(o)+'</label>';}).join("")+'</div>'+
-   '<div class="st-note field"><label for="ldNote2">Note<span class="req">*</span></label><textarea id="ldNote2" rows="3"></textarea></div>'+
+  var noteH='<div class="st-note field"><label for="ldNote2">Note<span class="req">*</span></label><textarea id="ldNote2" rows="3" required></textarea></div>';
+  if(pd){
+    var curT=pddTp(l), curS=cur===PDD_ST[4]?"Open":cur;
+    var stOpts=PDD_ST.filter(function(x){return x!==PDD_ST[0]&&x!==PDD_ST[4];});
+    return ownSel+'<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
+     '<div class="field"><label for="pddStage">PDD stage</label><select id="pddStage"><option value="Open"'+(curS==="Open"?' selected':'')+'>Select stage</option>'+stOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===curS?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
+     '<div class="field" style="align-self:end"><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div></div>'+noteH+
+     '<div class="st-sub"><button class="btn" id="ldSubmit">Submit</button></div>';
+  }
+  return ownSel+'<div class="st-grid" role="radiogroup" aria-label="Lead status">'+opts.map(function(o){
+    return '<label class="st-pill'+(o===cur?" on":"")+'"><input type="radio" name="ldst" value="'+esc(o)+'"'+(o===cur?" checked":"")+'>'+esc(ST_LABEL[o]||o)+'</label>';}).join("")+'</div>'+noteH+
    '<div class="st-sub"><button class="btn" id="ldSubmit">Submit</button></div>';
 }
-function submitLeadStatus(){
+function submitLeadStatus(rcFlag){
   var l=curLead(); if(!l)return; ensure(l);
-  var r=document.querySelector('input[name="ldst"]:checked'), nt=document.getElementById("ldNote2"); if(!r||!nt)return;
-  var tx=nt.value.trim(), ns=r.value, old=l.status;
-  if(!tx){toast("Note is required");nt.focus();return;}
+  var r=document.querySelector('input[name="ldst"]:checked'), nt=document.getElementById("ldNote2"); if(!nt)return;
+  var pdSel=document.getElementById("pddStage"); if(!r&&!pdSel)return;
+  var tx=nt.value.trim(), ns=r?r.value:"", old=l.status;
+  if(!tx){toast("Note is required");nt.focus();nt.style.borderColor="#c43d3d";return;}
   var ownEl=document.getElementById("ldOwner");
   if(ownEl&&ownEl.value&&ownEl.value!==l.owner){var po0=l.owner;l.owner=ownEl.value;l.hist.unshift({ts:stamp(),text:"Lead owner changed from "+(po0||"Unassigned")+" to "+l.owner,type:"owner"});saveLeads();}
   if(inPddCtx(l)){
-    var po=pddSt(l);
-    if(ns!==po){l.pddSt=ns;l.hist.unshift({ts:stamp(),text:"PDD status changed from "+po+" to "+ns,type:"status"});}
+    var po=pddSt(l), pt=pddTp(l), tEl=document.getElementById("pddType"), nt2=tEl?tEl.value:pt;
+    ns=rcFlag?PDD_ST[4]:(pdSel?pdSel.value:po);
+    if(nt2!==pt){l.pddType=nt2;l.hist.unshift({ts:stamp(),text:"PDD type changed from "+pt+" to "+nt2,type:"status"});}
+    if(ns!==po){l.pddSt=ns;l.hist.unshift({ts:stamp(),text:"PDD stage changed from "+po+" to "+ns,type:"status"});}
     l.hist.unshift({ts:stamp(),text:tx,type:"note"});addRemark(l,tx);saveLeads();
-    renderLead();toast(ns!==po?(ns===PDD_ST[4]?"File approved in RTO - moved to Close":"PDD status updated"):"Note added");return;
+    renderLead();toast(ns===PDD_ST[4]?"RC approved - file moved to Close":((ns!==po||nt2!==pt)?"PDD status updated":"Note added"));return;
   }
   var movedPdd=false;
   if(ns!==old){
@@ -3058,7 +3082,7 @@ document.addEventListener("change",function(e){
   var t=e.target; if(!t||t.name!=="ldst")return;
   [].forEach.call(document.querySelectorAll(".st-pill"),function(x){x.classList.toggle("on",x.firstChild.checked);});
 });
-document.addEventListener("click",function(e){if(e.target.id==="ldSubmit")submitLeadStatus();});
+document.addEventListener("click",function(e){if(e.target.id==="ldSubmit")submitLeadStatus();if(e.target.id==="rcApproved")submitLeadStatus(true);});
 function changeStatus(ns){
   var l=curLead(); if(!l)return; ensure(l);
   var old=l.status; if(ns===old)return;
