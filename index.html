@@ -2908,7 +2908,7 @@ function moveCats(){
 function moveStatuses(key){
   var c=moveCats().filter(function(x){return x.key===key;})[0]; if(!c)return [];
   if(key==="pdd")return PDD_ST.slice();
-  if(key==="Disbursed")return ["Open","Disbursed","Disbursement Pending","Approved (Disbursement)","Not Approved","Approved But Not Disbursed"];
+  if(key==="Disbursed")return ["Open","Disbursement Pending","Disbursed"];
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
 }
 function myOwnerName(){
@@ -2968,7 +2968,8 @@ function submitMoveCat(){
     closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);return;
   }
   var shown=ns; /* Login Disbursement: Open / Disbursed / Disbursement Pending all keep the lead in that stage */
-  if(ck==="Disbursed"&&(ns==="Open"||ns==="Disbursed")){ns="Disburse";if(shown==="Open")l.pddSt="Open";}
+  if(ck==="Disbursed"&&ns==="Open"){ns="Disbursement Pending";} /* Open = just arrived in Disbursement Business, waiting to be disbursed: stays visible in this list */
+  else if(ck==="Disbursed"&&ns==="Disbursed"){ns="Disburse";}
   delete l.pddMoved; l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
   if(ck==="Disbursed"&&shown==="Disbursed")pddAutoMove(l,""); /* a file marked Disbursed goes to PDD */
