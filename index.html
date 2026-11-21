@@ -4451,7 +4451,7 @@ function lpNet(l){
   return null;
 }
 /* Customer payments 1-6: each has a type, amount, date and note. Falls back to the old Payment 1-3 fields until a client's payments are saved here. */
-var CP_TYPES=["Partial payment","Full payment","Other","From bank"];
+var CP_TYPES=["Partial payment","Full payment","Other"];
 function cpList(l){var x=ldx(l);return Array.isArray(x.cpay)?x.cpay:null;}
 function cpPaid(l){var c=cpList(l),t=0;if(c){c.forEach(function(e){t+=lpNum(e&&e.amt);});return t;}var nd=ldx(l).nd||{};return lpNum(nd.p1)+lpNum(nd.p2)+lpNum(nd.p3);}
 function lpCustRows(){
@@ -4503,10 +4503,17 @@ function openCustPay(id){
   var rows=lpCustRows().filter(function(r){return r.l.id===id;})[0]||{net:lpNet(l),netD:null,ch:0};
   var net=lpNet(l),ch=rows.ch||0,netD=net===null?null:net+ch,x=ldx(l),cur=Array.isArray(x.cpay)?x.cpay:null;
   if(!cur){var nd=x.nd||{};cur=[nd.p1,nd.p2,nd.p3].map(function(v){return lpNum(v)>0?{type:"Partial payment",amt:lpNum(v),date:"",note:""}:null;});}
+  var bank=x.bank&&typeof x.bank==="object"?x.bank:{amt:"",date:"",note:""};
+  var mig=0;cur=cur.map(function(e){if(e&&e.type==="From bank"){mig+=lpNum(e.amt);return null;}return e;});
+  if(mig>0&&!lpNum(bank.amt))bank={amt:mig,date:(cur.length?"":""),note:bank.note||""};
   function mm(v){return v===null?"—":esc(money(v));}
   var h='<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)))+'</p>'+
    '<div class="kpis"><div class="kpi"><b>'+mm(netD)+'</b><span>Net disbursement</span></div><div class="kpi"><b>'+esc(money(ch))+'</b><span>PDD charges</span></div><div class="kpi"><b>'+mm(net)+'</b><span>Net after PDD</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi"><b id="cpBal">—</b><span>Balance</span></div></div>';
   if(net===null)h+='<p class="note">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
+  h+='<section class="nd-card" aria-label="Received from bank" style="margin:12px 0"><h3 class="nd-h">Received from bank</h3><div class="nd-grid">'+
+   '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
+   '<div class="nd-f"><label for="cpBankD">Date received</label><input id="cpBankD" type="date" value="'+esc(bank.date||"")+'"></div>'+
+   '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></section>';
   h+='<div class="repscroll"><table class="center striped" style="min-width:760px"><thead><tr><th>#</th><th>Type</th><th>Amount</th><th>Date</th><th class="l">Notes</th></tr></thead><tbody>';
   for(var i=0;i<6;i++){var e=cur[i]||{};
     h+='<tr data-cprow="'+i+'"><td><b>Payment '+(i+1)+'</b></td><td><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></td>'+
@@ -4525,7 +4532,9 @@ function openCustPay(id){
     var tot=0;rs.forEach(function(r){var a=lpNum(q("[data-cpa]",r).value);tot+=a;sub[q("[data-cpt]",r).value]+=a;});
     m.querySelector("#cpPaid").textContent=money(tot);
     var b=m.querySelector("#cpBal");b.textContent=net===null?"—":money(net-tot);b.classList.toggle("neg",net!==null&&net-tot<0);
-    m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("");
+    var bk=lpNum(m.querySelector("#cpBank").value),pend=netD===null?null:netD-bk;
+    m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("")+
+     '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Pending from bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
     return tot;
   }
   trs().forEach(function(r){
@@ -4534,6 +4543,7 @@ function openCustPay(id){
       if(this.value==="Full payment"){var dup=trs().some(function(o){return o!==r&&q("[data-cpt]",o).value==="Full payment";});if(dup){toast("Only one Full payment is allowed");this.value="Partial payment";}}
       var d=q("[data-cpd]",r);if(!d.value)d.value=ymd(TODAY);upd();};
   });
+  m.querySelector("#cpBank").oninput=function(){var d=m.querySelector("#cpBankD");if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
   upd();
   m.querySelector("#cpSave").onclick=function(){
     var out=[],bad=null,tot=0;
@@ -4543,11 +4553,14 @@ function openCustPay(id){
       if(a>0&&!d){d=ymd(TODAY);}
       if(a>0){tot+=a;out.push({n:i+1,type:t,amt:a,date:d,note:n});}else out.push(null);
     });
+    var bAmt=lpNum(m.querySelector("#cpBank").value),bDate=m.querySelector("#cpBankD").value;
+    if(bAmt<0){toast("Amount received from bank cannot be negative");return;}
+    if(bAmt>0&&!bDate)bDate=ymd(TODAY);
     if(bad){toast(bad);return;}
     if(net!==null&&tot>net+0.005){toast("Total paid is more than the net after PDD");return;}
     var before=cpPaid(l);
-    x.cpay=out;
-    l.hist.unshift({ts:stamp(),text:"Customer payments saved: total paid "+money(tot)+(net!==null?", balance "+money(net-tot):"")+" (was "+money(before)+")",type:"system"});
+    x.cpay=out;x.bank={amt:bAmt>0?bAmt:"",date:bAmt>0?bDate:"",note:m.querySelector("#cpBankN").value.trim()};
+    l.hist.unshift({ts:stamp(),text:"Customer payments saved: total paid "+money(tot)+(net!==null?", balance "+money(net-tot):"")+" (was "+money(before)+"); received from bank "+money(bAmt),type:"system"});
     saveLeads();closeAll();toast("Payments saved");renderPayments();
   };
 }
