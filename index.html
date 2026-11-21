@@ -1054,12 +1054,12 @@ function setRange(key,r){state.lrangeBy[key]=r;}
 var HIDDEN={Disbursed:["ts"],pdd:["pdd"],Close:["pdd"],data:["ts","status","owner"]};
 var PAGELABEL={pdd:{ts:"Disbursed Date"},Close:{ts:"Disbursed Date"}};
 var PAGECOLS={pdd:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","idv","pf","disbDate","net","caseBooked","audId"],Close:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","owner","pdd","pddType","pddSt","remark","rtoPerson","rtoSet","pendReason","insExp","idv","pf","disbDate","net","caseBooked","audId"],data:["sno","month","name","phone","product","amount","lender","make","vehicle","reg","dealer","ts","status","owner","caseBooked","audId"],Hold:HR,Rejected:HR,Disbursed:["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","audId"],Audience:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"],def:["sno","ts","name","phone","product","amount","make","vehicle","year","reg","lender","dealer","status","owner","caseBooked","bankExec","insExp","audId"]};
-function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];}).concat(attrsForPage(key).filter(function(a){var da=(key==="pdd"||key==="Close")?dsbDateAttr():null;return !(da&&da.key===a.key);}).map(function(a){return ["a_"+a.key,a.label];}));}
+function pageCols(key){var lab=PAGELABEL[key]||{};return (PAGECOLS[key]||PAGECOLS.def).map(function(id){return [id,lab[id]||COLDEF[id]];}).concat(attrsForListPage(key).filter(function(a){var da=(key==="pdd"||key==="Close")?dsbDateAttr():null;return !(da&&da.key===a.key);}).map(function(a){return ["a_"+a.key,a.label];}));}
 function colState(key){
   var k=PAGECOLS[key]?key:"def"; state.colsBy=state.colsBy||{};
   if(!state.colsBy[k]){var o={};PAGECOLS[k].forEach(function(id){o[id]=(HIDDEN[k]||[]).indexOf(id)<0;});state.colsBy[k]=o;}
   var cso=state.colsBy[k];
-  attrsForPage(key).forEach(function(a){if(cso["a_"+a.key]===undefined)cso["a_"+a.key]=true;});
+  attrsForListPage(key).forEach(function(a){if(cso["a_"+a.key]===undefined)cso["a_"+a.key]=true;});
   return cso;
 }
 function leadRows(key,noSel){
@@ -2449,11 +2449,20 @@ function attrsForLead(l){
   /* use the category page the lead was opened from; otherwise only the lead's own category */
   var ks=state.leadCtx?[state.leadCtx]:(l.cat?[l.cat]:[l.stage]);
   var ids=cats.filter(function(c){return ks.indexOf(c.key)>-1&&catAllowed(c.id);}).map(function(c){return c.id;});
+  if(ks.indexOf("pdd")>-1||ks.indexOf("Close")>-1){var dcat=cats.filter(function(c){return c.key==="Disbursed";})[0];if(dcat&&ids.indexOf(dcat.id)<0)ids.push(dcat.id);} /* everything filled in Disbursement Business stays visible in PDD and Closed */
   return attrs.filter(function(a){return attrAssigned(a)&&a.dynCats.some(function(i){return ids.indexOf(i)>-1;});});
 }
 function attrsForPage(key){
   var c=cats.filter(function(x){return x.key===key;})[0]; if(!c||!catAllowed(c.id))return [];
   return attrs.filter(function(a){return attrAssigned(a)&&a.dynCats.indexOf(c.id)>-1;});
+}
+function attrsForListPage(key){
+  var base=attrsForPage(key);
+  if(key!=="pdd"&&key!=="Close")return base;
+  var dcat=cats.filter(function(c){return c.key==="Disbursed";})[0],seen={};
+  if(!dcat)return base;
+  base.forEach(function(a){seen[a.key]=1;});
+  return base.concat(attrs.filter(function(a){return !seen[a.key]&&attrAssigned(a)&&a.dynCats.indexOf(dcat.id)>-1;}));
 }
 function attrGroupOf(a){
   var g=attrGroups.filter(function(x){return !x.def&&x.keys.indexOf(a.key)>-1;})[0];
