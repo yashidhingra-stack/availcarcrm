@@ -940,7 +940,7 @@ function renderNav(){
   var h="", cur=navRoute(), cu=userById(state.meUser), hrMenu=!!hrUserKey(cu);
   var LEADS_MAIN=["Audience","Login","Disbursed","pdd","Close","Hold"];
   var hrLabels={Audience:"Audience",Login:"Login Business",Hold:"Hold/Reject",Disbursed:"Disbursement Business",Rejected:"Reject",pdd:"PDD Status",Close:"Closed"};
-  var leadKids=[["dataup","Data"]].concat(LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:(k==="Close"?"Closed":catName(k))];})).concat([["data/download","Download Data"]]);
+  var leadKids=[["dataup","Calling Data"]].concat(LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:(k==="Close"?"Closed":catName(k))];})); /* "Download Data" menu item removed */
   /* Menu order: Dashboard, Leads (up to PDD Status, then Download Data), Dealer Commission, Forms, Office Use Only, Reports, WABA */
   var MENU=[
     {id:"dashboard",label:"Dashboard",icon:"grid",route:"dashboard"},
@@ -1605,7 +1605,7 @@ function renderLeads(){
 selectField("product","Product",products)+selectField("lender","Lender",lenderOptions())+selectField("dealer","Dealer",dealerFilterOptions())+selectField("owner","Lead owner",owners)+selectField("team","Team",roleNames())+selectField("year","Year",Array.from(new Set((leads||[]).map(function(l){return String(l.year||"").trim();}).filter(Boolean))).sort().reverse())+selectField("source","Source",sources)+
     (key==="Disbursed"?"":'<div class="field"><label for="f_min">Loan amount from (₹)</label><input type="number" id="f_min" data-f="min" min="0" step="50000" value="'+esc(state.f.min)+'"></div>'+
     '<div class="field"><label for="f_max">Loan amount to (₹)</label><input type="number" id="f_max" data-f="max" min="0" step="50000" value="'+esc(state.f.max)+'"></div>'))+
-    '<div class="field"><button class="btn" data-clearf>Clear filters</button></div><div class="field"><button class="btn" data-fpdl title="Download the files shown below as Excel">Download Excel</button></div></div></section>';
+    '<div class="field"><button class="btn" data-clearf>Clear filters</button></div></div></section>';
   h+=(NOFILTER[key]?'':'<p class="note" id="note"></p>');
   if(key==="pdd")h+='<div class="firmbar pddbar"><div class="field"><label for="pdFrom">From</label><input type="date" id="pdFrom" value="'+getRange("pdd").from+'"></div><div class="field"><label for="pdTo">To</label><input type="date" id="pdTo" value="'+getRange("pdd").to+'"></div><button class="btn" data-pddall title="Show files of all dates">All dates</button><div class="field"><label for="f_owner">Lead owner</label><select id="f_owner" data-f="owner"><option value="">All</option>'+owners.map(function(o){return '<option'+(state.f.owner===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><div class="field"><label for="f_rtoPerson">RTO person</label><select id="f_rtoPerson" data-f="rtoPerson"><option value="">All</option>'+rtoPersonList().map(function(o){return '<option'+(state.f.rtoPerson===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><div class="field"><label for="pddStatusSel">Lead status</label><select id="pddStatusSel"><option value="">All</option><option value="multi" hidden>Multiple selected</option>'+pddOpenList().map(function(o){return '<option'+(state.sel.length===1&&state.sel[0]===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><button class="btn" data-pddclear>Clear</button></div>';
   if(key==="pdd")h+='<div id="rtoSum"></div>';
@@ -2498,16 +2498,17 @@ function leadCatKeys(l){
 function attrAssigned(a){return !!(a.dynCats&&a.dynCats.length)&&a.visible!==false&&(a.hideRoles||[]).indexOf(state.meRole)<0;} /* shown on the pages of its categories, except for roles it is hidden from */
 /* a category is usable by the viewer only if that user was given access to it */
 function catAllowed(id){var c=catById(id);return !!c&&catCfg(c).users.indexOf(state.meUser)>-1;}
+function isDsbInfoAttr(a){var n=String(a&&a.label||"").toLowerCase().replace(/[^a-z0-9]/g,"");return /^disburs(e|ed|ement|ment)?(date|amount)/.test(n);} /* Disbursement Date / Disbursed Amount: shown in PDD Status only */
 function attrsForLead(l){
   /* use the category page the lead was opened from; otherwise only the lead's own category */
   var ks=state.leadCtx?[state.leadCtx]:(l.cat?[l.cat]:[l.stage]);
   var ids=cats.filter(function(c){return ks.indexOf(c.key)>-1&&catAllowed(c.id);}).map(function(c){return c.id;});
   if(ks.indexOf("pdd")>-1||ks.indexOf("Close")>-1){var dcat=cats.filter(function(c){return c.key==="Disbursed";})[0];if(dcat&&ids.indexOf(dcat.id)<0)ids.push(dcat.id);} /* everything filled in Disbursement Business stays visible in PDD and Closed */
-  return attrs.filter(function(a){return attrAssigned(a)&&a.dynCats.some(function(i){return ids.indexOf(i)>-1;});});
+  return attrs.filter(function(a){return attrAssigned(a)&&a.dynCats.some(function(i){return ids.indexOf(i)>-1;})&&(!isDsbInfoAttr(a)||state.leadCtx==="pdd");});
 }
 function attrsForPage(key){
   var c=cats.filter(function(x){return x.key===key;})[0]; if(!c||!catAllowed(c.id))return [];
-  return attrs.filter(function(a){return attrAssigned(a)&&a.dynCats.indexOf(c.id)>-1;});
+  return attrs.filter(function(a){return attrAssigned(a)&&a.dynCats.indexOf(c.id)>-1&&(!isDsbInfoAttr(a)||key==="pdd");});
 }
 function attrsForListPage(key){
   var base=attrsForPage(key);
@@ -2515,7 +2516,7 @@ function attrsForListPage(key){
   var dcat=cats.filter(function(c){return c.key==="Disbursed";})[0],seen={};
   if(!dcat)return base;
   base.forEach(function(a){seen[a.key]=1;});
-  return base.concat(attrs.filter(function(a){return !seen[a.key]&&attrAssigned(a)&&a.dynCats.indexOf(dcat.id)>-1;}));
+  return base.concat(attrs.filter(function(a){return !seen[a.key]&&attrAssigned(a)&&a.dynCats.indexOf(dcat.id)>-1&&(!isDsbInfoAttr(a)||key==="pdd");}));
 }
 function attrGroupOf(a){
   var g=attrGroups.filter(function(x){return !x.def&&x.keys.indexOf(a.key)>-1;})[0];
@@ -5310,7 +5311,7 @@ var HPAGE={Audience:["Audience"],Login:["Login Pending","Login","Approval Pendin
 function hierIsAdmin(u){var r=u&&roleById(u.roleId);return !!u&&!!(r&&r.name==="Admin");}
 function canDownloadLeadCategory(){return hierIsAdmin(userById(state.meUser));}
 window.CRM_IS_ADMIN=function(){try{return canDownloadLeadCategory();}catch(e){return false;}};
-window.CRM_BLOCK_DL=function(){try{toast("Only Admin can download data");}catch(e){}};
+window.CRM_BLOCK_DL=function(){try{toast("Excel download is turned off");}catch(e){}};
 function isPartHold(l){return !l.cat&&["Finally Hold","Partially Hold","Approved But Hold","Postponed"].indexOf(l.status)>-1;} /* all Hold files (Finally, Partially, Approved But Hold, Postponed): visible to every user on the Hold page, whoever owns them */
 var HOLD_PEND=[]; /* every category can now be ticked or unticked per user */ /* Hold (incl. Partially Hold) and pending files: always open for every user */
 function hierCats(u){var c=u?hierGet(hierarchyFirst(u.name)).cats:null;if(!Array.isArray(c))return null;c=c.slice();HOLD_PEND.forEach(function(x){if(c.indexOf(x)<0)c.push(x);});return HCATS.every(function(x){return c.indexOf(x[0])>-1;})?null:c;}
@@ -5585,7 +5586,7 @@ function renderDataUp(){
   var v=document.getElementById("view"),D=state.du,admin=duAdmin();
   if(D.sel){var f0=duGet(D.sel);if(f0){duDetail(v,f0);return;}D.sel=null;}
   var owners={};duList().forEach(function(f){owners[f.owner||"Unassigned"]=1;});
-  v.innerHTML='<div class="page-head"><div><h1>Data</h1><p>'+(admin?'Upload Excel files and choose the user who can open each one. Only that user and Admin can see it.':'Excel data that Admin has assigned to you.')+'</p></div>'+(admin?'<div><button class="btn primary" id="duAdd">+ Add upload</button></div>':'')+'</div>'+
+  v.innerHTML='<div class="page-head"><div><h1>Calling Data</h1><p>'+(admin?'Upload Excel files and choose the user who can open each one. Only that user and Admin can see it.':'Excel data that Admin has assigned to you.')+'</p></div>'+(admin?'<div><button class="btn primary" id="duAdd">+ Add upload</button></div>':'')+'</div>'+
     '<div class="firmbar" style="margin:0 0 12px"><input id="duQ" type="search" placeholder="Search file name" aria-label="Search file name" value="'+esc(D.q)+'">'+
     (admin?'<select id="duOwnerF" aria-label="Filter by assigned user"><option value="">All users</option>'+Object.keys(owners).sort().map(function(o){return '<option value="'+esc(o)+'"'+(o===D.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select>':'')+'</div><div id="duList"></div>';
   var ab=document.getElementById("duAdd");if(ab)ab.onclick=duOpenAdd;
@@ -6575,14 +6576,14 @@ try{refreshNotif();}catch(x){}
   var SEL='#bizExport,#channelMasterExport,[data-rep],#uExport,#dlBulkTpl,[data-stcsv],#masterTemplate,#dealerDetailsExportAll,#dealerDetailsExportFiltered,[data-template],#repDl,[data-pdd-group-download],[data-pdd-lender-download],[data-fpdl],#payHistCsv,#payCsv';
   var st=document.createElement("style");st.textContent="html.nodl :is("+SEL+"){display:none!important}";document.head.appendChild(st);
   function isAdmin(){return !!(window.CRM_IS_ADMIN&&window.CRM_IS_ADMIN());}
-  function sync(){document.documentElement.classList.toggle("nodl",!isAdmin());}
+  function sync(){document.documentElement.classList.add("nodl");} /* downloads off for every user, Admin included */
   sync();setInterval(sync,300);
   var ac=HTMLAnchorElement.prototype.click;
   HTMLAnchorElement.prototype.click=function(){
-    if(this.hasAttribute("download")&&!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}
+    if(this.hasAttribute("download")&&/\.(xlsx?|csv)$/i.test(this.getAttribute("download")||"")){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}
     return ac.apply(this,arguments);
   };
-  function wrapX(){if(window.XLSX&&XLSX.writeFile&&!XLSX.__dlGuard){var w=XLSX.writeFile;XLSX.writeFile=function(){if(!isAdmin()){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}return w.apply(this,arguments);};XLSX.__dlGuard=true;}}
+  function wrapX(){if(window.XLSX&&XLSX.writeFile&&!XLSX.__dlGuard){var w=XLSX.writeFile;XLSX.writeFile=function(){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;};XLSX.__dlGuard=true;}}
   wrapX();window.addEventListener("load",wrapX);setTimeout(wrapX,1500);
 })();
 </script>
