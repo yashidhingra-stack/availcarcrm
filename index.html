@@ -940,13 +940,13 @@ function renderNav(){
   var h="", cur=navRoute(), cu=userById(state.meUser), hrMenu=!!hrUserKey(cu);
   var LEADS_MAIN=["Audience","Login","Disbursed","pdd","Close","Hold"];
   var hrLabels={Audience:"Audience",Login:"Login Business",Hold:"Hold/Reject",Disbursed:"Disbursement Business",Rejected:"Reject",pdd:"PDD Status",Close:"Closed"};
-  var leadKids=[["dataup","Calling Data"]].concat(LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:(k==="Close"?"Closed":catName(k))];})); /* "Download Data" menu item removed */
+  var leadKids=[].concat(LEADS_MAIN.map(function(k){return ["leads/"+k,hrMenu?hrLabels[k]:(k==="Close"?"Closed":catName(k))];})); /* "Download Data" menu item removed */
   /* Menu order: Dashboard, Leads (up to PDD Status, then Download Data), Dealer Commission, Forms, Office Use Only, Reports, WABA */
   var MENU=[
     {id:"dashboard",label:"Dashboard",icon:"grid",route:"dashboard"},
     {id:"leads",label:"Leads",icon:"users",kids:leadKids},
     {id:"forms",label:"Forms",icon:"doc",route:"integration/forms"},
-    {id:"office",label:"Office Use Only",icon:"db",kids:[["dealer-details","Dealer Details"],["channelwise","More Reports"],["integration/custom","Custom attributes"],["users","User management"],["hierarchy","Hierarchy"],["major/staff","Staff Details"],["chlist","Channel List"]]},
+    {id:"office",label:"Office Use Only",icon:"db",kids:[["dealer-details","Dealer Details"],["channelwise","More Reports"],["integration/custom","Custom attributes"],["users","User management"],["hierarchy","Hierarchy"],["major/staff","Staff Details"],["chlist","Channel List"],["dataup","Calling Data"]]},
     {id:"reports",label:"Reports",icon:"chart",kids:[{group:"Major Reports",id:"rep-major",kids:[["data/report","Leads report"],["data/analysis","Analysis"],["leads/data","Data"]]}]},
     {id:"waba",label:"WABA",icon:"chat",route:"waba"},
     {id:"payments",label:"Payments",icon:"card",kids:[["payments/customer","Customer payments"],["payments/dealer","Dealer payments"],["payments/staff","Staff payments"]]},
@@ -2649,6 +2649,12 @@ function dsbNetVal(l){
   if(!dsbHas(nd.pf)||!(dsbNum(l.amount)>0))return null;
   return dsbNum(l.amount)-(dsbNum(nd.pf)+dsbNum(lpPddAmount(l,"RTO charges"))+dsbNum(lpPddAmount(l,"Challan charges"))+dsbNum(lpPddAmount(l,"Other charges"))+dsbNum(nd.ls));
 }
+function dsbNetBase(l){ /* Net Disbursement = Loan Amount - Processing Fees - Loan Suraksha */
+  var nd=ldx(l).nd||{};
+  if(!dsbHas(nd.pf)||!(dsbNum(l.amount)>0))return null;
+  return dsbNum(l.amount)-dsbNum(nd.pf)-dsbNum(nd.ls);
+}
+function dsbNetBaseHtml(l){var n=dsbNetBase(l);return n===null?"—":'<span'+(n<0?' style="color:var(--bad)"':'')+'>'+esc(money(n))+'</span>';}
 function dsbSyncNet(l){if(l.stage!=="Disbursed")return;var n=dsbNetVal(l);if(n!==null)ldx(l).net=String(n);}
 function dsbNetHtml(l){var n=dsbNetVal(l);return n===null?"—":'<span'+(n<0?' style="color:var(--bad)"':'')+'>'+esc(money(n))+'</span>';}
 function dsbMissing(l){
@@ -2658,16 +2664,19 @@ function dsbMissing(l){
   if(!dsbHas((ldx(l).nd||{}).pf))m.push("Processing Fees");
   return m;
 }
-function dsbRowsHtml(l){
+function dsbRowParts(l){
   var x=ldx(l),px=l.px||{},nd=x.nd||{},req='<span class="req">*</span>';
   var idv=dsbHas(px.idv)?px.idv:"",ins=dsbIso(px.insExp),pf=dsbHas(nd.pf)?nd.pf:"",ls=dsbHas(nd.ls)?nd.ls:"";
-  var rows=[
-    ["idv","IDV Value"+req,idv,dsbHas(idv)&&!isNaN(parseFloat(idv))?money(parseFloat(idv)):String(idv),"num"],
-    ["insExp","Insurance Expiry"+req,ins,ins?fmtDate(ins):String(px.insExp||""),"cxDate"],
-    ["pf","Processing Fees"+req,pf,dsbHas(pf)?money(dsbNum(pf)):"","num"],
-    ["ls","Loan Suraksha",ls,dsbHas(ls)?money(dsbNum(ls)):"","num"]];
-  return rows.map(ldRow).join("")+'<tr><td class="k">Net Disbursement To Client'+req+'</td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetHtml(l)+'</strong></div><small class="note">Auto-calculated: Loan Amount − Processing Fees − Loan Suraksha − other charges</small></td></tr>';
+  return {
+    idv:ldRow(["idv","IDV Value"+req,idv,dsbHas(idv)&&!isNaN(parseFloat(idv))?money(parseFloat(idv)):String(idv),"num"]),
+    ins:ldRow(["insExp","Insurance Expiry"+req,ins,ins?fmtDate(ins):String(px.insExp||""),"cxDate"]),
+    pf:ldRow(["pf","Processing Fees"+req,pf,dsbHas(pf)?money(dsbNum(pf)):"","num"]),
+    ls:ldRow(["ls","Loan Suraksha",ls,dsbHas(ls)?money(dsbNum(ls)):"","num"]),
+    net:'<tr><td class="k">Net Disbursement'+req+'</td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div><small class="note">Auto-calculated: Loan Amount \u2212 Processing Fees \u2212 Loan Suraksha</small></td></tr>',
+    netClient:'<tr><td class="k">Net Disbursement To Client</td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div><small class="note">From PDD Details: Net Disbursement \u2212 RTO charges \u2212 Challan charges \u2212 Other charges</small></td></tr>'
+  };
 }
+function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.ins+P.pf+P.ls+P.net+P.netClient;}
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
   return '<div class="pv" aria-label="Payment details"><div id="payKpiTop"></div><div class="pv-grid"><section class="nd-card pv-card" id="recvHost" aria-label="Received details"></section>'+pddDetHtml(l)+'</div></div>';
@@ -2773,7 +2782,7 @@ function pddDetHtml(l){
     ro("Insurance Expiry",insD?fmtDate(insD):px0.insExp)+
     ro("Processing Fees",dsbHas(nd.pf)?money(dsbNum(nd.pf)):"")+
     ro("Loan Suraksha",dsbHas(nd.ls)?money(dsbNum(nd.ls)):"")+
-    ro("Net Disbursement",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
+    ro("Net Disbursement",dsbNetBase(l)===null?"":money(dsbNetBase(l)))+ro("Net Disbursement To Client",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
   return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+dsbBox+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
     pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields pv-amts">'+
     n("rto","RTO charges",filled(nd.rto,x.rto))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
@@ -2977,7 +2986,10 @@ function renderDisbLead(l){
       var L=[["owner","Lead Owner",l.owner,l.owner,"owner"],["bankExec","Bank Executive",x.bankExec,x.bankExec,"text"],
              ["dealer","Dealer Name",l.dealer,"["+(l.dealer||"Direct Source Banker")+"]","dealer"],["entry","Entry Date",l.ts,l.ts,null]];
       var R=[["amount","Loan Amount",l.amount,l.amount,"num"]], Rb=[["product","Product",l.product,"["+l.product+"]","product"],["year","Year of Manufacturing",l.year||"",l.year||"—","text"]], Rc=[];
+      var dobRaw=String(x.dob||"").trim(),dobIso=dsbIso(dobRaw);
+      var CBR=["caseBooked","Case booked in",x.caseBooked||"",x.caseBooked||"—","text"],DOBR=["dob","Date of Birth",dobIso,dobIso?fmtDate(dobIso):(dobRaw||"—"),"cxDate"];
       colL=L.map(function(r){return ldRow(r);});
+      if(state.leadCtx==="Login")colL.push(ldRow(CBR),ldRow(DOBR));
       colR=[R.map(ldRow).join("")];
       if(dsbV)colR.push(dsbRowsHtml(l));
       else if(l.stage==="Disbursed")colR.push(ldArea("net","Net Disbursement To Client",x.net));
@@ -2989,13 +3001,19 @@ function renderDisbLead(l){
       var mk=l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"";var A=[["make","Vehicle Make",mk,mk||"—","text"],["vehicle","Vehicle",l.vehicle||"",l.vehicle||"—","text"],["reg","Vehicle number",l.reg||"",l.reg||"—","text"],["lender","Lender",l.lender||"",l.lender||"—","lender"]];
       /* names already shown in Lead Details or in the lead header: never repeated */
       ["bankexecutive","casebookedin","dob","dealername","entrydate","leadcount","leadfollowdate","leadlastfollowdate","vehicle","vehiclenumber","loanamount","netdisbursementtoclient","previousleadowner","product","rtochargestocustomer","reportingmanager","lender","pddstatus",
-       "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","vehiclemake","make","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec","rtosetstatus","disbursedate","disbursementdate","disbursementamount"].forEach(function(k){seen[k]=1;});
+       "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","vehiclemake","make","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec","rtosetstatus","disbursedate","disbursementdate","disbursementamount","netdisbursement"].forEach(function(k){seen[k]=1;});
       var ex=[];
       if(dsbV)["loansuraksha","processingfee","processingfees","insuranceexpirydate","insuranceexpiry","idv","idvvalue","insuranceidvvalue","netdisbursementamount","rtochargesc"].forEach(function(k){seen[k]=1;});
       LG.forEach(function(G){G.attrs.forEach(function(a){var k=nk(a.label);if(seen[k]||seen["cx"+a.key])return;seen[k]=1;seen["cx"+a.key]=1;ex.push(cxRow(l,a));});});
       var all=A.concat(ex), half=Math.ceil(all.length/2);
       var mL=all.slice(0,half).map(function(r){return ldRow(r);}), mR=all.slice(half).map(function(r){return ldRow(r);});
       if(state.ldTab==="details"){colL=colL.concat(mL);colR=colR.concat(mR);}else{colL=mL;colR=mR;} /* PDD: merged into Lead Details */
+      if(dsbV&&state.ldTab==="details"){ /* PDD / Disbursement / Closed: left = vehicle side, right = loan and net disbursement side */
+        var P=dsbRowParts(l);
+        var restRows=L.concat([A[0],A[1]],ex).map(function(r){return ldRow(r);}),rh=Math.ceil(restRows.length/2);
+        colL=[P.ins,ldRow(Rb[0]),ldRow(Rb[1]),ldRow(A[2]),ldRow(A[3]),ldRow(CBR),ldRow(DOBR)].concat(restRows.slice(0,rh));
+        colR=[ldRow(R[0]),P.idv,P.pf,P.ls,P.net,P.netClient].concat(restRows.slice(rh));
+      }
     }
     var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit to fill them in.</p>':'';
     h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
@@ -5606,36 +5624,83 @@ function duDrawList(){
     rows.map(function(f,i){
       return '<tr><td>'+(i+1)+'</td><td class="l"><button class="name-link" data-duview="'+esc(f.id)+'">'+esc(f.name)+'</button></td><td>'+f.count+'</td><td>'+f.cols.length+'</td><td>'+esc(f.ts)+'</td><td>'+esc(f.by||"")+'</td>'+
         '<td>'+(admin?duOwnerSel(f.owner,'data-duown="'+esc(f.id)+'" aria-label="Assign '+esc(f.name)+' to"'):esc(f.owner||""))+'</td>'+
-        '<td style="white-space:nowrap"><button class="btn sm" data-duview="'+esc(f.id)+'">Open</button> <button class="btn sm" data-dudl="'+esc(f.id)+'">Download</button>'+(admin?' <button class="btn sm" data-dudel="'+esc(f.id)+'">Delete</button>':'')+'</td></tr>';
+        '<td style="white-space:nowrap"><button class="btn sm" data-duview="'+esc(f.id)+'">Open</button>'+(admin?' <button class="btn sm" data-dudel="'+esc(f.id)+'">Delete</button>':'')+'</td></tr>';
     }).join("")+'</tbody></table></div></div>';
   function byId(id){return DATAUPS.filter(function(x){return x.id===id;})[0];}
   box.querySelectorAll("[data-duview]").forEach(function(b){b.onclick=function(){state.du.sel=b.getAttribute("data-duview");state.du.rq="";state.du.page=1;renderDataUp();};});
-  box.querySelectorAll("[data-dudl]").forEach(function(b){b.onclick=function(){var f=byId(b.getAttribute("data-dudl"));if(f&&duGet(f.id))duDownload(f);};});
   box.querySelectorAll("[data-dudel]").forEach(function(b){b.onclick=function(){var f=byId(b.getAttribute("data-dudel"));if(f)duDelete(f);};});
   box.querySelectorAll("[data-duown]").forEach(function(sl){sl.onchange=function(){var f=byId(sl.getAttribute("data-duown"));if(f)duSetOwner(f,sl.value);};});
 }
 function duDetail(v,f){
   var admin=duAdmin(),D=state.du;
-  v.innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" id="duBack" aria-label="Back to Data">'+ic("back")+'</button><div><h1>'+esc(f.name)+'</h1><p>'+f.count+' rows · '+f.cols.length+' columns · uploaded '+esc(f.ts)+' by '+esc(f.by||"")+'</p></div></div><div><button class="btn" id="duDl">Download Excel</button>'+(admin?' <button class="btn" id="duDel">Delete</button>':'')+'</div></div>'+
+  v.innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" id="duBack" aria-label="Back to Data">'+ic("back")+'</button><div><h1>'+esc(f.name)+'</h1><p>'+f.count+' rows · '+f.cols.length+' columns · uploaded '+esc(f.ts)+' by '+esc(f.by||"")+'</p></div></div><div>'+(admin?'<button class="btn" id="duDel">Delete</button>':'')+'</div></div>'+
     '<section class="card" style="margin-bottom:12px"><div class="field" style="margin:0;max-width:360px"><label for="duOwnSel">Assigned to (lead owner / user)</label>'+(admin?duOwnerSel(f.owner,'id="duOwnSel"'):'<input id="duOwnSel" value="'+esc(f.owner||"")+'" disabled>')+'</div><p class="note" style="margin-bottom:0">Only '+esc(f.owner||"the assigned user")+' and Admin can open this data.'+(admin?' Pick another user to change who has access.':'')+'</p></section>'+
-    '<div class="firmbar" style="margin:0 0 12px"><input id="duRq" type="search" placeholder="Search in this data" aria-label="Search in this data" value="'+esc(D.rq)+'"></div><div id="duTbl"></div>'+
+    '<div class="firmbar" style="margin:0 0 12px"><input id="duRq" type="search" placeholder="Search in this data" aria-label="Search in this data" value="'+esc(D.rq)+'">'+duToolsHtml(f)+'</div><div id="duTbl"></div>'+
     ((f.hist&&f.hist.length)?'<section class="card" style="margin-top:12px"><h3 class="card-title">Activity</h3><ol class="timeline">'+f.hist.map(function(e){return '<li class="system"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol></section>':'');
   document.getElementById("duBack").onclick=function(){D.sel=null;renderDataUp();};
-  document.getElementById("duDl").onclick=function(){duDownload(f);};
   var dl=document.getElementById("duDel");if(dl)dl.onclick=function(){duDelete(f);};
   var os=document.getElementById("duOwnSel");if(admin&&os)os.onchange=function(){duSetOwner(f,os.value);};
   document.getElementById("duRq").oninput=function(){D.rq=this.value;D.page=1;duDrawRows(f);};
+  duToolsWire(f,v);
   duDrawRows(f);
+}
+/* ---- Calling Data: date range + column chooser (work for every user who can open the file) ---- */
+function duParseDate(v,hdr){
+  var t=String(v==null?"":v).trim(),m;
+  if(!t)return "";
+  if((m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)))return m[1]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[3]).slice(-2);
+  if((m=t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/)))return m[3]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2);
+  if(/^\d{5}(\.\d+)?$/.test(t)&&/date|dob|time|on$/i.test(hdr||"")){var n=parseFloat(t);if(n>20000&&n<80000)return new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10);}
+  return "";
+}
+function duDateCols(f){
+  var out=[];
+  f.cols.forEach(function(c,ci){
+    var seen=0,ok=0;
+    for(var i=0;i<f.rows.length&&seen<200;i++){var v=f.rows[i][ci];if(String(v==null?"":v).trim()==="")continue;seen++;if(duParseDate(v,c))ok++;}
+    if(seen&&ok/seen>=0.6)out.push(ci);
+  });
+  return out;
+}
+function duState(f){
+  var D=state.du;
+  if(!D.view||D.view.id!==f.id)D.view={id:f.id,hide:{},col:"",from:"",to:""};
+  return D.view;
+}
+function duToolsHtml(f){
+  var V=duState(f),dc=duDateCols(f);
+  var rangeBox='<div class="pw"><button class="btn sq" data-pop="durange" aria-label="Choose date range" aria-haspopup="true" aria-expanded="false" title="Filter by date">'+ic("cal")+'</button><div class="pop r wide" id="pop-durange" hidden>'+
+    (dc.length?'<div class="field"><label for="duDateCol">Date column</label><select id="duDateCol">'+dc.map(function(ci){return '<option value="'+ci+'"'+(String(V.col)===String(ci)||(V.col===""&&ci===dc[0])?" selected":"")+'>'+esc(f.cols[ci])+'</option>';}).join("")+'</select></div>'+
+      '<div class="row"><div class="field"><label for="duFrom">From</label><input type="date" id="duFrom" value="'+esc(V.from)+'"></div><div class="field"><label for="duTo">To</label><input type="date" id="duTo" value="'+esc(V.to)+'"></div></div>'+
+      '<div class="row"><button class="btn" id="duDateClr" type="button">Clear dates</button></div>'
+      :'<p class="note" style="margin:6px 4px">No date column was found in this data.</p>')+'</div></div>';
+  var colsBox='<div class="pw"><button class="btn sq" data-pop="ducols" aria-label="Choose columns" aria-haspopup="true" aria-expanded="false" title="Choose columns">'+ic("cols")+'</button><div class="pop r" id="pop-ducols" hidden><div class="pop-top"><strong>Columns</strong></div><div class="pop-list">'+
+    f.cols.map(function(c,ci){return '<label class="chk"><input type="checkbox" data-ducol="'+ci+'"'+(V.hide[ci]?"":" checked")+'>'+esc(c)+'</label>';}).join("")+'</div></div></div>';
+  return rangeBox+colsBox;
+}
+function duToolsWire(f,v){
+  var V=duState(f),D=state.du;
+  v.querySelectorAll("[data-ducol]").forEach(function(cb){cb.onchange=function(){V.hide[cb.getAttribute("data-ducol")]=!cb.checked;duDrawRows(f);};});
+  var sel=v.querySelector("#duDateCol"),fr=v.querySelector("#duFrom"),to=v.querySelector("#duTo"),clr=v.querySelector("#duDateClr");
+  function apply(){V.col=sel?sel.value:"";V.from=fr?fr.value:"";V.to=to?to.value:"";D.page=1;duDrawRows(f);}
+  if(sel){sel.onchange=apply;fr.onchange=apply;to.onchange=apply;}
+  if(clr)clr.onclick=function(){if(fr)fr.value="";if(to)to.value="";apply();};
 }
 function duDrawRows(f){
   var box=document.getElementById("duTbl");if(!box)return;
-  var D=state.du,q=D.rq.trim().toLowerCase(),size=50;
-  var idx=[];f.rows.forEach(function(r,i){if(!q||r.join(" ").toLowerCase().indexOf(q)>-1)idx.push(i);});
+  var D=state.du,V=duState(f),q=D.rq.trim().toLowerCase(),size=50;
+  var vis=[];f.cols.forEach(function(c,ci){if(!V.hide[ci])vis.push(ci);});
+  var dcol=V.col!==""?+V.col:(V.from||V.to?(duDateCols(f)[0]):undefined),useDate=dcol!==undefined&&(V.from||V.to);
+  var idx=[];f.rows.forEach(function(r,i){
+    if(q&&r.join(" ").toLowerCase().indexOf(q)<0)return;
+    if(useDate){var iso=duParseDate(r[dcol],f.cols[dcol]);if(!iso||(V.from&&iso<V.from)||(V.to&&iso>V.to))return;}
+    idx.push(i);
+  });
   var pages=Math.max(1,Math.ceil(idx.length/size));if(D.page>pages)D.page=pages;if(D.page<1)D.page=1;
   var start=(D.page-1)*size,show=idx.slice(start,start+size);
-  box.innerHTML='<div class="tcard"><div class="tscroll" style="max-height:calc(100vh - 420px);min-height:200px;overflow:auto"><table><thead><tr><th>#</th>'+f.cols.map(function(c){return '<th>'+esc(c)+'</th>';}).join("")+'</tr></thead><tbody>'+
-    (show.length?show.map(function(i){return '<tr><td>'+(i+1)+'</td>'+f.rows[i].map(function(c){return '<td>'+esc(c)+'</td>';}).join("")+'</tr>';}).join(""):'<tr><td colspan="'+(f.cols.length+1)+'" class="emptyrow">No rows match.</td></tr>')+
-    '</tbody></table></div><div class="foot"><span class="tc">Total rows: '+idx.length+(q?' of '+f.count:'')+'</span><div class="pager"><button id="duPrev"'+(D.page<=1?' disabled':'')+'>« Previous</button><span>'+D.page+' / '+pages+'</span><button id="duNext"'+(D.page>=pages?' disabled':'')+'>Next »</button></div></div></div>';
+  box.innerHTML='<div class="tcard"><div class="tscroll" style="max-height:calc(100vh - 420px);min-height:200px;overflow:auto"><table><thead><tr><th>#</th>'+vis.map(function(ci){return '<th>'+esc(f.cols[ci])+'</th>';}).join("")+'</tr></thead><tbody>'+
+    (show.length?show.map(function(i){return '<tr><td>'+(i+1)+'</td>'+vis.map(function(ci){return '<td>'+esc(f.rows[i][ci])+'</td>';}).join("")+'</tr>';}).join(""):'<tr><td colspan="'+(vis.length+1)+'" class="emptyrow">No rows match.</td></tr>')+
+    '</tbody></table></div><div class="foot"><span class="tc">Total rows: '+idx.length+((q||useDate)?' of '+f.count:'')+'</span><div class="pager"><button id="duPrev"'+(D.page<=1?' disabled':'')+'>« Previous</button><span>'+D.page+' / '+pages+'</span><button id="duNext"'+(D.page>=pages?' disabled':'')+'>Next »</button></div></div></div>';
   document.getElementById("duPrev").onclick=function(){D.page--;duDrawRows(f);};
   document.getElementById("duNext").onclick=function(){D.page++;duDrawRows(f);};
 }
