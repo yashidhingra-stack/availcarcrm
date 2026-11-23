@@ -2778,14 +2778,13 @@ function pddDetHtml(l){
   function ro(label,val){var s=val===undefined||val===null?"":String(val).trim();return '<div class="pv-ro-i"><span>'+label+'</span><b>'+(s?esc(s):"—")+'</b></div>';}
   var dsbBox='<h4 class="nd-sub">Disbursement details <small class="pv-tag">Filled in Disbursement Business</small></h4><div class="pv-ro">'+
     ro("Loan Amount",lpNum(l.amount)>0?money(lpNum(l.amount)):"")+
-    ro("Insurance Expiry",insD?fmtDate(insD):px0.insExp)+
     ro("Processing Fees",dsbHas(nd.pf)?money(dsbNum(nd.pf)):"")+
     ro("Loan Suraksha",dsbHas(nd.ls)?money(dsbNum(nd.ls)):"")+
     ro("RTO charges",money(lpNum(lpPddAmount(l,"RTO charges"))))+
     ro("Challan Charges",money(lpNum(lpPddAmount(l,"Challan charges"))))+
     ro("Other charges",money(lpNum(lpPddAmount(l,"Other charges"))))+
     ro("Net Disbursement",dsbNetBase(l)===null?"":money(dsbNetBase(l)))+ro("Net Disbursement To Client",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
-  return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
+  return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+dsbBox+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
     pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields pv-amts">'+
     n("rto","RTO charges",filled(nd.rto,x.rto))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
     '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
