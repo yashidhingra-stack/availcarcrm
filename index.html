@@ -2660,7 +2660,6 @@ function dsbNetHtml(l){var n=dsbNetVal(l);return n===null?"—":'<span'+(n<0?' s
 function dsbMissing(l){
   var px=l.px||{},m=[];
   if(!dsbHas(px.idv))m.push("IDV Value");
-  if(!dsbHas(px.insExp))m.push("Insurance Expiry");
   if(!dsbHas((ldx(l).nd||{}).pf))m.push("Processing Fees");
   return m;
 }
@@ -2676,7 +2675,7 @@ function dsbRowParts(l){
     netClient:'<tr><td class="k">Net Disbursement To Client</td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div><small class="note">From PDD Details: Net Disbursement \u2212 RTO charges \u2212 Challan charges \u2212 Other charges</small></td></tr>'
   };
 }
-function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.ins+P.pf+P.ls+P.net+P.netClient;}
+function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.pf+P.ls+P.net+P.netClient;}
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
   return '<div class="pv" aria-label="Payment details"><div id="payKpiTop"></div><div class="pv-grid"><section class="nd-card pv-card" id="recvHost" aria-label="Received details"></section>'+pddDetHtml(l)+'</div></div>';
@@ -2786,7 +2785,7 @@ function pddDetHtml(l){
     ro("Challan Charges",money(lpNum(lpPddAmount(l,"Challan charges"))))+
     ro("Other charges",money(lpNum(lpPddAmount(l,"Other charges"))))+
     ro("Net Disbursement",dsbNetBase(l)===null?"":money(dsbNetBase(l)))+ro("Net Disbursement To Client",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
-  return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+dsbBox+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
+  return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
     pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields pv-amts">'+
     n("rto","RTO charges",filled(nd.rto,x.rto))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
     '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
@@ -3014,7 +3013,7 @@ function renderDisbLead(l){
       if(dsbV&&state.ldTab==="details"){ /* PDD / Disbursement / Closed: left = vehicle side, right = loan and net disbursement side */
         var P=dsbRowParts(l);
         var restRows=L.concat([A[0],A[1]],ex).map(function(r){return ldRow(r);}),rh=Math.ceil(restRows.length/2);
-        colL=[P.ins,ldRow(Rb[0]),ldRow(Rb[1]),ldRow(A[2]),ldRow(A[3]),ldRow(CBR),ldRow(DOBR)].concat(restRows.slice(0,rh));
+        colL=[ldRow(Rb[0]),ldRow(Rb[1]),ldRow(A[2]),ldRow(A[3]),ldRow(CBR),ldRow(DOBR)].concat(restRows.slice(0,rh));
         colR=[ldRow(R[0]),P.idv,P.pf,P.ls,P.net,P.netClient].concat(restRows.slice(rh));
       }
     }
