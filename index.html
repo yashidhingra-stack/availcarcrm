@@ -2778,10 +2778,13 @@ function pddDetHtml(l){
   var px0=l.px||{},dsbD=dsbIso(dsbDateVal(l)),insD=dsbIso(px0.insExp);
   function ro(label,val){var s=val===undefined||val===null?"":String(val).trim();return '<div class="pv-ro-i"><span>'+label+'</span><b>'+(s?esc(s):"—")+'</b></div>';}
   var dsbBox='<h4 class="nd-sub">Disbursement details <small class="pv-tag">Filled in Disbursement Business</small></h4><div class="pv-ro">'+
-    ro("IDV Value",dsbHas(px0.idv)&&!isNaN(parseFloat(px0.idv))?money(parseFloat(px0.idv)):px0.idv)+
+    ro("Loan Amount",lpNum(l.amount)>0?money(lpNum(l.amount)):"")+
     ro("Insurance Expiry",insD?fmtDate(insD):px0.insExp)+
     ro("Processing Fees",dsbHas(nd.pf)?money(dsbNum(nd.pf)):"")+
     ro("Loan Suraksha",dsbHas(nd.ls)?money(dsbNum(nd.ls)):"")+
+    ro("RTO charges",money(lpNum(lpPddAmount(l,"RTO charges"))))+
+    ro("Challan Charges",money(lpNum(lpPddAmount(l,"Challan charges"))))+
+    ro("Other charges",money(lpNum(lpPddAmount(l,"Other charges"))))+
     ro("Net Disbursement",dsbNetBase(l)===null?"":money(dsbNetBase(l)))+ro("Net Disbursement To Client",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
   return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+dsbBox+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
     pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields pv-amts">'+
@@ -4652,11 +4655,11 @@ function lpDuesHtml(){
   var f=state.lp.cf,rows=lpCustRows();
   var lenders={},dealers={};
   leads.forEach(function(l){if(l.stage==="Disbursed"&&!l.cat){if(l.lender)lenders[l.lender]=1;if(l.dealer)dealers[l.dealer]=1;}});
-  var T={loan:0,net:0,netN:0,netD:0,ch:0,chN:0,paid:0,paidN:0,hold:0,bal:0,balN:0};
-  rows.forEach(function(r){T.loan+=lpNum(r.l.amount);if(r.net!==null){T.net+=r.net;T.netD+=r.netD;T.netN++;}T.ch+=r.ch;if(r.ch>0)T.chN++;T.paid+=r.paid;if(r.paid>0)T.paidN++;T.hold+=r.hold;if(r.bal!==null){T.bal+=r.bal;if(r.bal>0)T.balN++;}});
+  var T={loan:0,loanN:0,pf:0,pfN:0,ls:0,lsN:0,r:0,rN:0,c:0,cN:0,o:0,oN:0,net:0,netN:0,netD:0,ch:0,chN:0,paid:0,paidN:0,hold:0,bal:0,balN:0};
+  rows.forEach(function(r){var nd9=ldx(r.l).nd||{},pf9=lpNum(nd9.pf),ls9=lpNum(nd9.ls);T.loan+=lpNum(r.l.amount);if(lpNum(r.l.amount)>0)T.loanN++;T.pf+=pf9;if(pf9>0)T.pfN++;T.ls+=ls9;if(ls9>0)T.lsN++;T.r+=r.r;if(r.r>0)T.rN++;T.c+=r.c;if(r.c>0)T.cN++;T.o+=r.o;if(r.o>0)T.oN++;if(r.net!==null){T.net+=r.net;T.netD+=r.netD;T.netN++;}T.ch+=r.ch;if(r.ch>0)T.chN++;T.paid+=r.paid;if(r.paid>0)T.paidN++;T.hold+=r.hold;if(r.bal!==null){T.bal+=r.bal;if(r.bal>0)T.balN++;}});
   function m(v){return esc(money(v));}
   function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' file'+(n===1?"":"s")+'</span></div>';}
-  var cards='<div class="sumbar">'+card("Net disbursement",T.netD,T.netN)+card("PDD charges",T.ch,T.chN)+card("Net after PDD",T.net,T.netN)+card("Paid to customers",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'</div>';
+  var cards='<div class="sumbar">'+card("Loan amount",T.loan,T.loanN)+card("Processing fees",T.pf,T.pfN)+card("Loan Suraksha",T.ls,T.lsN)+card("RTO charges",T.r,T.rN)+card("Challan charges",T.c,T.cN)+card("Other charges",T.o,T.oN)+card("Net disbursement",T.netD,T.netN)+card("Net disbursement to client",T.net,T.netN)+card("Paid to customers",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'</div>';
   var filt='<div class="tb pfilt" style="margin:8px 0 12px;flex-wrap:wrap"><input id="cf_q" type="search" placeholder="Search name, mobile, vehicle no., dealer, lender" value="'+esc(f.q)+'" aria-label="Search customers">'+
     '<select id="cf_stage" aria-label="Stage">'+lpOpt([["approved","Login disbursement"],["pdd","PDD status (Disburse)"]],f.stage,"All stages")+'</select>'+
     '<select id="cf_lender" aria-label="Lender">'+lpOpt(Object.keys(lenders).sort(),f.lender,"All lenders")+'</select>'+
@@ -4667,7 +4670,7 @@ function lpDuesHtml(){
     rows.slice(0,200).map(function(r){var l=r.l,n=esc(l.name);return '<tr><td>'+lpEntry(l)+'</td><td><button class="name-link" data-cpay="'+l.id+'" title="Open payments">'+n+'</button></td><td>'+esc(l.vehicle||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.netD===null?"—":m(r.netD))+'</td><td>'+m(r.ch)+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td></tr>';}).join("")+
     '</tbody><tfoot><tr><th colspan="5">Total ('+rows.length+')</th><th>'+m(T.loan)+'</th><th>'+m(T.netD)+'</th><th>'+m(T.ch)+'</th><th>'+m(T.net)+'</th><th>'+m(T.paid)+'</th><th>'+m(T.bal)+'</th><th></th></tr></tfoot></table></div>'+(rows.length>200?'<p class="note">Showing the first 200. Use the filters to narrow the list.</p>':''):
     '<p class="note">No files match. Files appear here once they move from Login business to Login disbursement or PDD status.</p>';
-  return cards+'<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer payments</h3>'+filt+tbl+'<p class="note">Net after PDD = Net disbursement − PDD charges. Click a client name to open Payments 1 to 6 for that client.</p></section>';
+  return cards+'<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer payments</h3>'+filt+tbl+'<p class="note">Net disbursement to client = Net disbursement − RTO, Challan and Other charges. Click a client name to open Payments 1 to 6 for that client.</p></section>';
 }
 function openCustPay(id,host){
   var l=lead(id);if(!l)return;ensure(l);
@@ -4680,7 +4683,7 @@ function openCustPay(id,host){
   function mm(v){return v===null?"—":esc(money(v));}
   var sub=esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
   var h=(host?'<div class="pv-head"><h3 class="nd-h">Received Details</h3><p class="pv-sub">'+sub+'</p></div>':'<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+sub+'</p>')+
-   '<div class="pv-kpis"><div class="kpi"><b>'+mm(netD)+'</b><span>Net disbursement</span></div><div class="kpi"><b>'+esc(money(ch))+'</b><span>PDD charges</span></div><div class="kpi"><b'+(net!==null&&net<0?' class="neg"':'')+'>'+mm(net)+'</b><span>Net after PDD</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div></div>';
+   '<div class="pv-kpis"><div class="kpi"><b>'+esc(money(lpNum(l.amount)))+'</b><span>Loan amount</span></div><div class="kpi"><b>'+esc(money(lpNum((x.nd||{}).pf)))+'</b><span>Processing fees</span></div><div class="kpi"><b>'+esc(money(lpNum((x.nd||{}).ls)))+'</b><span>Loan Suraksha</span></div><div class="kpi"><b>'+esc(money(lpNum(lpPddAmount(l,"RTO charges"))))+'</b><span>RTO charges</span></div><div class="kpi"><b>'+esc(money(lpNum(lpPddAmount(l,"Challan charges"))))+'</b><span>Challan charges</span></div><div class="kpi"><b>'+esc(money(lpNum(lpPddAmount(l,"Other charges"))))+'</b><span>Other charges</span></div><div class="kpi"><b>'+mm(netD)+'</b><span>Net disbursement</span></div><div class="kpi"><b'+(net!==null&&net<0?' class="neg"':'')+'>'+mm(net)+'</b><span>Net disbursement to client</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div></div>';
   if(net===null)h+='<p class="note pv-warn">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
   h+='<div class="pv-block" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank</h4><div class="pv-fields">'+
    '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
