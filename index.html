@@ -2875,15 +2875,12 @@ function payReadHtml(l){
   /* Calculation breakdown intentionally omitted here; amounts remain in Lead Details and sharing. */
   h+='<h4 class="pr-h">Received from bank</h4>';
   h+=s.bank.amt>0?'<div class="pr-line"><div><small>Amount</small><b>'+esc(money(s.bank.amt))+'</b></div><div><small>Date received</small><b>'+dd(s.bank.date)+'</b></div><div class="pr-wide"><small>Notes</small><b>'+(s.bank.note?esc(s.bank.note):"\u2014")+'</b></div></div>':'<p class="note">No amount received from bank has been entered in Customer payments.</p>';
-  var tdy=s.list.filter(function(e){return e.date===ymd(TODAY);});
-  h+='<h4 class="pr-h">Today\'s payments</h4>';
-  h+=tdy.length?'<div class="tscroll"><table class="pr-tbl"><thead><tr><th>#</th><th>Type</th><th class="r">Amount</th><th>Notes</th></tr></thead><tbody>'+tdy.map(function(e){return '<tr><td>'+e.n+'</td><td>'+esc(e.type)+'</td><td class="r">'+esc(money(e.amt))+'</td><td>'+(e.note?esc(e.note):"\u2014")+'</td></tr>';}).join("")+'</tbody><tfoot><tr><th colspan="2">Today\'s total</th><th class="r">'+esc(money(tdy.reduce(function(a,e){return a+e.amt;},0)))+'</th><th></th></tr></tfoot></table></div>':'<p class="note">No payment has been processed today.</p>';
-  h+='<h4 class="pr-h">Total payments</h4>';
+  h+='<h4 class="pr-h">Payments</h4>';
   if(s.list.length){
     h+='<div class="tscroll"><table class="pr-tbl"><thead><tr><th>#</th><th>Type</th><th class="r">Amount</th><th>Date</th><th>Notes</th></tr></thead><tbody>'+
       s.list.map(function(e){return '<tr><td>'+e.n+'</td><td>'+esc(e.type)+'</td><td class="r">'+esc(money(e.amt))+'</td><td>'+dd(e.date)+'</td><td>'+(e.note?esc(e.note):"\u2014")+'</td></tr>';}).join("")+
       '</tbody><tfoot><tr><th colspan="2">Total paid</th><th class="r">'+esc(money(s.paid))+'</th><th colspan="2"></th></tr></tfoot></table></div>';
-  }else h+='<p class="note">No payment has been entered in Customer payments yet.</p>';
+  }else h+='<p class="note">No payments have been entered in Customer payments yet.</p>';
   return h+'</section>';
 }
 function payShareText(l){
@@ -3029,7 +3026,7 @@ function pddDetHtml(l){
     ro("Other charges",money(lpNum(lpPddAmount(l,"Other charges"))))+
     ro("Net Disbursement",dsbNetBase(l)===null?"":money(dsbNetBase(l)))+ro("Net Disbursement To Client",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
   return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
-    pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields pv-amts">'+
+    pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields"><div class="nd-f"><label for="pd_rtoConfirm">RTO Confirmation</label><select id="pd_rtoConfirm" data-pdconfirm><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></div><div class="pv-fields pv-amts">'+
     n("rto","RTO charges",rtoRaw(l))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
     '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
 }
@@ -3045,7 +3042,7 @@ function pddDetWire(l,v){
     var ss=v.querySelectorAll("[data-pdsel]");for(i=0;i<ss.length;i++){if(ss[i].value==="Other"&&!raw(ss[i].getAttribute("data-pdsel"))){toast("Type the "+(ss[i].getAttribute("data-pdsel")==="auth"?"RTO authority":"RTO person"));return;}}
     for(i=0;i<ks.length;i++){var n=parseFloat(raw(ks[i]));if(!isNaN(n)&&n<0){toast("Amounts cannot be negative");return;}}
     var remChk=v.querySelector("[data-pdrem]");if(remChk&&!remChk.value.trim()){toast("Remarks are required");remChk.focus();return;}
-    var x=ldx(l);x.rtoAuth=raw("auth");x.rtoWork=raw("work");l.px=l.px||{};l.px.rtoPerson=raw("work");
+    var x=ldx(l);x.rtoAuth=raw("auth");x.rtoWork=raw("work");var rc=v.querySelector("[data-pdconfirm]");x.rtoConfirm=rc?rc.value:"";l.px=l.px||{};l.px.rtoPerson=raw("work");
     var remEl=v.querySelector("[data-pdrem]"),remTx=remEl?remEl.value.trim():"";
     if(remTx){l.hist.unshift({ts:stamp(),text:remTx,type:"note"});addRemark(l,remTx);}
     x.nd=Object.assign({},x.nd||{},{rto:raw("rto"),oth:raw("oth"),ch:raw("ch")});
@@ -3278,6 +3275,7 @@ function renderDisbLead(l){
           ldRow(["amount","Loan Amount",l.amount,l.amount?money(l.amount):"—","num"]),
           P.ls,P.pf,
           ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),"num"]),
+          '<tr><td class="k">RTO Confirmation</td><td><div class="rv"><select data-dsb-rto-confirm aria-label="RTO Confirmation"><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></td></tr>',
           ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),"num"]),
           ldRow(["oth","Other Charges",lpPddAmount(l,"Other charges"),money(lpNum(lpPddAmount(l,"Other charges"))),"num"]),
           '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
@@ -3330,6 +3328,7 @@ function renderDisbLead(l){
   q("[data-ldquickfu]",function(b){b.onclick=function(){ldQuickFu(l);};});
   q("[data-ldshare]",function(b){b.onclick=function(){payShareOpen(l);};});
   q("[data-payshare]",function(b){b.onclick=function(){payShareOpen(l);};});
+  q("[data-dsb-rto-confirm]",function(sel){sel.onchange=function(){var x=ldx(l);x.rtoConfirm=sel.value;l.hist.unshift({ts:stamp(),text:"RTO Confirmation updated to "+(sel.value||"Not set"),type:"system"});saveLeads();toast("RTO Confirmation saved");};});
   q("[data-docup]",function(b){b.onclick=function(){state.docSlot=+b.getAttribute("data-docup");var i=document.getElementById("docIn");if(i)i.click();};});
   q("[data-docrm]",function(b){b.onclick=function(){var id=b.getAttribute("data-docrm"),f=(l.files||[]).filter(function(x){return x.id===id;})[0];if(!f)return;l.files=l.files.filter(function(x){return x.id!==id;});try{URL.revokeObjectURL(f.url);}catch(_){}if(f.slot>=0&&!l.files.some(function(x){return x.slot===f.slot;}))l.docs[DOCS[f.slot]]=false;renderLead();toast("File removed");};});
   q("[data-docfield]",function(b){b.onclick=function(){ldPick(b.getAttribute("data-docfield"));};});
