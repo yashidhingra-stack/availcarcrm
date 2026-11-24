@@ -750,9 +750,9 @@ var products=["Used Car Purchase","Used Car Refinance","New Car Loan","Car Top-u
 var pcolor=["#2b7de9","#3aa76d","#f2a900","#e4572e","#7c5cc4"];
 var stages=["Audience","Login","Hold","Disbursed","Rejected"];
 var stageName={Audience:"Audience",Login:"Login business",Hold:"Hold",Disbursed:"Disbursement business",Rejected:"Reject business"};
-var STATUS=[["Open","Audience"],["Follow Up","Audience"],["Call not picked","Audience"],["Wrong No","Audience"],["Call later","Audience"],["Call Invalid","Audience"],["Not Interested","Audience"],["Interested","Audience"],["KYC Collected","Audience"],["Documents Collected","Audience"],["Login Pending","Login"],["Login","Login"],["Approval Pending","Login"],["Approved","Login"],["Finally Hold","Hold"],["Partially Hold","Hold"],["Approved But Hold","Hold"],["Postponed","Hold"],["Disburse","Disbursed"],["Advance Disbursement","Disbursed"],["Approved (Disbursement)","Disbursed"],["Not Approved","Disbursed"],["Approved But Not Disbursed","Disbursed"],["File Approved in RTO","Disbursed"],["Reject","Rejected"],["Finally Reject","Rejected"]];
+var STATUS=[["Open","Audience"],["Follow Up","Audience"],["Call not picked","Audience"],["Wrong No","Audience"],["Call later","Audience"],["Call Invalid","Audience"],["Not Interested","Audience"],["Interested","Audience"],["KYC Collected","Audience"],["Documents Collected","Audience"],["Login Pending","Login"],["Login","Login"],["Approval Pending","Login"],["Approved","Login"],["Finally Hold","Hold"],["Partially Hold","Hold"],["Approved But Hold","Hold"],["Postponed","Hold"],["Disbursement Pending","Disbursed"],["Disburse","Disbursed"],["Advance Disbursement","Disbursed"],["Approved (Disbursement)","Disbursed"],["Not Approved","Disbursed"],["Approved But Not Disbursed","Disbursed"],["File Approved in RTO","Disbursed"],["Reject","Rejected"],["Finally Reject","Rejected"]];
 var statusStage={}; STATUS.forEach(function(x){statusStage[x[0]]=x[1];});
-var SC={"Open":"#e8c33a","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#7c5cc4","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Postponed":"#e08a1e","Disburse":"#2f8f5b","Pending":"#e8c33a","Received":"#2f8f5b","Overdue":"#c43d3d","Advance Disbursement":"#e8c33a","Approved (Disbursement)":"#2f8f5b","Not Approved":"#c43d3d","Approved But Not Disbursed":"#e4572e","Reject":"#c43d3d"};
+var SC={"Open":"#e8c33a","Disbursement Pending":"#f2a900","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#7c5cc4","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Postponed":"#e08a1e","Disburse":"#2f8f5b","Pending":"#e8c33a","Received":"#2f8f5b","Overdue":"#c43d3d","Advance Disbursement":"#e8c33a","Approved (Disbursement)":"#2f8f5b","Not Approved":"#c43d3d","Approved But Not Disbursed":"#e4572e","Reject":"#c43d3d"};
 SC["KYC Collected"]="#2f8f5b";SC["File Approved in RTO"]="#2f8f5b";
 var lenders=["AU Small Finance Bank","HDFC Bank","Cholamandalam Finance","SK Finance","Hero Fincorp","Mahindra Finance"];
 var dealers=["Sai Motors","Direct","Tricity Car Bazar","Gurunanak Cars","Car Studio","King Car - Monal Sharma","Direct - Direct","King Car Deepak","A One Car Point","King Cars Sumeet","Abhi Autoz - Abhishek Singla","OLX Autos","Urban Money","Loan Plaza","4X4 Cars","Luxury Dream Drive - Mandeep Narula","Royal Car Center","Next Car Ride Gill","Grace associate","Luxury Machine Baljinder","Shah Ji Cars","Sukhman Cars","Bawa Motors","Empire Auto","Empire Autos Jalandhar","JP Motors","Millenium Cars","Bittu Car Bazar","Zoo Box Gursagar","Master Carz","Sharma Motors","Car Stealz","MNK Car Bazar","Ganpati Motors","GM Car Bazar","Guru Motors","The Car Mall","Jyoti Next Car","Perfect Car Hub","Zobox - Gursagar Singh","Punjab Car Bazar - Bunty","Balaji Motors - Gaurav Mahajan","Dream Car Bazar - Baljeet Singh","Prince Balongi","Bawa Motor - Harjot Singh","Lucky cars","Car Studio - Tejinder Singh","Sukhman Car Bazar-Jasbir Singh","Alethia Finserv","Loan Plaza - Sandeep Singh Athani","Collabs Luxury Ride - Gurvinder Singh","New Dashmesh Motor - Rajpal Singh","MS Motors - Monty","Empire Auto Jalandhar - Gurdeep Singh","sonia malhotra","Luxury Machine - Baljinder Singh","Abrol Enterprise-Happy","Luxury Machine - Yadwinder Singh","Parampreet Singh","The next ride-Taranjot Singh","Royal Motor-Anmol","Next Car Ride - Surinder Singh Gill","A1 car Point-Dharminder Gill","Sharma Car Bazar - Rinku Sharma","Harjit Singh","Car Club - Gurdeep Singh","A TO Z Cars - Karan","GM Auto Sales - Manjeet Baidwan","Shah Ji Cars - Abhishek Sachdeva","The luxuary car- Sona","Ganpati Motor-Rajinder","Guru Motor - Raghbeer Singh","Jagtar","Sukha Malsian","Stealz Deals - Kamalpreet Singh","MNK Car Zone - Roshan Kumar","Awalpreet singh","DeolCars-Mani Singh","Singh cars Mohali","BN Car Bazar-Narinderjit singh","Vijay-Garage","King Cars - Sumit Saini","Khan Car Bazar-Gagan","Dhiman car bazar- Karan Dhiman","Royal Car Centre - Jasbir Singh","Naveen singla","JS Narang jalandhar","Dhindsa Cars - Mandeep Dhindsa","Munish Garg","DD Motors - Dixit Rajput","Bantu MS Motor jalandhar","Gurunanak Cars - Harjinder Singh","Bittu Car Bazar - Ankush Marwaha","Satkartar Motors - Mandeep Singh","JP Motors - Abhishek Gupta","Piyush-Zoo box","Abhishek Bansal - Abhishek Bansal","Superb Moter - Charanjit singh","AutoGallery - Vikas Bawa","Gurpreet Singh - Baba Deep Singh Motors","Bittu Nakoder","Bhupinder Singh","Satguru car bazar - Harsh","Monty DS car Bazar","Raj Shree Cars - Gopal Sharma","Crystal Cars - Deepak Arora","King Cars-Deepak","Vikram-Friend car Line","Money Point-Gurtej Singh","4X4 CARS","Sharma car bazaar (ambala)","King Luxury Wheels Rajan","Bhagwati Cars","Anoop Paul","Amarjeet singh DSA","Classic cars","Luxury Cars - Manmeet Singh","Nivesh Guleria","Daljeet singh Dsa","Maa Durga Cars - Abhinandan Sharma","Pardeep Gumra","Maan car bazar (Ambala)","Sumit Bakshi DSA","Guru Nanak Motors - Tanveer","Friends Car - Sunil Jolly","Baljinder Bajwa Freelancer","Lally Automobile","Balwinder Bajwa - Balwinder Bajwa","Deep Motor - Amandeep Singh","Jaswinder Singh","Gurpreet GM auto","Bittu - New Punjab Car Bazaar","Quality Cars - Munish","The Car mall - Inder Singh","Ravi Empire Motor","Tricity Car Bazar - Sandeep Singh","Nika - Mika","OLX Autos Jalandhar - Naveen","Sukhmeet Singh - Singh Car Bazar Jalandhar","Radhe Motors - Dipanshu Makkar","Kohli Motors Jalandhar","Ashish Banker","Bunty Empire Motor","Anmol Free Lancer -- Jalandhar","Sant Motors - Sukhpreet Singh","Harjot Singh -- Jalandhar","Anmoldeep Singh - Royal Car Bazar","DSA Harjot Singh","Dhirendra Gee Accociate","Sonu Amber Car Bazar - Sonu","Laddi Punjab cars","City Motors - Bunty","Sukhmeet Singh-Singh Cars","New Jagdambay Motors - Sahil","Crystal Car Bazar Jalandhar - Daman Singh","Global luxury cars jalandhar","Dharminder Singh Foji","Right Boy Toys - Tarik Mehta","Raja Motors - Bachan Singh","Dhanna car deal","Singh Car Bazar - Harsimran Singh","Jagdambey Motors - Sahil Sharma","Star cars","Satwinder DSA","Global luxury cars","DC Car point - Davinder Singh","Punjab Car Trade - Satnam Singh","Ride Car - Gurwinder Singh","Sahib motors","Sonu Malsiya","Right Boy Toys - Manikant Sharma","Kuldeep Tata Moter","Friends Car Line - Jaswinder Singh","Gobind car Tanda","Bhullar singh","Dilpreet Dealer","Angad heasle car","Regal Rights","Soni Dealer","DIMPY-Next car Ride","Jatinder Dealer zirakpur","Dr.Dealer","Prince-A1 Moter","A K CAR Ludhiana","William Car - William Johnson","RS Cars - Rajinder Singh","Dhillon Auto Dealer","Jaspreet Singh","Gama Auto Mobile","Chawla Motors - Jasmeet Singh","Abhishek- Punjab Cars","Luxury Machines - Satnam Singh","DSA Varinder","Gulati Motors Jalandhar - Inderbir Singh","DSA Munish karnal","Manpreet Singh Dealer","Singh Cars-Roop Singh","Lalli Freelancer","Rohit Arora Jalandhar Cars","Brother Car Bazaar - Arun Narula","Simar gurukirpa","Anmol Car Dreams","Saransh shri om  car bazar","Fortune Ride - Ranjit Singh","Car Trendz - Sonu Baidwan","Lucky Car Bazar- Lakhwinder Singh","Rahul Motors - Rahul","A TO Z Cars - Ranyodh Singh","The Auto Mart - Ajay Arya","Sukhmani car bazar","The Ride Zone","Deep Car word","Direct Source Banker","True drive Gurpreet singh","DSA-Amanpreet Kaur","Deepak bajwa","DSA-Sumandeep Kaur","DSA-Amit Sharma","Shree Shyam Associated","Urban Money - Sachin Gondhi","Shivam Av Auto","Elite Cars","Punjab Auto zone Gagan","Virat car tree","Tanuj Aneja","Sirjin Motors","Bhart bhushan","Narula Cars","Sai moter Sandeep","Ravinder Kumar","DSA Harkesh","DSA Harjeet Singh - Amritsar","Pal Car Bazaar","BN Car Point navnoor singh","Freelancer-Jaskirat Singh Jalandhar","Sumeet Mahajan-Car Hub Pathankot","Freelancer-Sourabh Nawashahar","Riki jalandhar dealer","SK Car Loan","Hari Dreams Solution","Millennium Cars - Rahul Juneja","Rahul Pathankot","Freelancer - Vipin","Shree Balaji Car Bazar","DSA Laxman","Pinka Hobby Motors","Davinder Arora","kundu Car Bazaar Kaithal","Car Choice-Nishu Pathankot","Diamond Car Bazar - Diljinder Singh","Harvinder DSA Delhi","Bittu - New Punjab Car Bazaar Jldh","Naveen Kumar -- Panchkula","Gurunanak Car Bazar Jalandhar - Jaswinderpal Singh","Guru Motors Raju","Majha Dealer","Freelancer","Sirjan Motors","Royal Cars"];
@@ -819,14 +819,11 @@ try{
   LEADS_RESET_LOCK=localStorage.getItem(LEADS_RESET_LOCK_KEY)==="1";
 }catch(e){LEADS_RESET_LOCK=true;leads=[];nextId=1001;PERSIST=true;}
 (function(){leads.forEach(function(l){var c=canonOwner(l.owner);if(c!==l.owner)l.owner=c;});})(); /* rename already-saved leads */
-(function(){leads.forEach(function(l){if(l.status==="Disbursement Pending")l.status="Advance Disbursement";if(l.lastStatus==="Disbursement Pending")l.lastStatus="Advance Disbursement";});})(); /* status renamed: Disbursement Pending is now Advance Disbursement */
 var saveT=null;
 var SYNC_SKIP=false;
 function saveLeads(){if(!PERSIST)return true;if(SYNC_SKIP)return true;var ok=true;try{localStorage.setItem(LEADS_KEY,JSON.stringify(fullLeads()));}catch(e){ok=false;}try{if(window.CRM_SYNC)window.CRM_SYNC.pushLeads(fullLeads());}catch(e){}return ok;}
 /* keep every saved lead in exactly one stage: stage always follows its status, so nothing stays behind in Login after a move (fixes old data saved in users' browsers) */
 (function(){var ch=0;leads.forEach(function(l){if(l.cat)return;var sg=statusStage[l.status];if(sg&&l.stage!==sg){l.stage=sg;ch++;}});if(ch)saveLeads();})();
-/* Disburse files belong in PDD Status: move any older "Disburse" file that was never moved */
-(function(){var ch=0;leads.forEach(function(l){if(l.cat||l.stage!=="Disbursed"||l.status!=="Disburse")return;if(l.pddImp===true||l.pddMoved===true)return;l.pddMoved=true;if(!l.pddSt)l.pddSt="Open";if(l.pdd==="—"||!l.pdd)l.pdd="Pending";ch++;});if(ch)saveLeads();})();
 function saveLeadsSoon(){if(!PERSIST)return;clearTimeout(saveT);saveT=setTimeout(saveLeads,800);}
 /* ---- shared database (crm-sync.js): receive files and Hierarchy settings saved by other users ---- */
 function crmRerender(){
@@ -1066,22 +1063,16 @@ function pddTp(l){return l.pddType||"Open";}
 function pddSt(l){var v=l.pddSt||(l.status===RTO_ST?"File Approved In RTO":"Open");return PDD_LEGACY[String(v).toLowerCase()]||v;}
 function inPddCtx(l){return (state.leadCtx==="pdd"||state.leadCtx==="Close")&&l.stage==="Disbursed"&&!l.cat&&(l.status==="Disburse"||l.status===RTO_ST);}
 /* ---------- PDD RULE ----------
-   The moment a file's status becomes "Disburse" (for example moved from Login business), it moves to PDD Status.
-   It keeps its dates, remarks, notes, history and every other detail. There is no month-end wait. */
+   A file with status "Disburse" stays in Disbursement Business until it is moved to PDD Status by hand (Move lead by category).
+   It keeps its dates, remarks, notes, history and every other detail. */
 /* the file takes today's date/time (original kept) so the latest file moved to PDD shows first in the date-wise list */
 function bumpToTop(l){
   if(!l.origDate){l.origDate=l.date;l.origTs=l.ts;}
   var st=stamp();l.date=st.slice(0,10);l.ts=st;
   if(state.lrange&&l.date>state.lrange.to)state.lrange.to=l.date;
 }
-function pddAutoMove(l,oldStatus){
-  if(!l||l.cat||l.status!=="Disburse"||l.stage!=="Disbursed"||oldStatus===l.status)return false;
-  bumpToTop(l);
-  l.pddMoved=true; if(!l.pddSt)l.pddSt="Open"; if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
-  if(!l.hist)l.hist=[];
-  l.hist.unshift({ts:stamp(),text:"Lead moved to PDD Status automatically on Disburse (PDD status "+l.pddSt+")",type:"status"});
-  return true;
-}
+/* A file set to Disburse now STAYS in Disbursement Business. It reaches PDD Status only when someone moves it there with Move lead by category. */
+function pddAutoMove(l,oldStatus){return false;}
 function isApprovedRto(l){return !!l&&(pddSt(l)===PDD_ST[4]);}
 function inCloseNow(l){return inPddNow(l)&&isApprovedRto(l);}
 function pddOpenList(){return PDD_ST.filter(function(x){return x!==PDD_ST[4];});}
@@ -1091,10 +1082,13 @@ function pageStages(key){
   if(key==="pdd"||key==="Close")return ["Disbursed"];
   return stages.slice();
 }
+function statusDefault(key){return key==="Login"?"Login Pending":(statusOptions(key)[0]||"Open");}
 function statusOptions(key){
   if(key==="Close")return [];
-  if(key==="pdd")return pddOpenList();var st=pageStages(key);
-  if(key==="Login")st=st.concat(["Hold","Rejected"]); /* Login Business can also be filtered by Hold and Reject statuses */
+  if(key==="pdd")return pddOpenList();
+  if(key==="Login")return ["Login","Login Pending","Approval Pending","Approved","Approved But Not Disbursed","Partially Hold"].filter(function(x){return hierStatusOk(x);}); /* Login Business status filter: only these six */
+  if(key==="Disbursed")return ["Disbursement Pending","Advance Disbursement","Disburse"].filter(function(x){return hierStatusOk(x);}); /* Disbursement Business status filter: only these three */
+  var st=pageStages(key);
   if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject is one common page */
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1&&hierStatusOk(x[0]);}).map(function(x){return x[0];});}
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
@@ -1119,7 +1113,7 @@ function leadRows(key,noSel){
   var st=pageStages(key), q=state.q.trim().toLowerCase(), f=state.f, lr=getRange(key), sf=state.sf;
   if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject: one common list */
   var _cu0=userById(state.meUser), _hrOk0=!!hrUserKey(_cu0)||hierIsAdmin(_cu0);
-  if(key==="Login"&&!noSel&&state.sel.length){var xst=STATUS.filter(function(x){return (x[1]==="Hold"||x[1]==="Rejected")&&state.sel.indexOf(x[0])>-1;}).map(function(x){return x[1];});if(xst.length)st=st.concat(xst);}
+  if(key==="Login"&&!noSel&&state.sel.length){var xst=STATUS.filter(function(x){return x[1]!=="Login"&&state.sel.indexOf(x[0])>-1;}).map(function(x){return x[1];});if(xst.length)st=st.concat(xst);}
   var rows=leads.filter(function(l){
     if(!inTeam(l,f.team))return false;
     if(st.indexOf(l.stage)<0)return false;
@@ -1132,7 +1126,7 @@ function leadRows(key,noSel){
     if(key==="Close"&&!inCloseNow(l))return false;
     if(key==="Close"&&l.pddImp&&pddAdminHidden())return false;
     if(key==="pdd"&&l.pddImp&&pddAdminHidden())return false;
-    if(key==="Disbursed"&&(inPddNow(l)||l.status==="Disburse"))return false; /* Disburse files live in PDD Status, not in Login disbursement */
+    if(key==="Disbursed"&&inPddNow(l))return false; /* only files moved to PDD leave Disbursement Business */
     if(key!=="pdd"&&key!=="Close"&&key!=="data"&&l.status===RTO_ST&&!(key==="Disbursed"&&!inPddNow(l)))return false;
     if(!noSel&&state.sel.length&&state.sel.indexOf((key==="pdd"||key==="Close")?pddSt(l):l.status)<0)return false;
     if(f.product&&l.product!==f.product)return false;
@@ -1648,7 +1642,7 @@ async function saveCsv(name,csv,fid){
   }catch(e){toast("Could not create the Excel file");}
 }
 var CALC={
- Disbursed:{slug:"login-disbursement",total:"Total login disbursement",cards:["Advance Disbursement","Approved (Disbursement)","Not Approved","Approved But Not Disbursed"],cols:["Advance Disbursement","Approved (Disbursement)","Not Approved","Approved But Not Disbursed"],empty:"No login disbursement files in this period."},
+ Disbursed:{slug:"login-disbursement",total:"Total disbursement business",cards:["Disbursement Pending","Advance Disbursement","Disburse"],cols:["Disbursement Pending","Advance Disbursement","Disburse"],empty:"No disbursement business files in this period."},
  Login:{slug:"login-business",total:"Total login business",cards:["Login Pending","Login","Approval Pending","Approved"],cols:["Login Pending","Login","Approval Pending","Approved"],empty:"No login business files in this period."},
  Hold:{slug:"hold",total:"Total hold",cards:["Finally Hold","Partially Hold","Approved But Hold","Postponed"],cols:["Finally Hold","Partially Hold","Approved But Hold","Postponed"],empty:"No hold files in this period."},
  pdd:{slug:"pdd",total:"Total PDD business",field:"pddSt",cards:pddOpenList(),cols:pddOpenList(),empty:"No PDD files in this period."}};
@@ -1858,6 +1852,89 @@ function openDrawer(id){
 }
 function closeAll(){document.getElementById("drawer").classList.remove("show");document.getElementById("modal").classList.remove("show","wide","eu","at");showOverlay(false);}
 function showOverlay(on){document.getElementById("overlay").classList.toggle("show",on);}
+
+/* ---------- Add new lead: searchable Vehicle and Year dropdowns ---------- */
+var VEH_SRC={
+"Maruti Suzuki":"Alto,Alto 800,Alto K10,A-Star,Baleno,Brezza,Celerio,Celerio X,Ciaz,Dzire,Eeco,Ertiga,Esteem,Fronx,Gypsy,Grand Vitara,Ignis,Invicto,Jimny,Maruti 800,Omni,Ritz,S-Cross,S-Presso,Swift,Swift Dzire,SX4,Vitara Brezza,Wagon R,XL6,Zen,Zen Estilo,Super Carry,Victoris",
+"Hyundai":"Accent,Alcazar,Aura,Creta,Elantra,Eon,Exter,Getz Prime,Grand i10,Grand i10 Nios,i10,i20,i20 N Line,Ioniq 5,Kona Electric,Santa Fe,Santro,Santro Xing,Sonata,Tucson,Venue,Verna,Xcent,Venue N Line",
+"Tata":"Altroz,Aria,Bolt,Curvv,Harrier,Hexa,Indica,Indica Vista,Indigo,Indigo CS,Indigo eCS,Manza,Nano,Nexon,Nexon EV,Punch,Punch EV,Safari,Sierra,Sumo,Sumo Gold,Sumo Victa,Spacio,Tiago,Tiago EV,Tigor,Tigor EV,Zest,Ace,Intra,Yodha,Xenon,407",
+"Mahindra":"Alturas G4,Bolero,Bolero Neo,Bolero Pickup,Bolero Camper,BE 6,Jeeto,KUV100,Marazzo,NuvoSport,Quanto,Scorpio,Scorpio Classic,Scorpio-N,Supro,Thar,Thar Roxx,TUV300,TUV300 Plus,Verito,Verito Vibe,Xylo,XUV300,XUV3XO,XUV400,XUV500,XUV700,XEV 9e,Genio,Maxx,Imperio,Armada,Commander",
+"Toyota":"Camry,Corolla,Corolla Altis,Etios,Etios Cross,Etios Liva,Fortuner,Fortuner Legender,Glanza,Hilux,Hyryder,Innova,Innova Crysta,Innova Hycross,Land Cruiser,Land Cruiser Prado,Platinum Etios,Qualis,Rumion,Taisor,Urban Cruiser,Urban Cruiser Hyryder,Vellfire,Yaris",
+"Honda":"Accord,Amaze,Brio,BR-V,City,City Hybrid,Civic,CR-V,Elevate,Jazz,Mobilio,WR-V,Accord Hybrid",
+"Kia":"Carens,Carnival,EV6,Seltos,Sonet,Syros,Carens Clavis",
+"Renault":"Captur,Duster,Fluence,Kiger,Kwid,Lodgy,Pulse,Scala,Triber,Koleos,Kwid EV",
+"Nissan":"Evalia,Magnite,Micra,Micra Active,Sunny,Teana,Terrano,X-Trail,Kicks,GT-R",
+"Datsun":"GO,GO Plus,redi-GO",
+"Skoda":"Fabia,Kodiaq,Kushaq,Kylaq,Laura,Octavia,Rapid,Slavia,Superb,Yeti,Karoq",
+"Volkswagen":"Ameo,Beetle,Jetta,Passat,Polo,Taigun,Tiguan,Vento,Virtus,Tiguan Allspace,Touareg,Cross Polo",
+"MG":"Astor,Comet EV,Gloster,Hector,Hector Plus,Windsor EV,ZS EV,M9 Select,Cyberster",
+"Jeep":"Compass,Grand Cherokee,Meridian,Wrangler",
+"Ford":"Aspire,Classic,EcoSport,Endeavour,Fiesta,Fiesta Classic,Figo,Figo Aspire,Fusion,Ikon,Mondeo,Freestyle,Mustang",
+"Chevrolet":"Aveo,Aveo U-VA,Beat,Captiva,Cruze,Enjoy,Optra,Sail,Sail U-VA,Spark,Tavera,Trailblazer",
+"Fiat":"Grande Punto,Linea,Palio,Palio Stile,Petra,Punto,Punto Evo,Siena,Uno,Abarth 595",
+"Mitsubishi":"Cedia,Lancer,Montero,Outlander,Pajero,Pajero Sport",
+"Isuzu":"D-Max V-Cross,D-Max,MU-X,MU-7,Hi-Lander",
+"Force":"Gurkha,Trax,Traveller,Trax Cruiser,Urbania",
+"Citroen":"Aircross,Basalt,C3,C3 Aircross,C5 Aircross,eC3",
+"Hindustan Motors":"Ambassador,Contessa",
+"Premier":"Padmini,Rio,Premier 118 NE",
+"Opel":"Astra,Corsa",
+"Daewoo":"Cielo,Matiz,Nexia",
+"Bajaj":"Qute",
+"BMW":"1 Series,2 Series Gran Coupe,3 Series,3 Series Gran Limousine,5 Series,6 Series,7 Series,i4,i5,i7,iX,iX1,M2,M3,M4,M5,M340i,X1,X2,X3,X4,X5,X6,X7,XM,Z4",
+"Mercedes-Benz":"A-Class,A-Class Limousine,B-Class,C-Class,CLA,E-Class,EQA,EQB,EQE,EQS,G-Class,GLA,GLB,GLC,GLE,GLS,M-Class,Maybach S-Class,S-Class,SLK,AMG GT,CLS,GL-Class,ML-Class",
+"Audi":"A3,A4,A5,A6,A7,A8,A8 L,e-tron,e-tron GT,Q2,Q3,Q3 Sportback,Q5,Q5 Sportback,Q7,Q8,Q8 e-tron,R8,RS5,RS7,RS Q8,S5 Sportback,TT",
+"Volvo":"C40 Recharge,EX30,S60,S80,S90,V40,XC40,XC40 Recharge,XC60,XC90",
+"Land Rover":"Defender,Discovery,Discovery Sport,Freelander 2,Range Rover,Range Rover Evoque,Range Rover Sport,Range Rover Velar",
+"Jaguar":"E-Pace,F-Pace,F-Type,I-Pace,XE,XF,XJ",
+"Lexus":"ES,LC 500h,LS,LX,NX,RX,UX",
+"MINI":"Cooper,Cooper Convertible,Cooper Countryman,Cooper SE,Clubman,Countryman",
+"Porsche":"718 Boxster,718 Cayman,911,Cayenne,Macan,Panamera,Taycan",
+"BYD":"Atto 3,eMAX 7,Sealion 7,Seal",
+"Ashok Leyland":"Dost,Bada Dost,Partner,Mitr,Stile"
+};
+var VEH_LIST=(function(){var out=[];Object.keys(VEH_SRC).forEach(function(mk){VEH_SRC[mk].split(",").forEach(function(md){md=md.trim();if(md)out.push({v:md,k:mk,s:(md+" "+mk).toLowerCase()});});});return out;})();
+function vehMakeFor(model){var t=String(model||"").trim().toLowerCase();if(!t)return "";var hit=VEH_LIST.filter(function(x){return x.v.toLowerCase()===t;});return hit.length===1?hit[0].k:"";}
+function yearChoices(){var cy=TODAY.getFullYear(),a=[],y;for(y=2010;y<=cy;y++)a.push(String(y));return a;}
+(function(){var st=document.createElement("style");st.textContent=".cbx{position:relative}.cbx-in{width:100%;box-sizing:border-box;padding-right:30px!important}.cbx-btn{position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;border-radius:0 8px 8px 0}.cbx-list{position:absolute;left:0;right:0;top:calc(100% + 4px);max-height:220px;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:80}.cbx-opt{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;cursor:pointer;font-size:14px}.cbx-opt small{color:var(--muted);white-space:nowrap}.cbx-opt:hover,.cbx-opt.hi{background:var(--bg)}.cbx-none{padding:8px 10px;color:var(--muted);font-size:13px}";document.head.appendChild(st);})();
+function initCombo(id,getItems,strict){
+  var inp=document.getElementById(id);if(!inp)return;
+  var box=inp.parentNode,list=box.querySelector(".cbx-list"),btn=box.querySelector(".cbx-btn"),hi=-1,shown=[];
+  function paint(){
+    var t=inp.value.trim().toLowerCase(),items=getItems(),toks=t.split(/\s+/).filter(Boolean);
+    var exact=items.some(function(it){return it.v.toLowerCase()===t;});
+    shown=(!toks.length||exact)?items:items.filter(function(it){return toks.every(function(w){return it.s.indexOf(w)>-1;});});
+    hi=-1;
+    list.innerHTML=shown.length?shown.map(function(it,i){return '<div class="cbx-opt" role="option" data-i="'+i+'"><span>'+esc(it.v)+'</span>'+(it.k?'<small>'+esc(it.k)+'</small>':'')+'</div>';}).join(""):'<div class="cbx-none">No match'+(strict?'':' - your text will be used as typed')+'</div>';
+  }
+  function open(){paint();list.hidden=false;inp.setAttribute("aria-expanded","true");try{list.scrollIntoView({block:"nearest"});}catch(e){}}
+  function close(){list.hidden=true;inp.setAttribute("aria-expanded","false");}
+  function choose(i){var it=shown[i];if(!it)return;inp.value=it.v;inp.dataset.make=it.k||"";close();inp.dispatchEvent(new Event("change",{bubbles:true}));}
+  function mark(){[].forEach.call(list.querySelectorAll(".cbx-opt"),function(o,i){o.classList.toggle("hi",i===hi);if(i===hi)o.scrollIntoView({block:"nearest"});});}
+  inp.addEventListener("focus",function(){open();});
+  inp.addEventListener("click",function(){if(list.hidden)open();});
+  inp.addEventListener("input",function(e){inp.dataset.make="";if(e.isTrusted)open();}); /* voice fill triggers a synthetic input event: do not pop the list open */
+  inp.addEventListener("keydown",function(e){
+    if(e.key==="ArrowDown"){e.preventDefault();if(list.hidden)open();hi=Math.min(hi+1,shown.length-1);mark();}
+    else if(e.key==="ArrowUp"){e.preventDefault();hi=Math.max(hi-1,0);mark();}
+    else if(e.key==="Enter"&&!list.hidden&&hi>-1){e.preventDefault();choose(hi);}
+    else if(e.key==="Escape"&&!list.hidden){e.stopPropagation();close();}
+    else if(e.key==="Tab")close();
+  });
+  inp.addEventListener("blur",function(){
+    setTimeout(close,120);
+    var v=inp.value.trim().toLowerCase(),items=getItems(),hit=items.filter(function(it){return it.v.toLowerCase()===v;});
+    if(strict&&v&&!hit.length)inp.value="";
+    else if(hit.length===1){inp.value=hit[0].v;inp.dataset.make=hit[0].k||"";}
+  });
+  btn.addEventListener("mousedown",function(e){e.preventDefault();});
+  btn.addEventListener("click",function(){if(list.hidden){inp.focus();open();}else close();});
+  list.addEventListener("mousedown",function(e){e.preventDefault();var o=e.target.closest(".cbx-opt");if(o)choose(+o.getAttribute("data-i"));});
+}
+function initAddLeadCombos(){
+  initCombo("aVeh",function(){return VEH_LIST;},false);
+  initCombo("aYear",function(){return yearChoices().map(function(y){return {v:y,k:"",s:y};});},true);
+}
 function openAddLead(){
   var m=document.getElementById("modal");
   function sel(id,label,list){return '<div class="field"><label for="'+id+'">'+label+'</label><select id="'+id+'">'+list.map(function(o){return "<option>"+esc(o)+"</option>";}).join("")+'</select></div>';}
@@ -1873,20 +1950,19 @@ function openAddLead(){
   }
   m.innerHTML='<h2>Add new lead</h2><div class="row"><div class="field"><label for="aName">Name</label><input id="aName"></div><div class="field"><label for="aPhone">Mobile</label><input id="aPhone" inputmode="tel"></div></div>'+
    '<div class="row">'+sel("aOwner","Lead owner",(function(){var me=myOwnerName(),l2=owners.slice();if(me&&l2.indexOf(me)<0)l2.push(me);return l2;})())+sel("aProd","Product",products)+'</div>'+
-   (function(){var d0=statusOptions(pageKey())[0]||"Open";return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST&&((pageKey()!=="Audience"&&pageKey()!=="Login")||x[1]===pageKey());}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
-   '<div class="row"><div class="field"><label for="aAmt">Loan amount (₹)</label><input id="aAmt" type="number" min="0" step="10000" value="500000"></div><div class="field"><label for="aVeh">Vehicle</label><input id="aVeh" placeholder="For example, Swift"></div></div>'+
-   '<div class="row"><div class="field"><label for="aYear">Year</label><input id="aYear" type="number" min="1900" max="2100" step="1" placeholder="Enter year"></div></div>'+
+   (function(){var d0=statusDefault(pageKey());return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST&&((pageKey()!=="Audience"&&pageKey()!=="Login")||x[1]===pageKey());}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
+   '<div class="row"><div class="field"><label for="aAmt">Loan amount (₹)</label><input id="aAmt" type="number" min="0" step="10000" value="500000"></div><div class="field"><label for="aVeh">Vehicle</label><div class="cbx"><input id="aVeh" class="cbx-in" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" placeholder="Search or select vehicle"><button type="button" class="cbx-btn" tabindex="-1" aria-label="Show vehicle list">&#9662;</button><div class="cbx-list" hidden role="listbox"></div></div></div></div>'+
+   '<div class="row"><div class="field"><label for="aYear">Year</label><div class="cbx"><input id="aYear" class="cbx-in" autocomplete="off" inputmode="numeric" maxlength="4" role="combobox" aria-expanded="false" aria-autocomplete="list" placeholder="Search or select year"><button type="button" class="cbx-btn" tabindex="-1" aria-label="Show year list">&#9662;</button><div class="cbx-list" hidden role="listbox"></div></div></div></div>'+
    '<div class="row">'+sel("aLender","Lender",lenderOptions())+sel("aDealer","Dealer",allLeadDealerOptions())+'</div>'+
-   '<div class="field"><label for="aCase">Case booked in</label><input id="aCase" list="firmList" value="[Solution]" placeholder="Firm name"><datalist id="firmList">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist></div>'+
+   sel("aCase","Case booked in",["Solution","Kuwy","Aardee","Cardekho","TML"])+
    '<div class="row"><div class="field"><label for="aEmail">Email</label><input id="aEmail" type="email"></div>'+sel("aSource","Lead source",["Walk-in"].concat(sources.filter(function(o){return o!=="Walk-in";})))+'</div>'+
    '<div class="row"><div class="field"><label for="aReg">Vehicle number</label><input id="aReg"></div><div class="field"><label for="aBankExec">Bank executive</label><input id="aBankExec"></div></div>'+
-   ((pageKey()==="Audience"||pageKey()==="Login")?'<div class="row"><div class="field"><label for="aIns">Insurance expiry date</label><input id="aIns" type="date"></div></div>':'')+
-   (pageKey()==="Audience"?'<div class="row"><div class="field"><label for="aDob">DOB</label><input id="aDob" type="date"></div></div>':'<div class="row"><div class="field"><label for="aDob">DOB</label><input id="aDob" type="date"></div>'+sel("aPrev","Previous lead owner",[""].concat(owners))+'</div>'+
-   '<div class="row">'+sel("aMgr","Reporting manager",[""].concat(owners))+'</div>')+
+   (pageKey()==="Audience"?'':'<div class="row">'+sel("aPrev","Previous lead owner",[""].concat(owners))+sel("aMgr","Reporting manager",[""].concat(owners))+'</div>')+
    (function(){var al=attrsForPage(pageKey());return al.length?'<div class="sec-label" style="margin-top:6px">Additional details</div><div class="row" style="flex-wrap:wrap">'+al.map(function(a){return cxField({x:{cx:{}}},a).replace('id="ld_cx_','id="aCx_');}).join("")+'</div>':"";})()+
    '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="saveLead">Add new lead</button></div>';
   m.classList.add("show");showOverlay(true);
   (function(){var me=myOwnerName(),o=document.getElementById("aOwner");if(me&&o)o.value=me;})(); /* new lead is assigned to the signed-in user; change it here if needed */
+  initAddLeadCombos();
   document.getElementById("aName").focus();
 }
 function openDelete(id){
@@ -1896,12 +1972,13 @@ function openDelete(id){
   m.classList.add("show");showOverlay(true);
 }
 function newLead(o){
-  var key=pageKey(), st=statusOptions(key)[0]||"Open", n=new Date();
+  var key=pageKey(), st=statusDefault(key), n=new Date();
   if(o.status&&statusStage[o.status]&&o.status!==RTO_ST)st=o.status;
   if(!statusStage[st])st=key==="pdd"?"Disburse":"Open";
   var l={id:nextId++,name:o.name,phone:o.phone||"",owner:(scopedUser()?scopedUser().name:(o.owner||owners[0])),product:o.product||products[0],amount:o.amount||0,status:st,stage:statusStage[st],source:o.source||"Walk-in",date:ymd(TODAY),ts:ymd(TODAY)+" "+pad(n.getHours())+":"+pad(n.getMinutes())+":"+pad(n.getSeconds()),vehicle:o.vehicle||"",year:o.year||"",reg:o.reg||"",lender:o.lender||"",dealer:o.dealer||"",pdd:statusStage[st]==="Disbursed"?"Pending":"—",note:"",audId:String(Date.now())};
   if(key.indexOf("cat")===0&&cats.some(function(c){return c.key===key;}))l.cat=key;
   if(o.email)l.email=o.email;
+  if(o.make)l.make=o.make;
   if(o.insExp){l.px=l.px||{};l.px.insExp=o.insExp;}
   if(o.fromForm){l.x={bankExec:o.bankExec||"",caseBooked:o.caseBooked||"",dob:o.dob||"",prevOwner:o.prevOwner||"",mgr:o.mgr||"",net:"",rto:""};}
   else if(o.caseBooked){ldx(l).caseBooked=o.caseBooked;}
@@ -1960,7 +2037,7 @@ function rowsToLeads(data,tag){
     var dk=nm.trim().toLowerCase();var ph0=cleanVal(get("Mobile","Phone","Phone Number")).replace(/\.0$/,"").replace(/\D/g,"").slice(-10);
     if(ph0&&!tag){if(!rowsToLeads.seen){rowsToLeads.seen={};leads.forEach(function(x){var kk=leadKey(x);if(kk)rowsToLeads.seen[kk]=1;});}
       if(rowsToLeads.seen[ph0+"|"+dk]){dups++;return;}}
-    var st=cleanVal(get("Status","Lead Status")), sg=cleanVal(get("Stage","Category"));if(String(st).toLowerCase()==="disbursement pending")st="Advance Disbursement";
+    var st=cleanVal(get("Status","Lead Status")), sg=cleanVal(get("Stage","Category"));
     var hit=STATUS.filter(function(x){return x[0].toLowerCase()===st.toLowerCase();})[0];
     if(!hit&&sg){var sgHit=stages.filter(function(x){return x.toLowerCase()===sg.toLowerCase()||(stageName[x]||"").toLowerCase()===sg.toLowerCase();})[0];if(sgHit)hit=[STAGE_DEFAULT[sgHit],sgHit];}
     var prod=cleanVal(get("Product"));prod=PROD_ALIAS[prod.toLowerCase()]||prod;
@@ -2979,7 +3056,7 @@ function renderDisbLead(l){
      (dsbHide?"":sm("Recent Followup",esc(fdt)))+
      sme("Vehicle Number","reg",l.reg||"","text",esc(l.reg||"—"))+sme("Loan Amount","amount",l.amount||"","num",l.amount?esc(money(l.amount)):"—")+
      sme("Vehicle","vehicle",l.vehicle||"","text",esc(l.vehicle||"—"))+sme("Product","product",l.product,"product",esc(l.product||"—"))+
-     sme("Lender","lender",l.lender||"","lender",esc(l.lender||"—"))+dsbUp+
+     sme("Lender","lender",l.lender||"","lender",esc(l.lender||"—"))+sme("Bank Executive","bankExec",x.bankExec||"","text",esc(x.bankExec||"—"))+dsbUp+
      (dsbHide?"":sme("Lead Source","source",l.source,"source",esc(l.source)))+
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
@@ -3042,7 +3119,12 @@ function renderDisbLead(l){
   q("[data-ldtab]",function(b){b.onclick=function(){state.ldTab=b.getAttribute("data-ldtab");state.ldEdit=null;state.ldBox=false;renderLead();};});
   q("[data-ldbox]",function(b){b.onclick=function(){state.ldBox=true;state.ldEdit=null;renderLead();};});
   q("[data-ldboxcancel]",function(b){b.onclick=function(){state.ldBox=false;renderLead();};});
-  q("[data-ldboxsave]",function(b){b.onclick=function(){var bad=false;v.querySelectorAll("[data-bx]").forEach(function(f){if(ldSave(l,f.getAttribute("data-bx"),f.value,true)===false)bad=true;});if(!bad)state.ldBox=false;renderLead();};});
+  q("[data-ldboxsave]",function(b){b.onclick=function(){var bad=false,bxm={};
+    function bxChg(f){if(f.tagName==="SELECT"){var di=0,i;for(i=0;i<f.options.length;i++)if(f.options[i].defaultSelected){di=i;break;}return f.selectedIndex!==di;}return f.value!==f.defaultValue;}
+    /* a field can appear in the top box and in Lead Details: save the copy the person actually changed */
+    v.querySelectorAll("[data-bx]").forEach(function(f){var k=f.getAttribute("data-bx"),c=bxChg(f);if(!bxm[k]||(c&&!bxm[k].c))bxm[k]={f:f,c:c};});
+    Object.keys(bxm).forEach(function(k){if(ldSave(l,k,bxm[k].f.value,true)===false)bad=true;});
+    if(!bad)state.ldBox=false;renderLead();};});
   q("[data-ldgo]",function(b){b.onclick=function(){state.ldTab=b.getAttribute("data-ldgo");state.ldEdit=null;renderLead();};});
   q("[data-ledit]",function(b){b.onclick=function(){state.ldEdit=b.getAttribute("data-ledit");renderLead();var e=document.getElementById("ldE");if(e)e.focus();};});
   q("[data-ldcopy]",function(b){b.onclick=function(){var n=b.getAttribute("data-ldcopy");if(navigator.clipboard)navigator.clipboard.writeText(n).then(function(){toast("Number copied");},function(){toast("Could not copy");});else toast("Copy is not available in this browser");};});
@@ -3085,7 +3167,7 @@ function moveCats(){
 function moveStatuses(key){
   var c=moveCats().filter(function(x){return x.key===key;})[0]; if(!c)return [];
   if(key==="pdd")return PDD_ST.slice();
-  if(key==="Disbursed")return ["Open","Advance Disbursement","Disbursed"];
+  if(key==="Disbursed")return ["Disbursement Pending","Advance Disbursement","Disbursed"];
   return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
 }
 function myOwnerName(){
@@ -3145,12 +3227,10 @@ function submitMoveCat(){
     purgeEarlierCopies(l);saveLeads();
     closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);return;
   }
-  var shown=ns; /* Login Disbursement: Open / Disbursed / Advance Disbursement all keep the lead in that stage */
-  if(ck==="Disbursed"&&ns==="Open"){ns="Advance Disbursement";} /* Open = just arrived in Disbursement Business, waiting to be disbursed: stays visible in this list */
-  else if(ck==="Disbursed"&&ns==="Disbursed"){ns="Disburse";}
+  var shown=ns; /* Disbursement Business: Disbursement Pending / Advance Disbursement / Disbursed all keep the lead in Disbursement Business */
+  if(ck==="Disbursed"&&ns==="Disbursed"){ns="Disburse";}
   delete l.pddMoved; l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
-  if(ck==="Disbursed"&&shown==="Disbursed")pddAutoMove(l,""); /* a file marked Disbursed goes to PDD */
   l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" ("+(old!==ns?"status "+old+" to "+ns:"status "+ns)+")",type:"status"});
   purgeEarlierCopies(l);saveLeads();
   closeAll();if(state.route.indexOf("lead/")===0)renderLead();else render();toast("Lead moved to "+c.name);
@@ -3204,7 +3284,7 @@ document.addEventListener("click",function(e){
 /* ---------- status pills, note and submit at the bottom of a lead ---------- */
 var ST_ALLOWED={Audience:["Open","Follow Up","Call not picked","Call Invalid","Interested","Not Interested"],
  Login:["Login Pending","Login","Approval Pending","Approved","Approved But Not Disbursed","Partially Hold"],
- Disbursed:["Advance Disbursement","Disburse"]};
+ Disbursed:["Disbursement Pending","Advance Disbursement","Disburse"]};
 var ST_LABEL={"Disburse":"Disbursed"};
 function ldStatusList(l){
   var st=l.cat?null:(l.stage==="Login"||l.stage==="Hold"||l.stage==="Rejected")?["Login","Hold","Rejected"]:[l.stage];
@@ -6086,7 +6166,10 @@ document.addEventListener("click",function(e){
     if(rpRc.owner)rpOw=rpRc.owner;
     var aCx={}, aIn=[].slice.call(document.querySelectorAll("#modal [data-cx]")), ai;
     for(ai=0;ai<aIn.length;ai++){var aa=attrByKey(aIn[ai].getAttribute("data-cx")),av=aIn[ai].value.trim();if(aa&&aa.mandatory&&!av){toast(aa.label+" is required");aIn[ai].focus();return;}if(av)aCx[aa.key]=av;}
-    var nl0=newLead({name:nm,phone:rpPh,owner:rpOw,product:document.getElementById("aProd").value,amount:+document.getElementById("aAmt").value||0,vehicle:document.getElementById("aVeh").value.trim(),year:document.getElementById("aYear").value.trim(),lender:document.getElementById("aLender").value,dealer:document.getElementById("aDealer").value,caseBooked:document.getElementById("aCase").value.trim(),fromForm:true,status:document.getElementById("aStatus").value,email:document.getElementById("aEmail").value.trim(),source:document.getElementById("aSource").value,reg:document.getElementById("aReg").value.trim(),bankExec:document.getElementById("aBankExec").value.trim(),dob:document.getElementById("aDob").value,prevOwner:(document.getElementById("aPrev")||{value:""}).value,mgr:(document.getElementById("aMgr")||{value:""}).value,insExp:(document.getElementById("aIns")||{value:""}).value});
+    var yrV=document.getElementById("aYear").value.trim();
+    if(yrV&&yearChoices().indexOf(yrV)<0){toast("Select a year from "+yearChoices()[0]+" to "+yearChoices()[yearChoices().length-1]);document.getElementById("aYear").focus();return;}
+    var vehEl=document.getElementById("aVeh"),vehMake=vehEl.dataset.make||vehMakeFor(vehEl.value);
+    var nl0=newLead({name:nm,phone:rpPh,owner:rpOw,product:document.getElementById("aProd").value,amount:+document.getElementById("aAmt").value||0,vehicle:document.getElementById("aVeh").value.trim(),year:document.getElementById("aYear").value.trim(),lender:document.getElementById("aLender").value,dealer:document.getElementById("aDealer").value,caseBooked:document.getElementById("aCase").value.trim(),fromForm:true,status:document.getElementById("aStatus").value,email:document.getElementById("aEmail").value.trim(),source:document.getElementById("aSource").value,reg:document.getElementById("aReg").value.trim(),bankExec:document.getElementById("aBankExec").value.trim(),prevOwner:(document.getElementById("aPrev")||{value:""}).value,mgr:(document.getElementById("aMgr")||{value:""}).value,make:vehMake});
     if(Object.keys(aCx).length)ldx(nl0).cx=aCx;
     saveLeads();state.page=1;closeAll();renderTable();toast("Lead added as "+nl0.status+" ("+nl0.stage+")");return;}
   if(t.id==="saveCamp"){
@@ -6395,7 +6478,7 @@ async function loadMaster(){
   }catch(e){console.warn('Staff/dealer details load failed:',e);}
 }
 async function loadHier(){var r=await sb.from('settings').select('value').eq('key','hier').maybeSingle();if(r.data&&r.data.value)CRM_APPLY_HIER(r.data.value);}
-function toLead(row){var l=Object.assign({},row.data);if(l.status==='Disbursement Pending')l.status='Advance Disbursement';if(l.lastStatus==='Disbursement Pending')l.lastStatus='Advance Disbursement';l.seedId=row.seed_id;l.id=(+l.id>0)?+l.id:row.id;return l;}
+function toLead(row){var l=Object.assign({},row.data);l.seedId=row.seed_id;l.id=(+l.id>0)?+l.id:row.id;return l;}
 function h(s){var a=0xdeadbeef,b=0x41c6ce57;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677);}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return (4294967296*(2097151&b)+(a>>>0)).toString(36);}
 /* A lead's identity = phone + name + entry time. Same identity = same lead, so re-uploads and double saves can never add copies. */
 function fp(l){var ph=String(l.phone||'').replace(/\D/g,'').slice(-10),t=String(l.ts||l.date||''),sg='|'+String(l.stage||'')+'|'+String(l.cat||'');return ph?ph+'|'+norm(l.name)+'|'+t+sg:'x|'+norm(l.name)+'|'+t+'|'+(l.amount||'')+'|'+norm(l.reg)+sg;}
