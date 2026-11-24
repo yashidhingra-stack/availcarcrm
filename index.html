@@ -2886,48 +2886,27 @@ function payReadHtml(l){
 function payShareText(l){
   var s=cpSnap(l),c=cpCalc(l),x=ldx(l),nd=x.nd||{},L=[];
   function a(k,v){if(v!==undefined&&v!==null&&String(v).trim()!==""&&v!=="—")L.push(k+": "+v);}
+  function bold(k,v){if(v!==undefined&&v!==null&&String(v).trim()!==""&&v!=="—")L.push("*"+(k?k+": ":"")+String(v).replace(/\*/g,"")+"*");}
   function mm(v){return v===null?"—":money(v);}
-  function am(k,v){if(v!==null&&v!==undefined)a(k,"*"+mm(v)+"*");}
-  var deductions=c.ls+c.pf+c.r+c.c+c.o;
-  L.push("*PAYMENT DETAILS*");
-  L.push("━━━━━━━━━━━━━━━━━━");
-  L.push("*1. CUSTOMER & VEHICLE DETAILS*");
-  a("Customer name",l.name);a("Mobile number",l.phone);a("Lead owner",l.owner);
-  a("Product",l.product);
-  a("Vehicle make",l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"");
-  a("Vehicle model",l.vehicle);a("Vehicle number",l.reg);a("Bank executive",x.bankExec);
-
-  L.push("","*2. LOAN & DEDUCTION DETAILS*");
-  am("Total loan amount",c.loan);
-  am("Loan Suraksha",c.ls);am("Processing fee",c.pf);
-  am("RTO charges",c.r);am("Challan charges",c.c);am("Other charges",c.o);
-  am("Total deductions",deductions);
-  am("Net amount after bank deductions",c.base);
-  am("Net amount payable to customer",s.net);
-
-  L.push("","*3. AMOUNT RECEIVED FROM BANK*");
-  am("Amount received from bank",s.bank.amt);
-  a("Bank payment date",s.bank.date?fmtDate(s.bank.date):"");
-  a("Bank payment notes",s.bank.note);
-
-  L.push("","*4. PAYMENTS MADE TO CUSTOMER*");
+  function amt(v){return money(v||0);}
+  var ded=c.pf+c.ls+c.r+c.c+c.o;
+  L.push("*💰 PAYMENT DETAILS*","━━━━━━━━━━━━━━━━━━━━","","*1. CUSTOMER & VEHICLE DETAILS*");
+  a("Customer Name",l.name);a("Mobile Number",l.phone);a("Lead Owner",l.owner);a("Product",l.product);
+  a("Vehicle Make",l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"");a("Vehicle Model",l.vehicle);a("Vehicle Number",l.reg);
+  L.push("","━━━━━━━━━━━━━━━━━━━━","","*2. LOAN & DEDUCTION DETAILS*");
+  bold("Total Loan Amount",amt(c.loan));bold("Loan Suraksha",amt(c.ls));bold("Processing Fee",amt(c.pf));bold("RTO Charges",amt(c.r));bold("Challan Charges",amt(c.c));bold("Other Charges",amt(c.o));
+  bold("Total Deductions",amt(ded));bold("Net Amount After Bank Deductions",amt(c.base));bold("Net Amount Payable to Customer",mm(s.net));
+  L.push("","━━━━━━━━━━━━━━━━━━━━","","*3. PAYMENTS MADE TO CUSTOMER*");
   if(s.list.length){
     s.list.forEach(function(e){
-      L.push("*Payment "+e.n+"*");
-      a("Payment type",e.type||"Payment");
-      a("Amount","*"+money(e.amt)+"*");
-      a("Payment date",e.date?fmtDate(e.date):"");
-      a("Remarks",e.note);
+      L.push("","*PAYMENT "+e.n+"*");
+      a("Payment Type",e.type||"Payment");bold("Amount Paid",amt(e.amt));a("Payment Date",e.date?fmtDate(e.date):"");a("Remarks",e.note||"");
     });
-  }else{
-    L.push("No customer payments have been recorded yet.");
-  }
-
-  L.push("","*5. FINAL PAYMENT SUMMARY*");
-  am("Total amount paid",s.paid);
-  am("Remaining balance to pay",s.bal);
-  L.push("","Please review the above payment details and contact us if any clarification is required.");
-  return L.join("\\n");
+  } else L.push("No customer payments recorded");
+  L.push("","━━━━━━━━━━━━━━━━━━━━","","*4. FINAL PAYMENT SUMMARY*");
+  bold("Total Amount Paid",amt(s.paid));bold("Remaining Balance to Pay",mm(s.bal));
+  L.push("","━━━━━━━━━━━━━━━━━━━━","","Please review the above payment details and contact us if any clarification is required.");
+  return L.join("\n");
 }
 function payShareOpen(l){
   var m=document.getElementById("modal"),txt=payShareText(l);
