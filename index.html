@@ -2872,12 +2872,7 @@ function payReadHtml(l){
    '<div class="pr-kpis"><div class="kpi"><span>Net payable</span><b>'+mm(s.net)+'</b></div><div class="kpi"><span>Total paid</span><b>'+mm(s.paid)+'</b></div>'+
    '<div class="kpi kpi-bal"><span>Balance to pay</span><b'+(s.bal!==null&&s.bal<0?' class="neg"':'')+'>'+mm(s.bal)+'</b></div>'+
    '<div class="kpi"><span>Received from bank</span><b>'+mm(s.bank.amt)+'</b></div><div class="kpi kpi-pend"><span>'+cpPendLabel(s.pend)+'</span><b'+(s.pend!==null&&s.pend<0?' class="neg"':'')+'>'+cpPendVal(s.pend)+'</b></div></div>';
-  var cc=cpCalc(l);
-  h+='<h4 class="pr-h">How the amounts are worked out</h4><div class="pr-calc">'+
-   '<div><span>Loan amount</span><b>'+esc(money(cc.loan))+'</b></div><div class="m"><span>Processing fees</span><b>'+esc(money(cc.pf))+'</b></div><div class="m"><span>Loan Suraksha</span><b>'+esc(money(cc.ls))+'</b></div>'+
-   '<div class="t"><span>Net disbursement (expected from bank)</span><b>'+esc(money(cc.base))+'</b></div>'+
-   '<div class="m"><span>RTO charges</span><b>'+esc(money(cc.r))+'</b></div><div class="m"><span>Challan charges</span><b>'+esc(money(cc.c))+'</b></div><div class="m"><span>Other charges</span><b>'+esc(money(cc.o))+'</b></div>'+
-   '<div class="t"><span>Net payable to customer</span><b>'+esc(money(cc.client))+'</b></div></div>';
+  /* Calculation breakdown intentionally omitted here; amounts remain in Lead Details and sharing. */
   h+='<h4 class="pr-h">Received from bank</h4>';
   h+=s.bank.amt>0?'<div class="pr-line"><div><small>Amount</small><b>'+esc(money(s.bank.amt))+'</b></div><div><small>Date received</small><b>'+dd(s.bank.date)+'</b></div><div class="pr-wide"><small>Notes</small><b>'+(s.bank.note?esc(s.bank.note):"\u2014")+'</b></div></div>':'<p class="note">No amount received from bank has been entered in Customer payments.</p>';
   var tdy=s.list.filter(function(e){return e.date===ymd(TODAY);});
@@ -2892,17 +2887,25 @@ function payReadHtml(l){
   return h+'</section>';
 }
 function payShareText(l){
-  var s=cpSnap(l),L=[];
-  function a(k,v){L.push(k+": "+v);}
-  function mm(v){return v===null?"-":money(v);}
-  L.push("*Payment details*");
-  a("Name",l.name);if(l.reg)a("Vehicle number",l.reg);if(l.vehicle)a("Vehicle",l.vehicle);
-  L.push("");a("Net payable",mm(s.net));
-  L.push("");L.push("*Payments received*");
-  if(s.list.length)s.list.forEach(function(e){L.push(e.n+". "+e.type+": "+money(e.amt)+(e.date?" on "+fmtDate(e.date):""));});
-  else L.push("No payment yet");
+  var s=cpSnap(l),c=cpCalc(l),x=ldx(l),nd=x.nd||{},L=[];
+  function a(k,v){if(v!==undefined&&v!==null&&String(v).trim()!==""&&v!=="—")L.push(k+": "+v);}
+  function mm(v){return v===null?"—":money(v);}
+  L.push("*Lead details*");
+  a("Name",l.name);a("Mobile",l.phone);a("Lead Owner",l.owner);a("Product",l.product);
+  a("Vehicle Make",l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"");a("Vehicle Model",l.vehicle);a("Vehicle Number",l.reg);
+  a("Bank Executive",x.bankExec);a("Loan Amount",mm(c.loan));
+  L.push("","*Deductions*");
+  a("Loan Suraksha",mm(c.ls));a("Processing Fee",mm(c.pf));a("RTO Charges",mm(c.r));
+  a("Challan Charges",mm(c.c));a("Other Charges",mm(c.o));
+  a("Net Disbursement",mm(c.base));a("Net Disbursement to Client",mm(s.net));
+  L.push("","*Bank payment*");
+  a("Received from bank",mm(s.bank.amt));a("Bank payment date",s.bank.date?fmtDate(s.bank.date):"");
+  a("Bank payment notes",s.bank.note);
+  L.push("","*Payments to customer*");
+  if(s.list.length)s.list.forEach(function(e){L.push(e.n+". "+(e.type||"Payment")+": "+money(e.amt)+(e.date?" | "+fmtDate(e.date):"")+(e.note?" | "+e.note:""));});
+  else L.push("No customer payments recorded");
   L.push("");a("Total paid",money(s.paid));a("Balance to pay",mm(s.bal));
-  return L.join("\n");
+  return L.join("\\n");
 }
 function payShareOpen(l){
   var m=document.getElementById("modal"),txt=payShareText(l);
@@ -3259,10 +3262,26 @@ function renderDisbLead(l){
       var mL=all.slice(0,half).map(function(r){return ldRow(r);}), mR=all.slice(half).map(function(r){return ldRow(r);});
       if(state.ldTab==="details"){colL=colL.concat(mL);colR=colR.concat(mR);}else{colL=mL;colR=mR;} /* PDD: merged into Lead Details */
       if(dsbV&&state.ldTab==="details"){ /* PDD / Disbursement / Closed: left = vehicle side, right = loan and net disbursement side */
-        var P=dsbRowParts(l);
-        var restRows=L.concat([A[0],A[1]],ex).map(function(r){return ldRow(r);}),rh=Math.ceil(restRows.length/2);
-        colL=[ldRow(Rb[0]),ldRow(Rb[1]),ldRow(A[2]),ldRow(A[3]),ldRow(CBR),ldRow(DOBR)].concat(restRows.slice(0,rh));
-        colR=[ldRow(R[0]),P.idv,P.pf,P.ls,P.net,P.netClient].concat(restRows.slice(rh));
+        var P=dsbRowParts(l), px=l.px||{}, ndx=x.nd||{};
+        var rightRows=[
+          ldRow(["owner","Lead Owner",l.owner,l.owner,"owner"]),
+          ldRow(["product","Product",l.product,l.product||"—","product"]),
+          ldRow(["make","Vehicle Make",l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"",l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"—","text"]),
+          ldRow(["vehicle","Vehicle Model",l.vehicle||"",l.vehicle||"—","text"]),
+          ldRow(["reg","Vehicle Number",l.reg||"",l.reg||"—","text"]),
+          ldRow(["bankExec","Bank Executive",x.bankExec||"",x.bankExec||"—","text"]),
+          ldRow(["amount","Loan Amount",l.amount,l.amount?money(l.amount):"—","num"]),
+          P.ls,P.pf,
+          ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),"num"]),
+          ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),"num"]),
+          ldRow(["oth","Other Charges",lpPddAmount(l,"Other charges"),money(lpNum(lpPddAmount(l,"Other charges"))),"num"]),
+          '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
+          '<tr><td class="k"><b>Net Disbursement to Client</b></td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div></td></tr>'
+        ];
+        var restRows=[ldRow(["dealer","Dealer Name",l.dealer,l.dealer||"—","dealer"]),ldRow(["entry","Entry Date",l.ts,l.ts,null]),
+          ldRow(CBR),ldRow(DOBR)].concat(ex.map(function(r){return ldRow(r);}));
+        colL=[ldRow(Rb[0]),ldRow(Rb[1]),ldRow(A[2]),ldRow(A[3]),ldRow(CBR),ldRow(DOBR)].concat(restRows);
+        colR=rightRows;
       }
     }
     var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit to fill them in.</p>':'';
@@ -3304,7 +3323,7 @@ function renderDisbLead(l){
   q("[data-ldcopy]",function(b){b.onclick=function(){var n=b.getAttribute("data-ldcopy");if(navigator.clipboard)navigator.clipboard.writeText(n).then(function(){toast("Number copied");},function(){toast("Could not copy");});else toast("Copy is not available in this browser");};});
   q("[data-ldprint]",function(b){b.onclick=function(){ldPrint(l);};});
   q("[data-ldquickfu]",function(b){b.onclick=function(){ldQuickFu(l);};});
-  q("[data-ldshare]",function(b){b.onclick=function(){if(onPay)payShareOpen(l);else ldShareOpen(l);};});
+  q("[data-ldshare]",function(b){b.onclick=function(){payShareOpen(l);};});
   q("[data-payshare]",function(b){b.onclick=function(){payShareOpen(l);};});
   q("[data-docup]",function(b){b.onclick=function(){state.docSlot=+b.getAttribute("data-docup");var i=document.getElementById("docIn");if(i)i.click();};});
   q("[data-docrm]",function(b){b.onclick=function(){var id=b.getAttribute("data-docrm"),f=(l.files||[]).filter(function(x){return x.id===id;})[0];if(!f)return;l.files=l.files.filter(function(x){return x.id!==id;});try{URL.revokeObjectURL(f.url);}catch(_){}if(f.slot>=0&&!l.files.some(function(x){return x.slot===f.slot;}))l.docs[DOCS[f.slot]]=false;renderLead();toast("File removed");};});
