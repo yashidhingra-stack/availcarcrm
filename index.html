@@ -682,6 +682,28 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .pr-calc .t span{color:var(--ink)}
 .cp-calc{margin:0 0 12px;font-size:13px;color:var(--muted)}
 .cp-calc b{color:var(--ink)}
+.ld-box.editing .tscroll{overflow:visible}.ld-box.editing .cbx-list{z-index:90}
+
+/* Customer payments: two sides, green balance, red pending */
+.pv-grid.pv-one{grid-template-columns:minmax(0,1fr)}
+.pv-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.8fr);gap:18px;align-items:start}
+.pv-bank{position:sticky;top:8px}
+.pv-f1{grid-template-columns:minmax(0,1fr)}
+.pv-right{display:flex;flex-direction:column;gap:14px;min-width:0}
+.pv-rh{margin:0}
+.pv-sh{margin:0 0 12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pv-today,.pv-total{border:1px solid var(--line);background:var(--surface)}
+.pv-today{border-color:var(--accent)}
+.td-rows{display:flex;flex-direction:column;gap:10px}
+.td-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr);gap:12px}
+.td-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.td-tot{margin-left:auto;font-size:13px;color:var(--muted)}
+.td-tot b{color:var(--ink);font-size:16px;margin-left:4px}
+.pv-kpis .kpi-bal,.pr-kpis .kpi-bal{background:rgba(47,143,91,.12);border-color:#2f8f5b}
+.pv-kpis .kpi-bal b,.pr-kpis .kpi-bal b{color:#1f7a46}
+.pv-kpis .kpi-pend,.pr-kpis .kpi-pend{background:rgba(214,69,69,.12);border-color:#d64545}
+.pv-kpis .kpi-pend b,.pr-kpis .kpi-pend b{color:#c43d3d}
+@media (max-width:900px){.pv-split{grid-template-columns:minmax(0,1fr)}.pv-bank{position:static}.td-row{grid-template-columns:minmax(0,1fr)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -795,6 +817,8 @@ var pcolor=["#2b7de9","#3aa76d","#f2a900","#e4572e","#7c5cc4"];
 var stages=["Audience","Login","Hold","Disbursed","Rejected"];
 var stageName={Audience:"Audience",Login:"Login business",Hold:"Hold",Disbursed:"Disbursement business",Rejected:"Reject business"};
 var STATUS=[["Open","Audience"],["Follow Up","Audience"],["Call not picked","Audience"],["Wrong No","Audience"],["Call later","Audience"],["Call Invalid","Audience"],["Not Interested","Audience"],["Interested","Audience"],["KYC Collected","Audience"],["Documents Collected","Audience"],["Login Pending","Login"],["Login","Login"],["Approval Pending","Login"],["Approved","Login"],["Finally Hold","Hold"],["Partially Hold","Hold"],["Approved But Hold","Hold"],["Postponed","Hold"],["Disbursement Pending","Disbursed"],["Disburse","Disbursed"],["Advance Disbursement","Disbursed"],["Approved (Disbursement)","Disbursed"],["Not Approved","Disbursed"],["Approved But Not Disbursed","Disbursed"],["File Approved in RTO","Disbursed"],["Reject","Rejected"],["Finally Reject","Rejected"]];
+var AUD_ST=["Open","Follow Up","Call not picked","Call Invalid","Interested","Not Interested"]; /* the only statuses offered in Audience */
+function audOk(x){return x[1]!=="Audience"||AUD_ST.indexOf(x[0])>-1;}
 var statusStage={}; STATUS.forEach(function(x){statusStage[x[0]]=x[1];});
 var SC={"Open":"#e8c33a","Disbursement Pending":"#f2a900","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#7c5cc4","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Postponed":"#e08a1e","Disburse":"#2f8f5b","Pending":"#e8c33a","Received":"#2f8f5b","Overdue":"#c43d3d","Advance Disbursement":"#e8c33a","Approved (Disbursement)":"#2f8f5b","Not Approved":"#c43d3d","Approved But Not Disbursed":"#e4572e","Reject":"#c43d3d"};
 SC["KYC Collected"]="#2f8f5b";SC["File Approved in RTO"]="#2f8f5b";
@@ -1134,7 +1158,7 @@ function statusOptions(key){
   if(key==="Disbursed")return ["Disbursement Pending","Advance Disbursement","Disburse"].filter(function(x){return hierStatusOk(x);}); /* Disbursement Business status filter: only these three */
   var st=pageStages(key);
   if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject is one common page */
-  return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1&&hierStatusOk(x[0]);}).map(function(x){return x[0];});}
+  return STATUS.filter(function(x){return x[0]!==RTO_ST&&st.indexOf(x[1])>-1&&audOk(x)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});}
 function dotted(st){return '<span class="dot" style="background:'+(SC[st]||"#8aa09c")+'"></span>';}
 var COLDEF={sno:"S.No.",ts:"Entry Date",name:"Name",phone:"Mobile",product:"Product",amount:"Loan Amount",vehicle:"Vehicle Model",make:"Vehicle Make",reg:"Vehicle Number",lender:"Lender",dealer:"Dealer Name",owner:"Lead Owner",status:"Lead Status",audId:"Audience Id",caseBooked:"Case booked in",pddSt:"PDD Stage",pddType:"PDD Type",idv:"IDV Value",pf:"Processing Fees",disbDate:"Disbursement Date",net:"Net Disbursement",rtoPerson:"RTO Person",rtoSet:"RTO Set Status",pendReason:"Reason for Pending",insExp:"Insurance Expiry",month:"Month of Disbursement",pdd:"PDD Status",year:"Year",bankExec:"Bank Executive",remark:"Latest remark"};
 var HR=["sno","ts","name","phone","product","amount","vehicle","reg","lender","dealer","status","owner","caseBooked","insExp","audId"];
@@ -1979,6 +2003,13 @@ function initAddLeadCombos(){
   initCombo("aVeh",function(){return VEH_LIST;},false);
   initCombo("aYear",function(){return yearChoices().map(function(y){return {v:y,k:"",s:y};});},true);
 }
+function leadDealerOptions(){ /* same dealer list as Add new lead */
+  var out=[],seen={};
+  function add(v){v=String(v==null?"":v).trim();if(!v)return;var k=v.toLowerCase();if(!seen[k]){seen[k]=1;out.push(v);}}
+  dealers.forEach(add);
+  (Array.isArray(channelMaster)?channelMaster:[]).forEach(function(d){var firm=String(d.firmName||"").trim(),name=String(d.name||"").trim();add(firm&&name?firm+" - "+name:(name||firm||d.dealerId||""));});
+  return out.sort(function(a,b){return a.localeCompare(b);});
+}
 function openAddLead(){
   var m=document.getElementById("modal");
   function sel(id,label,list){return '<div class="field"><label for="'+id+'">'+label+'</label><select id="'+id+'">'+list.map(function(o){return "<option>"+esc(o)+"</option>";}).join("")+'</select></div>';}
@@ -1994,7 +2025,7 @@ function openAddLead(){
   }
   m.innerHTML='<h2>Add new lead</h2><div class="row"><div class="field"><label for="aName">Name</label><input id="aName"></div><div class="field"><label for="aPhone">Mobile</label><input id="aPhone" inputmode="tel"></div></div>'+
    '<div class="row">'+sel("aOwner","Lead owner",(function(){var me=myOwnerName(),l2=owners.slice();if(me&&l2.indexOf(me)<0)l2.push(me);return l2;})())+sel("aProd","Product",products)+'</div>'+
-   (function(){var d0=statusDefault(pageKey());return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST&&((pageKey()!=="Audience"&&pageKey()!=="Login")||x[1]===pageKey());}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
+   (function(){var d0=statusDefault(pageKey());return '<div class="row"><div class="field"><label for="aStatus">Lead status</label><select id="aStatus">'+STATUS.filter(function(x){return x[0]!==RTO_ST&&((pageKey()!=="Audience"&&pageKey()!=="Login")||x[1]===pageKey())&&audOk(x);}).map(function(x){return '<option'+(x[0]===d0?' selected':'')+'>'+esc(x[0])+'</option>';}).join("")+'</select></div></div>';})()+
    '<div class="row"><div class="field"><label for="aAmt">Loan amount (₹)</label><input id="aAmt" type="number" min="0" step="10000" value="500000"></div><div class="field"><label for="aVeh">Vehicle</label><div class="cbx"><input id="aVeh" class="cbx-in" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" placeholder="Search or select vehicle"><button type="button" class="cbx-btn" tabindex="-1" aria-label="Show vehicle list">&#9662;</button><div class="cbx-list" hidden role="listbox"></div></div></div></div>'+
    '<div class="row"><div class="field"><label for="aYear">Year</label><div class="cbx"><input id="aYear" class="cbx-in" autocomplete="off" inputmode="numeric" maxlength="4" role="combobox" aria-expanded="false" aria-autocomplete="list" placeholder="Search or select year"><button type="button" class="cbx-btn" tabindex="-1" aria-label="Show year list">&#9662;</button><div class="cbx-list" hidden role="listbox"></div></div></div></div>'+
    '<div class="row">'+sel("aLender","Lender",lenderOptions())+sel("aDealer","Dealer",allLeadDealerOptions())+'</div>'+
@@ -2672,7 +2703,12 @@ function ldx(l){
   return l.x;
 }
 function ldEd(k,raw,kind){return '<span class="ed-wrap">'+ldEditor(k,raw,kind)+'<button class="btn primary" data-edsave>Save</button><button class="btn" data-edcancel>Cancel</button></span>';}
+function ldCombo(kind,raw,k,ph){
+  return '<div class="cbx"><input id="ldE" class="cbx-in" data-cbk="'+kind+'" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" value="'+esc(raw)+'" placeholder="'+ph+'" aria-label="Edit '+k+'"><button type="button" class="cbx-btn" tabindex="-1" aria-label="Show list">&#9662;</button><div class="cbx-list" hidden role="listbox"></div></div>';
+}
 function ldEditor(k,raw,kind){
+  if(k==="vehicle")return ldCombo("vehicle",raw,k,"Search or select vehicle");
+  if(k==="year")return ldCombo("year",raw,k,"Search or select year");
   if(typeof kind==="string"&&kind.indexOf("cx")===0){
     var ct=kind.slice(2);
     if(ct==="Boolean")return '<select id="ldE" aria-label="Edit '+k+'"><option value="">Not set</option>'+["Yes","No"].map(function(o){return '<option'+(o===raw?" selected":"")+'>'+o+'</option>';}).join("")+'</select>';
@@ -2686,7 +2722,8 @@ function ldEditor(k,raw,kind){
     return '<select id="ldE" aria-label="Edit '+k+'"><option value="">Select firm</option>'+caseBookedOptions({x:{caseBooked:raw||""}})+'</select>';
   }
   if(kind==="owner"||kind==="dealer"||kind==="product"||kind==="source"||kind==="status"){
-    var list=kind==="owner"?owners:kind==="dealer"?dealers:kind==="product"?products:kind==="source"?sources:STATUS.map(function(s){return s[0];});
+    var list=kind==="owner"?owners:kind==="dealer"?leadDealerOptions().slice():kind==="product"?products:kind==="source"?sources:STATUS.map(function(s){return s[0];});
+    if(kind==="dealer"&&raw&&list.indexOf(raw)<0)list.push(raw);
     return '<select id="ldE" aria-label="Edit '+k+'">'+(kind==="dealer"?'<option value="">Not set</option>':"")+list.map(function(o){return '<option'+(o===raw?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select>';
   }
   return '<input id="ldE" type="'+(kind==="num"?"number":"text")+'" value="'+esc(raw)+'" aria-label="Edit '+k+'"'+(k==="caseBooked"?' list="firmList2"><datalist id="firmList2">'+firmList().map(function(f){return '<option value="'+esc(f)+'">';}).join("")+'</datalist':'')+'>';
@@ -2834,7 +2871,7 @@ function payReadHtml(l){
    '<div class="pr-actions"><span class="pr-ro">View only &middot; from Customer payments</span><button class="btn primary" type="button" data-payshare>'+ldi("share")+' Share</button></div></div>'+
    '<div class="pr-kpis"><div class="kpi"><span>Net payable</span><b>'+mm(s.net)+'</b></div><div class="kpi"><span>Total paid</span><b>'+mm(s.paid)+'</b></div>'+
    '<div class="kpi kpi-bal"><span>Balance to pay</span><b'+(s.bal!==null&&s.bal<0?' class="neg"':'')+'>'+mm(s.bal)+'</b></div>'+
-   '<div class="kpi"><span>Received from bank</span><b>'+mm(s.bank.amt)+'</b></div><div class="kpi"><span>'+cpPendLabel(s.pend)+'</span><b'+(s.pend!==null&&s.pend<0?' class="neg"':'')+'>'+cpPendVal(s.pend)+'</b></div></div>';
+   '<div class="kpi"><span>Received from bank</span><b>'+mm(s.bank.amt)+'</b></div><div class="kpi kpi-pend"><span>'+cpPendLabel(s.pend)+'</span><b'+(s.pend!==null&&s.pend<0?' class="neg"':'')+'>'+cpPendVal(s.pend)+'</b></div></div>';
   var cc=cpCalc(l);
   h+='<h4 class="pr-h">How the amounts are worked out</h4><div class="pr-calc">'+
    '<div><span>Loan amount</span><b>'+esc(money(cc.loan))+'</b></div><div class="m"><span>Processing fees</span><b>'+esc(money(cc.pf))+'</b></div><div class="m"><span>Loan Suraksha</span><b>'+esc(money(cc.ls))+'</b></div>'+
@@ -2843,7 +2880,10 @@ function payReadHtml(l){
    '<div class="t"><span>Net payable to customer</span><b>'+esc(money(cc.client))+'</b></div></div>';
   h+='<h4 class="pr-h">Received from bank</h4>';
   h+=s.bank.amt>0?'<div class="pr-line"><div><small>Amount</small><b>'+esc(money(s.bank.amt))+'</b></div><div><small>Date received</small><b>'+dd(s.bank.date)+'</b></div><div class="pr-wide"><small>Notes</small><b>'+(s.bank.note?esc(s.bank.note):"\u2014")+'</b></div></div>':'<p class="note">No amount received from bank has been entered in Customer payments.</p>';
-  h+='<h4 class="pr-h">Payments to customer</h4>';
+  var tdy=s.list.filter(function(e){return e.date===ymd(TODAY);});
+  h+='<h4 class="pr-h">Today\'s payments</h4>';
+  h+=tdy.length?'<div class="tscroll"><table class="pr-tbl"><thead><tr><th>#</th><th>Type</th><th class="r">Amount</th><th>Notes</th></tr></thead><tbody>'+tdy.map(function(e){return '<tr><td>'+e.n+'</td><td>'+esc(e.type)+'</td><td class="r">'+esc(money(e.amt))+'</td><td>'+(e.note?esc(e.note):"\u2014")+'</td></tr>';}).join("")+'</tbody><tfoot><tr><th colspan="2">Today\'s total</th><th class="r">'+esc(money(tdy.reduce(function(a,e){return a+e.amt;},0)))+'</th><th></th></tr></tfoot></table></div>':'<p class="note">No payment has been processed today.</p>';
+  h+='<h4 class="pr-h">Total payments</h4>';
   if(s.list.length){
     h+='<div class="tscroll"><table class="pr-tbl"><thead><tr><th>#</th><th>Type</th><th class="r">Amount</th><th>Date</th><th>Notes</th></tr></thead><tbody>'+
       s.list.map(function(e){return '<tr><td>'+e.n+'</td><td>'+esc(e.type)+'</td><td class="r">'+esc(money(e.amt))+'</td><td>'+dd(e.date)+'</td><td>'+(e.note?esc(e.note):"\u2014")+'</td></tr>';}).join("")+
@@ -2856,15 +2896,12 @@ function payShareText(l){
   function a(k,v){L.push(k+": "+v);}
   function mm(v){return v===null?"-":money(v);}
   L.push("*Payment details*");
-  a("Name",l.name);if(l.phone)a("Mobile",l.phone);
-  if(l.reg)a("Vehicle number",l.reg);if(l.vehicle)a("Vehicle",l.vehicle);if(l.lender)a("Lender",l.lender);
-  a("Loan amount",money(lpNum(l.amount)));a("Net payable",mm(s.net));
-  L.push("");L.push("*Payments to customer*");
-  if(s.list.length)s.list.forEach(function(e){L.push(e.n+". "+e.type+": "+money(e.amt)+(e.date?" on "+fmtDate(e.date):"")+(e.note?" ("+e.note+")":""));});
-  else L.push("No payment entered yet");
-  a("Total paid",money(s.paid));a("Balance to pay",mm(s.bal));
-  L.push("");L.push("*Received from bank*");
-  a("Amount",money(s.bank.amt));if(s.bank.amt>0&&s.bank.date)a("Date",fmtDate(s.bank.date));a(cpPendLabel(s.pend),s.pend===null?"-":money(Math.abs(s.pend)));
+  a("Name",l.name);if(l.reg)a("Vehicle number",l.reg);if(l.vehicle)a("Vehicle",l.vehicle);
+  L.push("");a("Net payable",mm(s.net));
+  L.push("");L.push("*Payments received*");
+  if(s.list.length)s.list.forEach(function(e){L.push(e.n+". "+e.type+": "+money(e.amt)+(e.date?" on "+fmtDate(e.date):""));});
+  else L.push("No payment yet");
+  L.push("");a("Total paid",money(s.paid));a("Balance to pay",mm(s.bal));
   return L.join("\n");
 }
 function payShareOpen(l){
@@ -3186,7 +3223,7 @@ function renderDisbLead(l){
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
-   '</dl><div class="ld-ico">'+ldBtn('data-ldquickfu','Add follow-up','plus')+ldBtn('data-ldshare','Share details on WhatsApp','share')+(onPay?'':ldBtn('data-ldprint','Print or save as PDF','file'))+'</div></section></div>';
+   '</dl><div class="ld-ico">'+ldBtn('data-ldquickfu','Add follow-up','plus')+(onPay?'':ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file'))+'</div></section></div>';
   var payV=!!state.ldPay&&String(state.listRoute||"").indexOf("payments")===0&&l.stage==="Disbursed";
   var dsbV=(state.leadCtx==="Disbursed"||state.leadCtx==="pdd"||state.leadCtx==="Close")&&l.stage==="Disbursed"&&!l.cat; /* same lead details in Disbursement Business, PDD Status and Closed */
   var tabs=payV?[["pview","Customer Payments"],["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]:(pdetOn?[["details","Lead Details"],["pdet","PDD Details"],["paydet","Payment Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]);
@@ -3229,7 +3266,7 @@ function renderDisbLead(l){
       }
     }
     var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit to fill them in.</p>':'';
-    h+='<section class="ld-box" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
+    h+='<section class="ld-box'+(state.ldBox?' editing':'')+'" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
   } else if(state.ldTab==="pview"){ h+=payViewHtml(l);
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
@@ -3241,6 +3278,19 @@ function renderDisbLead(l){
   v.innerHTML=h;
   var q=function(s,fn){v.querySelectorAll(s).forEach(fn);};
   q("[data-ldtab]",function(b){b.onclick=function(){state.ldTab=b.getAttribute("data-ldtab");state.ldEdit=null;state.ldBox=false;renderLead();};});
+  if(state.ldBox){ /* Edit mode: vehicle and year are the same searchable lists as Add new lead; picking a vehicle fills its Make */
+    v.querySelectorAll('input[data-cbk="vehicle"]').forEach(function(inp,i){
+      inp.id="ldVeh"+i;initCombo(inp.id,function(){return VEH_LIST;},false);
+      inp.addEventListener("change",function(){
+        var mk=inp.dataset.make||vehMakeFor(inp.value);
+        if(mk)v.querySelectorAll('[data-bx="make"]').forEach(function(m){m.value=mk;});
+        v.querySelectorAll('input[data-cbk="vehicle"]').forEach(function(o){if(o!==inp)o.value=inp.value;});
+      });
+    });
+    v.querySelectorAll('input[data-cbk="year"]').forEach(function(inp,i){
+      inp.id="ldYr"+i;initCombo(inp.id,function(){var a=yearChoices();if(inp.defaultValue&&a.indexOf(inp.defaultValue)<0)a.push(inp.defaultValue);return a.map(function(y){return {v:y,k:"",s:y};});},true);
+    });
+  }
   q("[data-ldbox]",function(b){b.onclick=function(){state.ldBox=true;state.ldEdit=null;renderLead();};});
   q("[data-ldboxcancel]",function(b){b.onclick=function(){state.ldBox=false;renderLead();};});
   q("[data-ldboxsave]",function(b){b.onclick=function(){var bad=false,bxm={};
@@ -3296,7 +3346,7 @@ function moveStatuses(key){
   if(key==="Close")return [PDD_ST[4]];
   if(key==="Disbursed")return ["Disbursement Pending","Advance Disbursement","Disbursed"];
   var ml=state.mvId?lead(state.mvId):null,fromPdd=!!ml&&inPddNow(ml); /* from PDD Status, Hold/Reject offers both Hold and Reject statuses */
-  return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage||(key==="Hold"&&fromPdd&&x[1]==="Rejected"))&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
+  return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage||(key==="Hold"&&fromPdd&&x[1]==="Rejected"))&&audOk(x)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
 }
 function myOwnerName(){
   var u=userById(state.meUser);if(!u)return "";
@@ -3420,7 +3470,7 @@ function ldStatusList(l){
   var fromPdd=(state.listRoute==="leads/pdd"||state.listRoute==="leads/Close")&&!l.cat&&l.stage==="Disbursed";
   var allow=l.cat?null:(l.stage==="Login"||l.stage==="Hold"||l.stage==="Rejected")?ST_ALLOWED.Login:ST_ALLOWED[l.stage];
   if(allow){var out=allow.filter(function(x){return x===l.status||hierStatusOk(x);});if(l.status&&out.indexOf(l.status)<0&&l.status!==RTO_ST)out.push(l.status);return out;}
-  return STATUS.filter(function(x){return (!st||st.indexOf(x[1])>-1)&&(x[0]!==RTO_ST||fromPdd||l.status===RTO_ST)&&(x[0]===l.status||hierStatusOk(x[0]));}).map(function(x){return x[0];});
+  return STATUS.filter(function(x){return (!st||st.indexOf(x[1])>-1)&&(x[0]!==RTO_ST||fromPdd||l.status===RTO_ST)&&(x[0]===l.status||(audOk(x)&&hierStatusOk(x[0])));}).map(function(x){return x[0];});
 }
 function ldStatusBlock(l){
   var pd=inPddCtx(l), opts=pd?PDD_ST:ldStatusList(l), cur=pd?pddSt(l):l.status;
@@ -4905,9 +4955,9 @@ function openCustPay(id,host){
   var sub=esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
   var cc0=cpCalc(l);
   var h=(host?'<div class="pv-head"><h3 class="nd-h">Received Details</h3><p class="pv-sub">'+sub+'</p></div>':'<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+sub+'</p>')+
-   '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi"><b id="cpPend">—</b><span id="cpPendL">Pending from bank</span></div></div>';
+   '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi kpi-pend"><b id="cpPend">—</b><span id="cpPendL">Pending from bank</span></div></div>';
   if(net===null)h+='<p class="note pv-warn">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
-  h+='<div class="pv-block" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><p class="cp-calc">Expected from bank = Loan '+esc(money(cc0.loan))+' &minus; Processing fees '+esc(money(cc0.pf))+' &minus; Loan Suraksha '+esc(money(cc0.ls))+' = <b>'+esc(money(cc0.base))+'</b> <button type="button" class="cp-fill" id="cpBankFill">Fill expected</button></p><div class="pv-fields pv-f3">'+
+  h+='<div class="pv-split"><div class="pv-block pv-bank" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><p class="cp-calc">Expected from bank = Loan '+esc(money(cc0.loan))+' &minus; Processing fees '+esc(money(cc0.pf))+' &minus; Loan Suraksha '+esc(money(cc0.ls))+' = <b>'+esc(money(cc0.base))+'</b> <button type="button" class="cp-fill" id="cpBankFill">Fill expected</button></p><div class="pv-fields pv-f1">'+
    '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
    '<div class="nd-f"><label for="cpBankD">Date received</label><input id="cpBankD" type="date" value="'+esc(bank.date||"")+'"></div>'+
    '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></div>';
@@ -4917,10 +4967,16 @@ function openCustPay(id,host){
      '<div class="nd-f cp-amt"><span class="pv-l">Amount<button type="button" class="cp-fill" data-cpfill>Fill balance</button></span><div class="nd-in"><span aria-hidden="true">₹</span><input data-cpa type="number" min="0" step="any" inputmode="decimal" placeholder="0" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount"></div></div>'+
      '<div class="nd-f cp-date"><span class="pv-l">Date<button type="button" class="cp-fill" data-cptoday>Today</button></span><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></div>'+
      '<div class="nd-f cp-note"><span class="pv-l">Notes</span><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Add a note (optional)" aria-label="Payment '+(i+1)+' notes"></div></div>';}
+  function tdRowHtml(i){
+    return '<div class="td-row" data-tdrow><div class="nd-f"><span class="pv-l">Type</span><select data-tdt aria-label="Today payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t==="Partial payment"?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></div>'+
+     '<div class="nd-f"><span class="pv-l">Amount</span><div class="nd-in"><span aria-hidden="true">₹</span><input data-tda type="number" min="0" step="any" inputmode="decimal" placeholder="0" aria-label="Today payment '+(i+1)+' amount"></div></div>'+
+     '<div class="nd-f"><span class="pv-l">Notes</span><input data-tdn type="text" placeholder="Optional" aria-label="Today payment '+(i+1)+' notes"></div></div>';}
+  var todayHtml='<div class="pv-block pv-today" aria-label="Today\'s payments calculator"><h4 class="pv-sh">Today\'s payments <small class="pv-tag">'+esc(fmtDate(ymd(TODAY)))+'</small></h4><div class="td-rows" id="tdRows">'+tdRowHtml(0)+'</div>'+
+     '<div class="td-bar"><button class="btn pv-add" type="button" id="tdAdd">+ Add another</button><span class="td-tot">Today\'s total <b id="tdTot">'+esc(money(0))+'</b></span><button class="btn primary" type="button" id="tdProcess">Process to Total payments</button></div></div>';
   var cpShow=1;for(var ci=0;ci<cur.length;ci++){if(cur[ci]&&lpNum(cur[ci].amt)>0)cpShow=ci+1;}
-  h+='<div class="pv-block" aria-label="Payments to customer"><h4 class="pv-bh"><span class="pv-step">2</span>Payments to customer</h4><div class="cp-rows">';
+  h+='<div class="pv-right"><h4 class="pv-bh pv-rh"><span class="pv-step">2</span>Payments to customers</h4>'+todayHtml+'<div class="pv-block pv-total" aria-label="Total payments"><h4 class="pv-sh">Total payments <small class="pv-tag">Everything paid to the customer so far</small></h4><div class="cp-rows">';
   for(var i=0;i<cpShow;i++){h+=cpRowHtml(i,cur[i]);}
-  h+='</div><button class="btn pv-add" type="button" id="cpAddRow">+ Add another payment</button></div><div class="cp-sub" id="cpSub"></div><div class="pv-foot">'+(host?'':'<button class="btn" data-close>Cancel</button>')+'<button class="btn primary" id="cpSave">Save payments</button></div>';
+  h+='</div><button class="btn pv-add" type="button" id="cpAddRow">+ Add another payment</button></div></div></div><div class="cp-sub" id="cpSub"></div><div class="pv-foot">'+(host?'':'<button class="btn" data-close>Cancel</button>')+'<button class="btn primary" id="cpSave">Save payments</button></div>';
   if(host){host.innerHTML=h;var kt=document.getElementById("payKpiTop"),kb=host.querySelector(".pv-kpis");if(kt&&kb)kt.appendChild(kb);}
   var m=host||openPayModal(h);if(!host)m.classList.add("wide");
   function q(sel,r){return r.querySelector(sel);}
@@ -4937,7 +4993,25 @@ function openCustPay(id,host){
     var pe=document.getElementById("cpPend"),pl=document.getElementById("cpPendL");if(pe){pe.textContent=cpPendVal(pend);pe.classList.toggle("neg",pend!==null&&pend<0);}if(pl)pl.textContent=cpPendLabel(pend);
     m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("")+
      '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Pending from bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
+    updT();
     return tot;
+  }
+  function tdRows(){return [].slice.call(m.querySelectorAll(".td-row"));}
+  function updT(){
+    var rs=tdRows(),other=0,full=null,paidNow=0,t=0;
+    trs().forEach(function(r){paidNow+=lpNum(q("[data-cpa]",r).value);});
+    rs.forEach(function(r){if(q("[data-tdt]",r).value==="Full payment"&&net!==null)full=r;});
+    rs.forEach(function(r){var a=q("[data-tda]",r);a.readOnly=(r===full);if(r!==full)other+=lpNum(a.value);});
+    if(full){var v=Math.max(0,net-paidNow-other);q("[data-tda]",full).value=v>0?String(Math.round(v*100)/100):"0";}
+    rs.forEach(function(r){t+=lpNum(q("[data-tda]",r).value);});
+    var te=m.querySelector("#tdTot");if(te)te.textContent=money(t);
+    return t;
+  }
+  function wireT(r){
+    q("[data-tda]",r).oninput=function(){updT();};
+    q("[data-tdt]",r).onchange=function(){
+      if(this.value==="Full payment"){var dup=tdRows().some(function(o){return o!==r&&q("[data-tdt]",o).value==="Full payment";})||trs().some(function(o){return q("[data-cpt]",o).value==="Full payment";});if(dup){toast("Only one Full payment is allowed");this.value="Partial payment";}}
+      updT();};
   }
   function wireRow(r){
     q("[data-cpa]",r).oninput=function(){var d=q("[data-cpd]",r);if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
@@ -4954,6 +5028,8 @@ function openCustPay(id,host){
       var d=q("[data-cpd]",r);if(!d.value)d.value=ymd(TODAY);upd();};
   }
   trs().forEach(wireRow);
+  tdRows().forEach(wireT);
+  m.querySelector("#tdAdd").onclick=function(){var tb=m.querySelector("#tdRows");tb.insertAdjacentHTML("beforeend",tdRowHtml(tdRows().length));var nr=tdRows()[tdRows().length-1];wireT(nr);q("[data-tda]",nr).focus();updT();};
   m.querySelector("#cpAddRow").onclick=function(){
     var n=trs().length,tb=m.querySelector(".cp-rows");
     tb.insertAdjacentHTML("beforeend",cpRowHtml(n,null));
@@ -4962,23 +5038,34 @@ function openCustPay(id,host){
   m.querySelector("#cpBank").oninput=function(){var d=m.querySelector("#cpBankD");if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
   upd();
   m.querySelector("#cpBankFill").onclick=function(){var b=m.querySelector("#cpBank"),d=m.querySelector("#cpBankD");b.value=String(cc0.base);if(!d.value)d.value=ymd(TODAY);upd();};
-  m.querySelector("#cpSave").onclick=function(){
-    var out=[],bad=null,tot=0;
+  function doSave(extra){
+    var out=[],bad=null,tot=0,added=0;
     trs().forEach(function(r,i){
       var a=lpNum(q("[data-cpa]",r).value),t=q("[data-cpt]",r).value,d=q("[data-cpd]",r).value,n=q("[data-cpn]",r).value.trim();
       if(a<0&&!bad)bad="Payment "+(i+1)+": amount cannot be negative";
       if(a>0&&!d){d=ymd(TODAY);}
       if(a>0){tot+=a;out.push({n:i+1,type:t,amt:a,date:d,note:n});}else out.push(null);
     });
+    if(extra&&extra.length){out=out.filter(Boolean).map(function(e,i){e.n=i+1;return e;});} /* no blank gaps once today's payments are added */
+    (extra||[]).forEach(function(e){added+=e.amt;tot+=e.amt;out.push({n:out.length+1,type:e.type,amt:e.amt,date:e.date,note:e.note});});
     var bAmt=lpNum(m.querySelector("#cpBank").value),bDate=m.querySelector("#cpBankD").value;
-    if(bAmt<0){toast("Amount received from bank cannot be negative");return;}
+    if(bAmt<0){toast("Amount received from bank cannot be negative");return false;}
     if(bAmt>0&&!bDate)bDate=ymd(TODAY);
-    if(bad){toast(bad);return;}
-    if(net!==null&&tot>net+0.005){toast("Total paid is more than the net after PDD");return;}
+    if(bad){toast(bad);return false;}
+    if(net!==null&&tot>net+0.005){toast("Total paid is more than the net payable");return false;}
     var before=cpPaid(l);
     x.cpay=out;x.bank={amt:bAmt>0?bAmt:"",date:bAmt>0?bDate:"",note:m.querySelector("#cpBankN").value.trim()};
-    l.hist.unshift({ts:stamp(),text:"Customer payments saved: total paid "+money(tot)+(net!==null?", balance "+money(net-tot):"")+" (was "+money(before)+"); received from bank "+money(bAmt),type:"system"});
-    saveLeads();toast("Payments saved");if(host){renderLead();}else{closeAll();renderPayments();}
+    l.hist.unshift({ts:stamp(),text:(added>0?"Today's payments processed: "+money(added)+"; ":"Customer payments saved: ")+"total paid "+money(tot)+(net!==null?", balance "+money(net-tot):"")+" (was "+money(before)+"); received from bank "+money(bAmt),type:"system"});
+    saveLeads();toast(added>0?"Today's payments processed":"Payments saved");if(host){renderLead();}else{closeAll();renderPayments();}
+    return true;
+  }
+  m.querySelector("#cpSave").onclick=function(){doSave(null);};
+  m.querySelector("#tdProcess").onclick=function(){
+    var add=[],bad=null;
+    tdRows().forEach(function(r,i){var a=lpNum(q("[data-tda]",r).value);if(a<0&&!bad)bad="Today's payment "+(i+1)+": amount cannot be negative";if(a>0)add.push({type:q("[data-tdt]",r).value,amt:a,date:ymd(TODAY),note:q("[data-tdn]",r).value.trim()});});
+    if(bad){toast(bad);return;}
+    if(!add.length){toast("Enter today's payment amount first");return;}
+    doSave(add);
   };
 }
 function lpTabHtml(kind){
