@@ -674,6 +674,14 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .pr-tbl .r{text-align:right;font-variant-numeric:tabular-nums}
 .pr-tbl tfoot th{color:var(--ink);font-size:13.5px;border-bottom:0}
 @media (max-width:760px){.pv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pv-f3,.cp-row,.pr-line{grid-template-columns:minmax(0,1fr)}}
+.pr-calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px;background:var(--bg);border-radius:10px;padding:12px 14px}
+.pr-calc div{display:flex;justify-content:space-between;gap:10px;font-size:13.5px}
+.pr-calc span{color:var(--muted)}
+.pr-calc b{font-variant-numeric:tabular-nums}
+.pr-calc .t{grid-column:1/-1;border-top:1px solid var(--line);padding-top:8px;font-weight:600}
+.pr-calc .t span{color:var(--ink)}
+.cp-calc{margin:0 0 12px;font-size:13px;color:var(--muted)}
+.cp-calc b{color:var(--ink)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -2795,6 +2803,15 @@ function payViewHtml(l){
 }
 
 /* ---------- Payment Details tab (view only): everything is fetched from Customer payments ---------- */
+
+function cpCalc(l){
+  var nd=ldx(l).nd||{},loan=lpNum(l.amount),pf=lpNum(nd.pf),ls=lpNum(nd.ls);
+  var r=lpNum(lpPddAmount(l,"RTO charges")),c=lpNum(lpPddAmount(l,"Challan charges")),o=lpNum(lpPddAmount(l,"Other charges"));
+  var base=loan-pf-ls; /* what the bank should pay: Loan Amount - Processing Fees - Loan Suraksha */
+  return {loan:loan,pf:pf,ls:ls,r:r,c:c,o:o,base:base,client:base-r-c-o};
+}
+function cpPendLabel(pend){return pend!==null&&pend<0?"Excess from bank":"Pending from bank";}
+function cpPendVal(pend){return pend===null?"\u2014":money(Math.abs(pend));}
 function cpSnap(l){
   var x=ldx(l),nd=x.nd||{},net=lpNet(l);
   var ch=lpNum(lpPddAmount(l,"RTO charges"))+lpNum(lpPddAmount(l,"Challan charges"))+lpNum(lpPddAmount(l,"Other charges"));
@@ -2817,7 +2834,13 @@ function payReadHtml(l){
    '<div class="pr-actions"><span class="pr-ro">View only &middot; from Customer payments</span><button class="btn primary" type="button" data-payshare>'+ldi("share")+' Share</button></div></div>'+
    '<div class="pr-kpis"><div class="kpi"><span>Net payable</span><b>'+mm(s.net)+'</b></div><div class="kpi"><span>Total paid</span><b>'+mm(s.paid)+'</b></div>'+
    '<div class="kpi kpi-bal"><span>Balance to pay</span><b'+(s.bal!==null&&s.bal<0?' class="neg"':'')+'>'+mm(s.bal)+'</b></div>'+
-   '<div class="kpi"><span>Received from bank</span><b>'+mm(s.bank.amt)+'</b></div><div class="kpi"><span>Pending from bank</span><b'+(s.pend!==null&&s.pend<0?' class="neg"':'')+'>'+mm(s.pend)+'</b></div></div>';
+   '<div class="kpi"><span>Received from bank</span><b>'+mm(s.bank.amt)+'</b></div><div class="kpi"><span>'+cpPendLabel(s.pend)+'</span><b'+(s.pend!==null&&s.pend<0?' class="neg"':'')+'>'+cpPendVal(s.pend)+'</b></div></div>';
+  var cc=cpCalc(l);
+  h+='<h4 class="pr-h">How the amounts are worked out</h4><div class="pr-calc">'+
+   '<div><span>Loan amount</span><b>'+esc(money(cc.loan))+'</b></div><div class="m"><span>Processing fees</span><b>'+esc(money(cc.pf))+'</b></div><div class="m"><span>Loan Suraksha</span><b>'+esc(money(cc.ls))+'</b></div>'+
+   '<div class="t"><span>Net disbursement (expected from bank)</span><b>'+esc(money(cc.base))+'</b></div>'+
+   '<div class="m"><span>RTO charges</span><b>'+esc(money(cc.r))+'</b></div><div class="m"><span>Challan charges</span><b>'+esc(money(cc.c))+'</b></div><div class="m"><span>Other charges</span><b>'+esc(money(cc.o))+'</b></div>'+
+   '<div class="t"><span>Net payable to customer</span><b>'+esc(money(cc.client))+'</b></div></div>';
   h+='<h4 class="pr-h">Received from bank</h4>';
   h+=s.bank.amt>0?'<div class="pr-line"><div><small>Amount</small><b>'+esc(money(s.bank.amt))+'</b></div><div><small>Date received</small><b>'+dd(s.bank.date)+'</b></div><div class="pr-wide"><small>Notes</small><b>'+(s.bank.note?esc(s.bank.note):"\u2014")+'</b></div></div>':'<p class="note">No amount received from bank has been entered in Customer payments.</p>';
   h+='<h4 class="pr-h">Payments to customer</h4>';
@@ -2841,7 +2864,7 @@ function payShareText(l){
   else L.push("No payment entered yet");
   a("Total paid",money(s.paid));a("Balance to pay",mm(s.bal));
   L.push("");L.push("*Received from bank*");
-  a("Amount",money(s.bank.amt));if(s.bank.amt>0&&s.bank.date)a("Date",fmtDate(s.bank.date));a("Pending from bank",mm(s.pend));
+  a("Amount",money(s.bank.amt));if(s.bank.amt>0&&s.bank.date)a("Date",fmtDate(s.bank.date));a(cpPendLabel(s.pend),s.pend===null?"-":money(Math.abs(s.pend)));
   return L.join("\n");
 }
 function payShareOpen(l){
@@ -4816,6 +4839,8 @@ function lpOpt(a,cur,ph){return (ph?'<option value="">'+ph+'</option>':"")+a.map
 function lpNum(v){var n=parseFloat(v);return isNaN(n)?0:n;}
 function lpNet(l){
   var x=ldx(l),nd=x.nd||{};
+  var live=(l.stage==="Disbursed")?dsbNetVal(l):null; /* always worked out fresh from the figures, so it can never be stale */
+  if(live!==null)return live;
   if(x.net!==undefined&&String(x.net).trim()!=="")return lpNum(x.net);
   if(["pf","ls","ch","rto","oth"].some(function(k){return nd[k]!==undefined&&String(nd[k]).trim()!=="";}))return lpNum(l.amount)-(lpNum(nd.pf)+lpNum(nd.ls)+lpNum(nd.ch)+lpNum(nd.rto)+lpNum(nd.oth));
   return null;
@@ -4878,10 +4903,11 @@ function openCustPay(id,host){
   if(mig>0&&!lpNum(bank.amt))bank={amt:mig,date:(cur.length?"":""),note:bank.note||""};
   function mm(v){return v===null?"—":esc(money(v));}
   var sub=esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
+  var cc0=cpCalc(l);
   var h=(host?'<div class="pv-head"><h3 class="nd-h">Received Details</h3><p class="pv-sub">'+sub+'</p></div>':'<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+sub+'</p>')+
-   '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi"><b id="cpPend">—</b><span>Pending from bank</span></div></div>';
+   '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi"><b id="cpPend">—</b><span id="cpPendL">Pending from bank</span></div></div>';
   if(net===null)h+='<p class="note pv-warn">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
-  h+='<div class="pv-block" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><div class="pv-fields pv-f3">'+
+  h+='<div class="pv-block" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><p class="cp-calc">Expected from bank = Loan '+esc(money(cc0.loan))+' &minus; Processing fees '+esc(money(cc0.pf))+' &minus; Loan Suraksha '+esc(money(cc0.ls))+' = <b>'+esc(money(cc0.base))+'</b> <button type="button" class="cp-fill" id="cpBankFill">Fill expected</button></p><div class="pv-fields pv-f3">'+
    '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
    '<div class="nd-f"><label for="cpBankD">Date received</label><input id="cpBankD" type="date" value="'+esc(bank.date||"")+'"></div>'+
    '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></div>';
@@ -4908,7 +4934,7 @@ function openCustPay(id,host){
     document.getElementById("cpPaid").textContent=money(tot);
     var b=document.getElementById("cpBal");b.textContent=net===null?"—":money(net-tot);b.classList.toggle("neg",net!==null&&net-tot<0);
     var bk=lpNum(m.querySelector("#cpBank").value),pend=netD===null?null:netD-bk;
-    var pe=document.getElementById("cpPend");if(pe){pe.textContent=pend===null?"—":money(pend);pe.classList.toggle("neg",pend!==null&&pend<0);}
+    var pe=document.getElementById("cpPend"),pl=document.getElementById("cpPendL");if(pe){pe.textContent=cpPendVal(pend);pe.classList.toggle("neg",pend!==null&&pend<0);}if(pl)pl.textContent=cpPendLabel(pend);
     m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("")+
      '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Pending from bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
     return tot;
@@ -4935,6 +4961,7 @@ function openCustPay(id,host){
   };
   m.querySelector("#cpBank").oninput=function(){var d=m.querySelector("#cpBankD");if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
   upd();
+  m.querySelector("#cpBankFill").onclick=function(){var b=m.querySelector("#cpBank"),d=m.querySelector("#cpBankD");b.value=String(cc0.base);if(!d.value)d.value=ymd(TODAY);upd();};
   m.querySelector("#cpSave").onclick=function(){
     var out=[],bad=null,tot=0;
     trs().forEach(function(r,i){
