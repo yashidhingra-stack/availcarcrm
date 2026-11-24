@@ -3200,12 +3200,15 @@ function renderDisbLead(l){
   var emailHtml=state.ldBox?bxe("email",l.email||"","text"):(l.email?'<span>'+esc(l.email)+'</span>':'&mdash;');
   var mob=state.ldBox?bxe("phone",l.phone||"","text"):(tel?'<a class="ld-link" href="tel:+91'+l.phone+'">'+esc(l.phone)+'</a>':esc(l.phone))+ldBtn('data-ldcopy="'+esc(l.phone)+'"','Copy number','copy')+
     (tel?'<a class="icon-btn" href="tel:+91'+l.phone+'" aria-label="Call" title="Call">'+ldi("phone")+'</a><a class="icon-btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">'+ldi("chat")+'</a>':'');
-  var dsbUp=(l.stage==="Disbursed"&&!l.cat)?(function(){ /* Disbursement figures: shown in the upper summary box for disbursed files */
+  var dsbUp=(l.stage==="Disbursed"&&!l.cat)?(function(){ /* Disbursement figures follow the requested summary order */
     var nd=x.nd||{},nb=dsbNetBase(l),nc=dsbNetVal(l);
-    return sm("Processing Fees",dsbHas(nd.pf)?esc(money(dsbNum(nd.pf))):"—")+sm("Loan Suraksha",dsbHas(nd.ls)?esc(money(dsbNum(nd.ls))):"—")+
-      sm("RTO charges",esc(money(lpNum(lpPddAmount(l,"RTO charges")))))+sm("Challan Charges",esc(money(lpNum(lpPddAmount(l,"Challan charges")))))+
-      sm("Other charges",esc(money(lpNum(lpPddAmount(l,"Other charges")))))+
-      sm("Net Disbursement",nb===null?"—":esc(money(nb)))+sm("Net Disbursement To Client",nc===null?"—":esc(money(nc)));
+    return sm("Loan Suraksha",dsbHas(nd.ls)?esc(money(dsbNum(nd.ls))):"—")+
+      sm("Processing Fee",dsbHas(nd.pf)?esc(money(dsbNum(nd.pf))):"—")+
+      sm("RTO Charges",esc(money(lpNum(lpPddAmount(l,"RTO charges")))))+
+      sm("Challan Charges",esc(money(lpNum(lpPddAmount(l,"Challan charges")))))+
+      sm("Other Charges",esc(money(lpNum(lpPddAmount(l,"Other charges")))))+
+      sm("Net Disbursement",nb===null?"—":esc(money(nb)))+
+      sm("Net Disbursement to Client",nc===null?"—":esc(money(nc)));
   })():"";
   var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
   var pdetOn=pddV||(state.leadCtx==="Disbursed"&&l.stage==="Disbursed"&&!l.cat); /* PDD Details + Payment Details: PDD Status, Closed and Disbursement Business */
@@ -3217,11 +3220,13 @@ function renderDisbLead(l){
    '<div class="ld-ids"><div><small>Audience ID</small><span class="ld-link">'+aud+'</span></div><div><small>Lead Stage:</small>'+stageHtml+'</div></div>'+
    '<dl class="ld-kv"><dt>Email:</dt><dd>'+emailHtml+'</dd><dt>Mobile:</dt><dd>'+mob+'</dd><dt>Added On:</dt><dd>'+esc(l.date)+'</dd><dt>Updated On:</dt><dd>'+esc(upd)+'</dd></dl></section>'+
    '<section class="ld-sum" aria-label="Lead overview"><dl class="ld-grid">'+
-     sme("Lead Owner:","owner",l.owner,"owner",esc(l.owner))+
-     (dsbHide?"":sm("Recent Followup",esc(fdt)))+
-     sme("Vehicle Number","reg",l.reg||"","text",esc(l.reg||"—"))+sme("Loan Amount","amount",l.amount||"","num",l.amount?esc(money(l.amount)):"—")+
-     sme("Vehicle","vehicle",l.vehicle||"","text",esc(l.vehicle||"—"))+sme("Product","product",l.product,"product",esc(l.product||"—"))+
-     sme("Lender","lender",l.lender||"","lender",esc(l.lender||"—"))+sme("Bank Executive","bankExec",x.bankExec||"","text",esc(x.bankExec||"—"))+dsbUp+
+     sme("Lead Owner","owner",l.owner,"owner",esc(l.owner))+
+     sme("Product","product",l.product,"product",esc(l.product||"—"))+
+     sme("Vehicle Make","make",l.make||"","text",esc(l.make||"—"))+
+     sme("Vehicle Model","vehicle",l.vehicle||"","text",esc(l.vehicle||"—"))+
+     sme("Vehicle Number","reg",l.reg||"","text",esc(l.reg||"—"))+
+     sme("Bank Executive","bankExec",x.bankExec||"","text",esc(x.bankExec||"—"))+
+     sme("Loan Amount","amount",l.amount||"","num",l.amount?esc(money(l.amount)):"—")+dsbUp+
      (dsbHide?"":sme("Lead Source","source",l.source,"source",esc(l.source)))+
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
