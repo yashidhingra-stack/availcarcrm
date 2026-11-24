@@ -638,6 +638,42 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .du-row .field{margin-bottom:8px}.du-row input[type=file]{width:100%}.du-row select{width:100%}
 #duList .name-link{text-align:left}
 @media (max-width:640px){.du-row{grid-template-columns:1fr auto}.du-row .field:first-child{grid-column:1/-1}}
+
+/* ---- Customer payments: clearer Received Details, and the view-only Payment Details tab ---- */
+.pv-grid.pv-one{grid-template-columns:minmax(0,860px)}
+.pv-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pv-kpis .kpi,.pr-kpis .kpi{display:flex;flex-direction:column-reverse;gap:2px}
+.pv-kpis .kpi span,.pr-kpis .kpi span{font-size:12px;color:var(--muted)}
+.pv-kpis .kpi b{font-size:19px}
+.pv-f3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr)}
+.pv-block{background:var(--surface);border-radius:14px;padding:16px 18px}
+.pv-block .pv-bh{margin-bottom:14px}
+.cp-row{grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,1fr);gap:12px;padding:14px 16px;border:1px solid var(--line);background:var(--bg);border-radius:12px}
+.cp-n{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.cp-badge{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700}
+.cp-row .pv-l{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cp-fill{border:0;background:none;padding:0;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer}
+.cp-fill:hover{text-decoration:underline}
+.cp-sub{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top-style:solid}
+.pv-foot{position:sticky;bottom:0;background:var(--surface);padding:12px 0 2px;margin-top:14px}
+.pv-foot .btn.primary{padding:11px 28px;font-size:14px}
+.pr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.pr-actions{display:flex;align-items:center;gap:10px}
+.pr-ro{font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.pr-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:6px}
+.pr-kpis .kpi-bal{background:var(--accent-soft);border-color:var(--accent)}
+.pr-kpis .kpi-bal b{color:var(--accent)}
+.pr-kpis b.neg{color:var(--bad)}
+.pr-h{margin:20px 0 8px;font-size:14px;font-weight:600}
+.pr-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2fr);gap:12px;background:var(--bg);border-radius:10px;padding:12px 14px}
+.pr-line small{display:block;font-size:12px;color:var(--muted)}
+.pr-line b{font-weight:600;font-variant-numeric:tabular-nums}
+.pr-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.pr-tbl th,.pr-tbl td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}
+.pr-tbl th{font-size:12px;font-weight:600;color:var(--muted)}
+.pr-tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.pr-tbl tfoot th{color:var(--ink);font-size:13.5px;border-bottom:0}
+@media (max-width:760px){.pv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pv-f3,.cp-row,.pr-line{grid-template-columns:minmax(0,1fr)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -1955,7 +1991,7 @@ function openAddLead(){
    '<div class="row"><div class="field"><label for="aYear">Year</label><div class="cbx"><input id="aYear" class="cbx-in" autocomplete="off" inputmode="numeric" maxlength="4" role="combobox" aria-expanded="false" aria-autocomplete="list" placeholder="Search or select year"><button type="button" class="cbx-btn" tabindex="-1" aria-label="Show year list">&#9662;</button><div class="cbx-list" hidden role="listbox"></div></div></div></div>'+
    '<div class="row">'+sel("aLender","Lender",lenderOptions())+sel("aDealer","Dealer",allLeadDealerOptions())+'</div>'+
    sel("aCase","Case booked in",["Solution","Kuwy","Aardee","Cardekho","TML"])+
-   '<div class="row"><div class="field"><label for="aEmail">Email</label><input id="aEmail" type="email"></div>'+sel("aSource","Lead source",["Walk-in"].concat(sources.filter(function(o){return o!=="Walk-in";})))+'</div>'+
+   '<div class="row"><div class="field"><label for="aEmail">Email</label><input id="aEmail" type="email"></div></div>'+
    '<div class="row"><div class="field"><label for="aReg">Vehicle number</label><input id="aReg"></div><div class="field"><label for="aBankExec">Bank executive</label><input id="aBankExec"></div></div>'+
    (pageKey()==="Audience"?'':'<div class="row">'+sel("aPrev","Previous lead owner",[""].concat(owners))+sel("aMgr","Reporting manager",[""].concat(owners))+'</div>')+
    (function(){var al=attrsForPage(pageKey());return al.length?'<div class="sec-label" style="margin-top:6px">Additional details</div><div class="row" style="flex-wrap:wrap">'+al.map(function(a){return cxField({x:{cx:{}}},a).replace('id="ld_cx_','id="aCx_');}).join("")+'</div>':"";})()+
@@ -2755,7 +2791,70 @@ function dsbRowParts(l){
 function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.pf+P.ls+P.net+P.netClient;}
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
-  return '<div class="pv" aria-label="Payment details"><div id="payKpiTop"></div><div class="pv-grid"><section class="nd-card pv-card" id="recvHost" aria-label="Received details"></section>'+pddDetHtml(l)+'</div></div>';
+  return '<div class="pv" aria-label="Payment details"><div id="payKpiTop"></div><div class="pv-grid pv-one"><section class="nd-card pv-card" id="recvHost" aria-label="Received details"></section></div></div>';
+}
+
+/* ---------- Payment Details tab (view only): everything is fetched from Customer payments ---------- */
+function cpSnap(l){
+  var x=ldx(l),nd=x.nd||{},net=lpNet(l);
+  var ch=lpNum(lpPddAmount(l,"RTO charges"))+lpNum(lpPddAmount(l,"Challan charges"))+lpNum(lpPddAmount(l,"Other charges"));
+  var cur=Array.isArray(x.cpay)?x.cpay.slice():[nd.p1,nd.p2,nd.p3].map(function(v){return lpNum(v)>0?{type:"Partial payment",amt:lpNum(v),date:"",note:""}:null;});
+  var b0=x.bank&&typeof x.bank==="object"?x.bank:{},bank={amt:b0.amt,date:b0.date||"",note:b0.note||""},mig=0;
+  cur=cur.map(function(e){if(e&&e.type==="From bank"){mig+=lpNum(e.amt);return null;}return e;});
+  if(mig>0&&!lpNum(bank.amt))bank.amt=mig;
+  var list=[],paid=0;
+  cur.forEach(function(e,i){if(e&&lpNum(e.amt)>0){list.push({n:i+1,type:e.type||"Partial payment",amt:lpNum(e.amt),date:e.date||"",note:e.note||""});paid+=lpNum(e.amt);}});
+  var bk=lpNum(bank.amt);
+  return {net:net,ch:ch,netD:net===null?null:net+ch,list:list,paid:paid,bal:net===null?null:net-paid,bank:{amt:bk,date:bank.date,note:bank.note},pend:net===null?null:net+ch-bk};
+}
+function payReadHtml(l){
+  var s=cpSnap(l);
+  function mm(v){return v===null?"\u2014":esc(money(v));}
+  function dd(v){return v?esc(fmtDate(v)):"\u2014";}
+  var sub=esc(((l.vehicle||"")+" "+(l.reg||"")).trim())+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
+  var h='<section class="nd-card pv-card pr-card" aria-label="Payment details, view only">'+
+   '<div class="pr-head"><div><h3 class="nd-h">Payment Details</h3><p class="pv-sub">'+sub+'</p></div>'+
+   '<div class="pr-actions"><span class="pr-ro">View only &middot; from Customer payments</span><button class="btn primary" type="button" data-payshare>'+ldi("share")+' Share</button></div></div>'+
+   '<div class="pr-kpis"><div class="kpi"><span>Net payable</span><b>'+mm(s.net)+'</b></div><div class="kpi"><span>Total paid</span><b>'+mm(s.paid)+'</b></div>'+
+   '<div class="kpi kpi-bal"><span>Balance to pay</span><b'+(s.bal!==null&&s.bal<0?' class="neg"':'')+'>'+mm(s.bal)+'</b></div>'+
+   '<div class="kpi"><span>Received from bank</span><b>'+mm(s.bank.amt)+'</b></div><div class="kpi"><span>Pending from bank</span><b'+(s.pend!==null&&s.pend<0?' class="neg"':'')+'>'+mm(s.pend)+'</b></div></div>';
+  h+='<h4 class="pr-h">Received from bank</h4>';
+  h+=s.bank.amt>0?'<div class="pr-line"><div><small>Amount</small><b>'+esc(money(s.bank.amt))+'</b></div><div><small>Date received</small><b>'+dd(s.bank.date)+'</b></div><div class="pr-wide"><small>Notes</small><b>'+(s.bank.note?esc(s.bank.note):"\u2014")+'</b></div></div>':'<p class="note">No amount received from bank has been entered in Customer payments.</p>';
+  h+='<h4 class="pr-h">Payments to customer</h4>';
+  if(s.list.length){
+    h+='<div class="tscroll"><table class="pr-tbl"><thead><tr><th>#</th><th>Type</th><th class="r">Amount</th><th>Date</th><th>Notes</th></tr></thead><tbody>'+
+      s.list.map(function(e){return '<tr><td>'+e.n+'</td><td>'+esc(e.type)+'</td><td class="r">'+esc(money(e.amt))+'</td><td>'+dd(e.date)+'</td><td>'+(e.note?esc(e.note):"\u2014")+'</td></tr>';}).join("")+
+      '</tbody><tfoot><tr><th colspan="2">Total paid</th><th class="r">'+esc(money(s.paid))+'</th><th colspan="2"></th></tr></tfoot></table></div>';
+  }else h+='<p class="note">No payment has been entered in Customer payments yet.</p>';
+  return h+'</section>';
+}
+function payShareText(l){
+  var s=cpSnap(l),L=[];
+  function a(k,v){L.push(k+": "+v);}
+  function mm(v){return v===null?"-":money(v);}
+  L.push("*Payment details*");
+  a("Name",l.name);if(l.phone)a("Mobile",l.phone);
+  if(l.reg)a("Vehicle number",l.reg);if(l.vehicle)a("Vehicle",l.vehicle);if(l.lender)a("Lender",l.lender);
+  a("Loan amount",money(lpNum(l.amount)));a("Net payable",mm(s.net));
+  L.push("");L.push("*Payments to customer*");
+  if(s.list.length)s.list.forEach(function(e){L.push(e.n+". "+e.type+": "+money(e.amt)+(e.date?" on "+fmtDate(e.date):"")+(e.note?" ("+e.note+")":""));});
+  else L.push("No payment entered yet");
+  a("Total paid",money(s.paid));a("Balance to pay",mm(s.bal));
+  L.push("");L.push("*Received from bank*");
+  a("Amount",money(s.bank.amt));if(s.bank.amt>0&&s.bank.date)a("Date",fmtDate(s.bank.date));a("Pending from bank",mm(s.pend));
+  return L.join("\n");
+}
+function payShareOpen(l){
+  var m=document.getElementById("modal"),txt=payShareText(l);
+  m.innerHTML='<h2>Share payment details</h2><div class="field"><label for="shText">Message (you can edit it before sending)</label><textarea id="shText" rows="12">'+esc(txt)+'</textarea></div>'+
+    '<div class="actions"><button class="btn" data-close>Close</button><button class="btn" id="shCopy">Copy</button>'+(navigator.share?'<button class="btn" id="shNative">Share\u2026</button>':'')+'<a class="btn primary" id="shWa" target="_blank" rel="noopener" href="#">Send on WhatsApp</a></div>';
+  m.classList.add("show");showOverlay(true);
+  var ta=document.getElementById("shText"),wa=document.getElementById("shWa");
+  function sync(){wa.href="https://wa.me/?text="+encodeURIComponent(ta.value);}
+  sync();ta.oninput=sync;
+  document.getElementById("shCopy").onclick=function(){ldCopyText(ta.value);};
+  var nb=document.getElementById("shNative");if(nb)nb.onclick=function(){navigator.share({title:"Payment details: "+l.name,text:ta.value}).catch(function(){});};
+  wa.addEventListener("click",function(){l.hist.unshift({ts:stamp(),text:"Payment details shared on WhatsApp",type:"system"});saveLeadsSoon();});
 }
 function ndCalcHtml(l){
   var nd=ldx(l).nd||{};
@@ -3045,8 +3144,11 @@ function renderDisbLead(l){
       sm("Other charges",esc(money(lpNum(lpPddAmount(l,"Other charges")))))+
       sm("Net Disbursement",nb===null?"—":esc(money(nb)))+sm("Net Disbursement To Client",nc===null?"—":esc(money(nc)));
   })():"";
+  var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
+  var pdetOn=pddV||(state.leadCtx==="Disbursed"&&l.stage==="Disbursed"&&!l.cat); /* PDD Details + Payment Details: PDD Status, Closed and Disbursement Business */
+  var onPay=pdetOn&&state.ldTab==="paydet"; /* Payment Details tab is view only: no Edit, no print/download */
   var dsbHide=true; /* all stages: no follow-up/remarks/lead source in the summary box */
-  var editBar=state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
+  var editBar=onPay?'':state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
   var h='<div class="ld-bar">'+editBar+'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
    '<div class="ld-top"><section class="ld-prof" aria-label="Lead summary"><div class="ld-who"><span class="ld-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span>'+nameHtml+'</div>'+
    '<div class="ld-ids"><div><small>Audience ID</small><span class="ld-link">'+aud+'</span></div><div><small>Lead Stage:</small>'+stageHtml+'</div></div>'+
@@ -3061,12 +3163,10 @@ function renderDisbLead(l){
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
-   '</dl><div class="ld-ico">'+ldBtn('data-ldquickfu','Add follow-up','plus')+ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file')+'</div></section></div>';
-  var pddV=inPddCtx(l); /* PDD: Lead Details and Additional Details are merged; the payment calculator gets its own Payment Details tab */
-  var pdetOn=(pddV&&state.leadCtx==="pdd")||(state.leadCtx==="Disbursed"&&l.stage==="Disbursed"&&!l.cat); /* PDD Details: same form in PDD Status and Disbursement Business, not in Closed */
+   '</dl><div class="ld-ico">'+ldBtn('data-ldquickfu','Add follow-up','plus')+ldBtn('data-ldshare','Share details on WhatsApp','share')+(onPay?'':ldBtn('data-ldprint','Print or save as PDF','file'))+'</div></section></div>';
   var payV=!!state.ldPay&&String(state.listRoute||"").indexOf("payments")===0&&l.stage==="Disbursed";
   var dsbV=(state.leadCtx==="Disbursed"||state.leadCtx==="pdd"||state.leadCtx==="Close")&&l.stage==="Disbursed"&&!l.cat; /* same lead details in Disbursement Business, PDD Status and Closed */
-  var tabs=payV?[["pview","Payment Details"],["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]:(pdetOn?[["details","Lead Details"],["pdet","PDD Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]);
+  var tabs=payV?[["pview","Customer Payments"],["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]:(pdetOn?[["details","Lead Details"],["pdet","PDD Details"],["paydet","Payment Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]);
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
   if(state.ldTab==="details"||state.ldTab==="more"){
@@ -3111,6 +3211,7 @@ function renderDisbLead(l){
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
   } else if(state.ldTab==="pdet"){ h+='<section class="ld-box" aria-label="PDD details">'+pddDetHtml(l)+'</section>';
+  } else if(state.ldTab==="paydet"){ h+=payReadHtml(l);
   } else if(state.ldTab==="docs"){ h+=ldDocsTab(l); } else { h+=ldFollow(l,today,tom); }
   h+='</div>';
   if(state.ldTab==="details"||state.ldTab==="more")h+=ldStatusBlock(l);
@@ -3130,7 +3231,8 @@ function renderDisbLead(l){
   q("[data-ldcopy]",function(b){b.onclick=function(){var n=b.getAttribute("data-ldcopy");if(navigator.clipboard)navigator.clipboard.writeText(n).then(function(){toast("Number copied");},function(){toast("Could not copy");});else toast("Copy is not available in this browser");};});
   q("[data-ldprint]",function(b){b.onclick=function(){ldPrint(l);};});
   q("[data-ldquickfu]",function(b){b.onclick=function(){ldQuickFu(l);};});
-  q("[data-ldshare]",function(b){b.onclick=function(){ldShareOpen(l);};});
+  q("[data-ldshare]",function(b){b.onclick=function(){if(onPay)payShareOpen(l);else ldShareOpen(l);};});
+  q("[data-payshare]",function(b){b.onclick=function(){payShareOpen(l);};});
   q("[data-docup]",function(b){b.onclick=function(){state.docSlot=+b.getAttribute("data-docup");var i=document.getElementById("docIn");if(i)i.click();};});
   q("[data-docrm]",function(b){b.onclick=function(){var id=b.getAttribute("data-docrm"),f=(l.files||[]).filter(function(x){return x.id===id;})[0];if(!f)return;l.files=l.files.filter(function(x){return x.id!==id;});try{URL.revokeObjectURL(f.url);}catch(_){}if(f.slot>=0&&!l.files.some(function(x){return x.slot===f.slot;}))l.docs[DOCS[f.slot]]=false;renderLead();toast("File removed");};});
   q("[data-docfield]",function(b){b.onclick=function(){ldPick(b.getAttribute("data-docfield"));};});
@@ -3141,7 +3243,7 @@ function renderDisbLead(l){
   if((pddV&&state.ldTab==="calc")&&l.stage==="Disbursed")ndWire(l,v);
   if(pddV&&state.ldTab==="pay")payWire(l,v);
   if(pdetOn&&state.ldTab==="pdet")pddDetWire(l,v);
-  if(payV&&state.ldTab==="pview"){pddDetWire(l,v);var rh=v.querySelector("#recvHost");if(rh)openCustPay(l.id,rh);}
+  if(payV&&state.ldTab==="pview"){var rh=v.querySelector("#recvHost");if(rh)openCustPay(l.id,rh);}
   var e=document.getElementById("ldE");
   if(e){
     var done=false;
@@ -3162,13 +3264,16 @@ function moveCats(){
     if(c.built){if(map[c.key])out.push({key:c.key,name:c.name,stage:c.key==="pdd"?"Disbursed":c.key,built:true});else out.push({key:c.key,name:c.name,stage:null,built:false});} /* Channel List and Data are listed too, like the reference */
     else out.push({key:c.key,name:c.name,stage:null,built:false});
   });
+  if(hierPageOk("Close"))out.push({key:"Close",name:"Closed",stage:"Disbursed",built:true}); /* Closed: offered only to files that are in PDD Status */
   return out;
 }
 function moveStatuses(key){
   var c=moveCats().filter(function(x){return x.key===key;})[0]; if(!c)return [];
   if(key==="pdd")return PDD_ST.slice();
+  if(key==="Close")return [PDD_ST[4]];
   if(key==="Disbursed")return ["Disbursement Pending","Advance Disbursement","Disbursed"];
-  return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage)&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
+  var ml=state.mvId?lead(state.mvId):null,fromPdd=!!ml&&inPddNow(ml); /* from PDD Status, Hold/Reject offers both Hold and Reject statuses */
+  return STATUS.filter(function(x){return x[0]!==RTO_ST&&(!c.stage||x[1]===c.stage||(key==="Hold"&&fromPdd&&x[1]==="Rejected"))&&hierStatusOk(x[0]);}).map(function(x){return x[0];});
 }
 function myOwnerName(){
   var u=userById(state.meUser);if(!u)return "";
@@ -3188,7 +3293,7 @@ function moveOwnerOptions(){
 /* step-by-step move: a lead can only go to the next category in the flow, not to every category */
 function moveNextKeys(l){
   if(!l||l.cat)return null; /* custom-category leads keep the full list */
-  if(inPddNow(l))return [];
+  if(inPddNow(l))return isApprovedRto(l)?["Login","Disbursed","Hold","pdd"]:["Login","Disbursed","Hold","Close"]; /* PDD Status: Login, Disbursement Business, Hold/Reject or Closed */
   var map={Audience:["Login"],Login:["Disbursed","Hold","Rejected"],Hold:["Disbursed","Rejected"],Disbursed:["pdd","Hold","Login"],Rejected:["Login"]};
   return map[l.stage]||null;
 }
@@ -3199,7 +3304,7 @@ function openMoveCat(id){
   var m=document.getElementById("modal"), ownerOpts=moveOwnerOptions();
   m.innerHTML='<div class="eu-head"><h2>Move Lead By Category</h2><button class="icon-btn" data-close aria-label="Close">'+ldi("close")+'</button></div>'+
    '<div class="field"><label for="mvOwner">Lead Owner<span style="color:#d6103c">*</span></label><select id="mvOwner"><option value="">Select Lead Owner</option>'+ownerOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===l.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
-   '<div class="field"><label for="mvCat">Category<span style="color:#d6103c">*</span></label><select id="mvCat"><option value="">Select Category</option>'+moveCats().filter(function(c){return !nk||nk.indexOf(c.key)>-1;}).map(function(c){return '<option value="'+c.key+'">'+esc(c.name)+'</option>';}).join("")+'</select></div>'+
+   '<div class="field"><label for="mvCat">Category<span style="color:#d6103c">*</span></label><select id="mvCat"><option value="">Select Category</option>'+moveCats().filter(function(c){return nk?nk.indexOf(c.key)>-1:c.key!=="Close";}).map(function(c){return '<option value="'+c.key+'">'+esc(c.name)+'</option>';}).join("")+'</select></div>'+
    '<div class="field"><label for="mvStatus">Status<span style="color:#d6103c">*</span></label><select id="mvStatus"><option value="">Select Status</option></select></div>'+
    '<div class="actions"><button class="btn primary" id="mvSubmit">Submit</button></div>';
   m.classList.add("show");showOverlay(true);
@@ -3219,7 +3324,8 @@ function submitMoveCat(){
   var c=moveCats().filter(function(x){return x.key===ck;})[0], old=l.status, oldCat=l.cat;
   if(!c){toast(DENY);return;}
   if(c.built)delete l.cat; else l.cat=ck;
-  if(ck==="pdd"){ /* PDD Status: lead stays a disbursed file; the chosen option is its PDD status */
+  if(ck==="pdd"||ck==="Close"){ /* PDD Status / Closed: lead stays a disbursed file; the chosen option is its PDD status (Closed = File Approved In RTO) */
+    if(ck==="Close")ns=PDD_ST[4];
     l.status="Disburse"; l.stage="Disbursed"; l.pddSt=ns; l.pddMoved=true; ns="Disburse";
     if(l.pdd==="—"||!l.pdd)l.pdd="Pending";
     l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" (PDD status "+l.pddSt+")",type:"status"});
@@ -3229,7 +3335,7 @@ function submitMoveCat(){
   }
   var shown=ns; /* Disbursement Business: Disbursement Pending / Advance Disbursement / Disbursed all keep the lead in Disbursement Business */
   if(ck==="Disbursed"&&ns==="Disbursed"){ns="Disburse";}
-  delete l.pddMoved; l.status=ns; l.stage=statusStage[ns];
+  delete l.pddMoved; delete l.pddImp; l.status=ns; l.stage=statusStage[ns];
   l.pdd=l.stage==="Disbursed"?(l.pdd==="—"||!l.pdd?"Pending":l.pdd):"—";
   l.hist.unshift({ts:stamp(),text:"Lead moved to "+c.name+" ("+(old!==ns?"status "+old+" to "+ns:"status "+ns)+")",type:"status"});
   purgeEarlierCopies(l);saveLeads();
@@ -4773,22 +4879,22 @@ function openCustPay(id,host){
   function mm(v){return v===null?"—":esc(money(v));}
   var sub=esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
   var h=(host?'<div class="pv-head"><h3 class="nd-h">Received Details</h3><p class="pv-sub">'+sub+'</p></div>':'<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+sub+'</p>')+
-   '<div class="pv-kpis"><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div></div>';
+   '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi"><b id="cpPend">—</b><span>Pending from bank</span></div></div>';
   if(net===null)h+='<p class="note pv-warn">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
-  h+='<div class="pv-block" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank</h4><div class="pv-fields">'+
+  h+='<div class="pv-block" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><div class="pv-fields pv-f3">'+
    '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
    '<div class="nd-f"><label for="cpBankD">Date received</label><input id="cpBankD" type="date" value="'+esc(bank.date||"")+'"></div>'+
    '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></div>';
   function cpRowHtml(i,e){e=e||{};
-    return '<div class="cp-row" data-cprow="'+i+'"><div class="cp-n">Payment '+(i+1)+'</div>'+
-     '<div class="nd-f"><span class="pv-l">Type</span><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></div>'+
-     '<div class="nd-f"><span class="pv-l">Amount</span><div class="nd-in"><span aria-hidden="true">₹</span><input data-cpa type="number" min="0" step="any" inputmode="decimal" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount"></div></div>'+
-     '<div class="nd-f"><span class="pv-l">Date</span><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></div>'+
-     '<div class="nd-f cp-note"><span class="pv-l">Notes</span><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Notes" aria-label="Payment '+(i+1)+' notes"></div></div>';}
+    return '<div class="cp-row" data-cprow="'+i+'"><div class="cp-n"><span class="cp-badge">'+(i+1)+'</span>Payment '+(i+1)+'</div>'+
+     '<div class="nd-f cp-type"><span class="pv-l">Type</span><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></div>'+
+     '<div class="nd-f cp-amt"><span class="pv-l">Amount<button type="button" class="cp-fill" data-cpfill>Fill balance</button></span><div class="nd-in"><span aria-hidden="true">₹</span><input data-cpa type="number" min="0" step="any" inputmode="decimal" placeholder="0" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount"></div></div>'+
+     '<div class="nd-f cp-date"><span class="pv-l">Date<button type="button" class="cp-fill" data-cptoday>Today</button></span><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></div>'+
+     '<div class="nd-f cp-note"><span class="pv-l">Notes</span><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Add a note (optional)" aria-label="Payment '+(i+1)+' notes"></div></div>';}
   var cpShow=1;for(var ci=0;ci<cur.length;ci++){if(cur[ci]&&lpNum(cur[ci].amt)>0)cpShow=ci+1;}
   h+='<div class="pv-block" aria-label="Payments to customer"><h4 class="pv-bh"><span class="pv-step">2</span>Payments to customer</h4><div class="cp-rows">';
   for(var i=0;i<cpShow;i++){h+=cpRowHtml(i,cur[i]);}
-  h+='</div><button class="btn pv-add" type="button" id="cpAddRow">+ Add new payment</button></div><div class="cp-sub" id="cpSub"></div><div class="pv-foot">'+(host?'':'<button class="btn" data-close>Cancel</button>')+'<button class="btn primary" id="cpSave">Save payments</button></div>';
+  h+='</div><button class="btn pv-add" type="button" id="cpAddRow">+ Add another payment</button></div><div class="cp-sub" id="cpSub"></div><div class="pv-foot">'+(host?'':'<button class="btn" data-close>Cancel</button>')+'<button class="btn primary" id="cpSave">Save payments</button></div>';
   if(host){host.innerHTML=h;var kt=document.getElementById("payKpiTop"),kb=host.querySelector(".pv-kpis");if(kt&&kb)kt.appendChild(kb);}
   var m=host||openPayModal(h);if(!host)m.classList.add("wide");
   function q(sel,r){return r.querySelector(sel);}
@@ -4802,12 +4908,21 @@ function openCustPay(id,host){
     document.getElementById("cpPaid").textContent=money(tot);
     var b=document.getElementById("cpBal");b.textContent=net===null?"—":money(net-tot);b.classList.toggle("neg",net!==null&&net-tot<0);
     var bk=lpNum(m.querySelector("#cpBank").value),pend=netD===null?null:netD-bk;
+    var pe=document.getElementById("cpPend");if(pe){pe.textContent=pend===null?"—":money(pend);pe.classList.toggle("neg",pend!==null&&pend<0);}
     m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("")+
      '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Pending from bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
     return tot;
   }
   function wireRow(r){
-    q("[data-cpa]",r).oninput=function(){upd();};
+    q("[data-cpa]",r).oninput=function(){var d=q("[data-cpd]",r);if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
+    q("[data-cpfill]",r).onclick=function(){
+      if(net===null){toast("Save the net disbursement first, so the balance can be worked out");return;}
+      var other=0;trs().forEach(function(o){if(o!==r)other+=lpNum(q("[data-cpa]",o).value);});
+      var v=Math.max(0,net-other),a=q("[data-cpa]",r);
+      a.value=v>0?String(Math.round(v*100)/100):"";
+      var d=q("[data-cpd]",r);if(v>0&&!d.value)d.value=ymd(TODAY);upd();
+    };
+    q("[data-cptoday]",r).onclick=function(){q("[data-cpd]",r).value=ymd(TODAY);};
     q("[data-cpt]",r).onchange=function(){
       if(this.value==="Full payment"){var dup=trs().some(function(o){return o!==r&&q("[data-cpt]",o).value==="Full payment";});if(dup){toast("Only one Full payment is allowed");this.value="Partial payment";}}
       var d=q("[data-cpd]",r);if(!d.value)d.value=ymd(TODAY);upd();};
@@ -6169,7 +6284,7 @@ document.addEventListener("click",function(e){
     var yrV=document.getElementById("aYear").value.trim();
     if(yrV&&yearChoices().indexOf(yrV)<0){toast("Select a year from "+yearChoices()[0]+" to "+yearChoices()[yearChoices().length-1]);document.getElementById("aYear").focus();return;}
     var vehEl=document.getElementById("aVeh"),vehMake=vehEl.dataset.make||vehMakeFor(vehEl.value);
-    var nl0=newLead({name:nm,phone:rpPh,owner:rpOw,product:document.getElementById("aProd").value,amount:+document.getElementById("aAmt").value||0,vehicle:document.getElementById("aVeh").value.trim(),year:document.getElementById("aYear").value.trim(),lender:document.getElementById("aLender").value,dealer:document.getElementById("aDealer").value,caseBooked:document.getElementById("aCase").value.trim(),fromForm:true,status:document.getElementById("aStatus").value,email:document.getElementById("aEmail").value.trim(),source:document.getElementById("aSource").value,reg:document.getElementById("aReg").value.trim(),bankExec:document.getElementById("aBankExec").value.trim(),prevOwner:(document.getElementById("aPrev")||{value:""}).value,mgr:(document.getElementById("aMgr")||{value:""}).value,make:vehMake});
+    var nl0=newLead({name:nm,phone:rpPh,owner:rpOw,product:document.getElementById("aProd").value,amount:+document.getElementById("aAmt").value||0,vehicle:document.getElementById("aVeh").value.trim(),year:document.getElementById("aYear").value.trim(),lender:document.getElementById("aLender").value,dealer:document.getElementById("aDealer").value,caseBooked:document.getElementById("aCase").value.trim(),fromForm:true,status:document.getElementById("aStatus").value,email:document.getElementById("aEmail").value.trim(),source:"Walk-in",reg:document.getElementById("aReg").value.trim(),bankExec:document.getElementById("aBankExec").value.trim(),prevOwner:(document.getElementById("aPrev")||{value:""}).value,mgr:(document.getElementById("aMgr")||{value:""}).value,make:vehMake});
     if(Object.keys(aCx).length)ldx(nl0).cx=aCx;
     saveLeads();state.page=1;closeAll();renderTable();toast("Lead added as "+nl0.status+" ("+nl0.stage+")");return;}
   if(t.id==="saveCamp"){
