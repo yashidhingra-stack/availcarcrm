@@ -2909,16 +2909,7 @@ function payShareText(l){
   return L.join("\n");
 }
 function payShareOpen(l){
-  var m=document.getElementById("modal"),txt=payShareText(l);
-  m.innerHTML='<h2>Share payment details</h2><div class="field"><label for="shText">Message (you can edit it before sending)</label><textarea id="shText" rows="12">'+esc(txt)+'</textarea></div>'+
-    '<div class="actions"><button class="btn" data-close>Close</button><button class="btn" id="shCopy">Copy</button>'+(navigator.share?'<button class="btn" id="shNative">Share\u2026</button>':'')+'<a class="btn primary" id="shWa" target="_blank" rel="noopener" href="#">Send on WhatsApp</a></div>';
-  m.classList.add("show");showOverlay(true);
-  var ta=document.getElementById("shText"),wa=document.getElementById("shWa");
-  function sync(){wa.href="https://wa.me/?text="+encodeURIComponent(ta.value);}
-  sync();ta.oninput=sync;
-  document.getElementById("shCopy").onclick=function(){ldCopyText(ta.value);};
-  var nb=document.getElementById("shNative");if(nb)nb.onclick=function(){navigator.share({title:"Payment details: "+l.name,text:ta.value}).catch(function(){});};
-  wa.addEventListener("click",function(){l.hist.unshift({ts:stamp(),text:"Payment details shared on WhatsApp",type:"system"});saveLeadsSoon();});
+  openShareDialog(l,"Share payment details",{text:payShareText(l),log:"Payment details shared on WhatsApp"});
 }
 function ndCalcHtml(l){
   var nd=ldx(l).nd||{};
@@ -5830,18 +5821,34 @@ function ldCopyText(t){
   function fallback(){var ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy");}catch(e){}ta.remove();toast(ok?"Details copied":"Could not copy");}
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast("Details copied");},fallback);else fallback();
 }
-function ldShareOpen(l){
-  var m=document.getElementById("modal"),txt=ldShareText(l);
-  m.innerHTML='<h2>Share lead details</h2><div class="field"><label for="shText">Message (you can edit it before sending)</label><textarea id="shText" rows="10">'+esc(txt)+'</textarea></div>'+
-    '<div class="actions"><button class="btn" data-close>Close</button><button class="btn" id="shCopy">Copy</button>'+(navigator.share?'<button class="btn" id="shNative">Share…</button>':'')+'<a class="btn primary" id="shWa" target="_blank" rel="noopener" href="#">Send on WhatsApp</a></div>';
-  m.classList.add("show");showOverlay(true);
-  var ta=document.getElementById("shText"),wa=document.getElementById("shWa");
-  function sync(){wa.href="https://wa.me/?text="+encodeURIComponent(ta.value);}
-  sync();ta.oninput=sync;
-  document.getElementById("shCopy").onclick=function(){ldCopyText(ta.value);};
-  var nb=document.getElementById("shNative");if(nb)nb.onclick=function(){navigator.share({title:"Lead: "+l.name,text:ta.value}).catch(function(){});};
-  wa.addEventListener("click",function(){l.hist.unshift({ts:stamp(),text:"Lead details shared on WhatsApp",type:"system"});saveLeadsSoon();});
+function sharePreviewHtml(txt){
+  return String(txt||"").split(/\\r?\\n/).map(function(line){
+    if(!line.trim())return '<div class="sh-gap"></div>';
+    var safe=esc(line).replace(/\\*([^*]+)\\*/g,"<strong>$1</strong>");
+    if(/^━+$/.test(line.trim()))return '<div class="sh-rule"></div>';
+    return '<div class="sh-line">'+safe+'</div>';
+  }).join("");
 }
+function openShareDialog(l,title,historyText){
+  var m=document.getElementById("modal"),txt=historyText.text;
+  m.innerHTML='<h2>'+esc(title)+'</h2>'+
+    '<p class="note">This is how your message will be arranged. Amounts are highlighted and each section is separated clearly.</p>'+
+    '<div id="shPreview" class="sh-preview"></div>'+
+    '<div class="field" id="shEditWrap" hidden><label for="shText">Edit message (optional)</label><textarea id="shText" rows="10"></textarea></div>'+
+    '<div class="actions"><button class="btn" data-close>Close</button><button class="btn" id="shEdit">Edit message</button><button class="btn" id="shCopy">Copy</button>'+
+    (navigator.share?'<button class="btn" id="shNative">Share…</button>':'')+
+    '<a class="btn primary" id="shWa" target="_blank" rel="noopener" href="#">Send on WhatsApp</a></div>';
+  m.classList.add("show");showOverlay(true);
+  var ta=document.getElementById("shText"),wa=document.getElementById("shWa"),preview=document.getElementById("shPreview"),editWrap=document.getElementById("shEditWrap"),editBtn=document.getElementById("shEdit");
+  ta.value=txt;
+  function sync(){preview.innerHTML=sharePreviewHtml(ta.value);wa.href="https://wa.me/?text="+encodeURIComponent(ta.value);}
+  sync();ta.oninput=sync;
+  editBtn.onclick=function(){var opening=editWrap.hidden;editWrap.hidden=!opening;editBtn.textContent=opening?"Hide editor":"Edit message";if(opening)ta.focus();};
+  document.getElementById("shCopy").onclick=function(){ldCopyText(ta.value);};
+  var nb=document.getElementById("shNative");if(nb)nb.onclick=function(){navigator.share({title:title,text:ta.value}).catch(function(){});};
+  wa.addEventListener("click",function(){l.hist.unshift({ts:stamp(),text:historyText.log,type:"system"});saveLeadsSoon();});
+}
+function ldShareOpen(l){openShareDialog(l,"Share lead details",{text:ldShareText(l),log:"Lead details shared on WhatsApp"});}
 function ldPrint(l){
   var lines=ldShareText(l).split("\n");
   var body=lines.map(function(t){
@@ -5850,7 +5857,12 @@ function ldPrint(l){
     if(hd&&t.indexOf(":")<0)return '<h3>'+esc(hd[1])+'</h3>';
     return '<p>'+esc(t.replace(/\*/g,""))+'</p>';
   }).join("");
-  var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(l.name)+' - lead details</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px}h1{font-size:20px;margin:0 0 2px}h3{font-size:14px;border-bottom:1px solid #bbb;padding-bottom:3px;margin:18px 0 6px}p{margin:3px 0;font-size:13px;line-height:1.4}.m{color:#555;font-size:12px;margin-bottom:6px}</style></head><body><h1>'+esc(l.name)+'</h1><div class="m">Audience ID '+esc(audOf(l))+' &middot; Printed '+esc(stamp())+'</div>'+body+'</body></html>';
+  var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(l.name)+' - lead details</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px}h1{font-size:20px;margin:0 0 2px}h3{font-size:14px;border-bottom:1px solid #bbb;padding-bottom:3px;margin:18px 0 6px}p{margin:3px 0;font-size:13px;line-height:1.4}.m{color:#555;font-size:12px;margin-bottom:6px}
+.sh-preview{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:14px 16px;max-height:48vh;overflow:auto;white-space:normal;overflow-wrap:anywhere}
+.sh-line{padding:2px 0;line-height:1.5}.sh-line strong{font-weight:800;color:var(--ink)}
+.sh-gap{height:8px}.sh-rule{border-top:1px solid var(--line);margin:8px 0}
+#shEditWrap textarea{width:100%;min-height:190px;white-space:pre-wrap;line-height:1.5}
+</style></head><body><h1>'+esc(l.name)+'</h1><div class="m">Audience ID '+esc(audOf(l))+' &middot; Printed '+esc(stamp())+'</div>'+body+'</body></html>';
   var f=document.createElement("iframe");f.setAttribute("aria-hidden","true");f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(f);
   var d=f.contentWindow.document;d.open();d.write(doc);d.close();
