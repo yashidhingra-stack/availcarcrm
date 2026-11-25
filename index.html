@@ -826,7 +826,9 @@ function audOk(x){return x[1]!=="Audience"||AUD_ST.indexOf(x[0])>-1;}
 var statusStage={}; STATUS.forEach(function(x){statusStage[x[0]]=x[1];});
 var SC={"Open":"#e8c33a","Disbursement Pending":"#f2a900","Follow Up":"#e8c33a","Call not picked":"#e4572e","Wrong No":"#c43d3d","Call later":"#f2a900","Call Invalid":"#c43d3d","Not Interested":"#7c5cc4","Interested":"#2b7de9","Documents Collected":"#2f8f5b","Login Pending":"#c43d3d","Login":"#2f8f5b","Approval Pending":"#f2a900","Approved":"#2f8f5b","Finally Hold":"#7c5cc4","Partially Hold":"#e4572e","Approved But Hold":"#e4572e","Postponed":"#e08a1e","Disburse":"#2f8f5b","Pending":"#e8c33a","Received":"#2f8f5b","Overdue":"#c43d3d","Advance Disbursement":"#e8c33a","Approved (Disbursement)":"#2f8f5b","Not Approved":"#c43d3d","Approved But Not Disbursed":"#e4572e","Reject":"#c43d3d"};
 SC["KYC Collected"]="#2f8f5b";SC["File Approved in RTO"]="#2f8f5b";
-var lenders=["AU Small Finance Bank","HDFC Bank","Cholamandalam Finance","SK Finance","Hero Fincorp","Mahindra Finance"];
+var LENDER_MASTER=["AU Small Finance Bank", "Axis Bank", "Bajaj Finserve", "Cholamandlam Finance", "Equitas Finance", "Fortune Finance ITIL", "HDB Finance", "HDFC Bank", "Hero Fincorp", "ICICI Bank", "IDFC First Bank", "Indo-Star Finance", "Indusind Bank", "Kogta Finance", "Kotak Mahindra Prime Ltd", "Mahindra & Mahindra Finance", "Piramal Finance", "Poonawala Fincorp", "Punjab & Sind Bank", "SK Finance", "Tata Capital", "Vastu Finserve", "YES Bank", "Yes Bank Ltd - Aggregator"];
+var lenders=LENDER_MASTER.slice();
+function lenderNorm(v){var t=String(v==null?"":v).replace(/&amp;/g,"&").replace(/^[\[\s']+|[\]\s']+$/g,"").split(",")[0].trim();if(!t)return "";var k=t.toLowerCase().replace(/[^a-z0-9]/g,"");var hit=LENDER_MASTER.filter(function(b){return b.toLowerCase().replace(/[^a-z0-9]/g,"")===k;})[0];if(hit)return hit;var al={"hdfc":"HDFC Bank","cholamandalamfinance":"Cholamandlam Finance","mahindrafinance":"Mahindra & Mahindra Finance","poonawallafincorp":"Poonawala Fincorp","idfcfirstbank":"IDFC First Bank"};return al[k]||t;}
 var dealers=["Sai Motors","Direct","Tricity Car Bazar","Gurunanak Cars","Car Studio","King Car - Monal Sharma","Direct - Direct","King Car Deepak","A One Car Point","King Cars Sumeet","Abhi Autoz - Abhishek Singla","OLX Autos","Urban Money","Loan Plaza","4X4 Cars","Luxury Dream Drive - Mandeep Narula","Royal Car Center","Next Car Ride Gill","Grace associate","Luxury Machine Baljinder","Shah Ji Cars","Sukhman Cars","Bawa Motors","Empire Auto","Empire Autos Jalandhar","JP Motors","Millenium Cars","Bittu Car Bazar","Zoo Box Gursagar","Master Carz","Sharma Motors","Car Stealz","MNK Car Bazar","Ganpati Motors","GM Car Bazar","Guru Motors","The Car Mall","Jyoti Next Car","Perfect Car Hub","Zobox - Gursagar Singh","Punjab Car Bazar - Bunty","Balaji Motors - Gaurav Mahajan","Dream Car Bazar - Baljeet Singh","Prince Balongi","Bawa Motor - Harjot Singh","Lucky cars","Car Studio - Tejinder Singh","Sukhman Car Bazar-Jasbir Singh","Alethia Finserv","Loan Plaza - Sandeep Singh Athani","Collabs Luxury Ride - Gurvinder Singh","New Dashmesh Motor - Rajpal Singh","MS Motors - Monty","Empire Auto Jalandhar - Gurdeep Singh","sonia malhotra","Luxury Machine - Baljinder Singh","Abrol Enterprise-Happy","Luxury Machine - Yadwinder Singh","Parampreet Singh","The next ride-Taranjot Singh","Royal Motor-Anmol","Next Car Ride - Surinder Singh Gill","A1 car Point-Dharminder Gill","Sharma Car Bazar - Rinku Sharma","Harjit Singh","Car Club - Gurdeep Singh","A TO Z Cars - Karan","GM Auto Sales - Manjeet Baidwan","Shah Ji Cars - Abhishek Sachdeva","The luxuary car- Sona","Ganpati Motor-Rajinder","Guru Motor - Raghbeer Singh","Jagtar","Sukha Malsian","Stealz Deals - Kamalpreet Singh","MNK Car Zone - Roshan Kumar","Awalpreet singh","DeolCars-Mani Singh","Singh cars Mohali","BN Car Bazar-Narinderjit singh","Vijay-Garage","King Cars - Sumit Saini","Khan Car Bazar-Gagan","Dhiman car bazar- Karan Dhiman","Royal Car Centre - Jasbir Singh","Naveen singla","JS Narang jalandhar","Dhindsa Cars - Mandeep Dhindsa","Munish Garg","DD Motors - Dixit Rajput","Bantu MS Motor jalandhar","Gurunanak Cars - Harjinder Singh","Bittu Car Bazar - Ankush Marwaha","Satkartar Motors - Mandeep Singh","JP Motors - Abhishek Gupta","Piyush-Zoo box","Abhishek Bansal - Abhishek Bansal","Superb Moter - Charanjit singh","AutoGallery - Vikas Bawa","Gurpreet Singh - Baba Deep Singh Motors","Bittu Nakoder","Bhupinder Singh","Satguru car bazar - Harsh","Monty DS car Bazar","Raj Shree Cars - Gopal Sharma","Crystal Cars - Deepak Arora","King Cars-Deepak","Vikram-Friend car Line","Money Point-Gurtej Singh","4X4 CARS","Sharma car bazaar (ambala)","King Luxury Wheels Rajan","Bhagwati Cars","Anoop Paul","Amarjeet singh DSA","Classic cars","Luxury Cars - Manmeet Singh","Nivesh Guleria","Daljeet singh Dsa","Maa Durga Cars - Abhinandan Sharma","Pardeep Gumra","Maan car bazar (Ambala)","Sumit Bakshi DSA","Guru Nanak Motors - Tanveer","Friends Car - Sunil Jolly","Baljinder Bajwa Freelancer","Lally Automobile","Balwinder Bajwa - Balwinder Bajwa","Deep Motor - Amandeep Singh","Jaswinder Singh","Gurpreet GM auto","Bittu - New Punjab Car Bazaar","Quality Cars - Munish","The Car mall - Inder Singh","Ravi Empire Motor","Tricity Car Bazar - Sandeep Singh","Nika - Mika","OLX Autos Jalandhar - Naveen","Sukhmeet Singh - Singh Car Bazar Jalandhar","Radhe Motors - Dipanshu Makkar","Kohli Motors Jalandhar","Ashish Banker","Bunty Empire Motor","Anmol Free Lancer -- Jalandhar","Sant Motors - Sukhpreet Singh","Harjot Singh -- Jalandhar","Anmoldeep Singh - Royal Car Bazar","DSA Harjot Singh","Dhirendra Gee Accociate","Sonu Amber Car Bazar - Sonu","Laddi Punjab cars","City Motors - Bunty","Sukhmeet Singh-Singh Cars","New Jagdambay Motors - Sahil","Crystal Car Bazar Jalandhar - Daman Singh","Global luxury cars jalandhar","Dharminder Singh Foji","Right Boy Toys - Tarik Mehta","Raja Motors - Bachan Singh","Dhanna car deal","Singh Car Bazar - Harsimran Singh","Jagdambey Motors - Sahil Sharma","Star cars","Satwinder DSA","Global luxury cars","DC Car point - Davinder Singh","Punjab Car Trade - Satnam Singh","Ride Car - Gurwinder Singh","Sahib motors","Sonu Malsiya","Right Boy Toys - Manikant Sharma","Kuldeep Tata Moter","Friends Car Line - Jaswinder Singh","Gobind car Tanda","Bhullar singh","Dilpreet Dealer","Angad heasle car","Regal Rights","Soni Dealer","DIMPY-Next car Ride","Jatinder Dealer zirakpur","Dr.Dealer","Prince-A1 Moter","A K CAR Ludhiana","William Car - William Johnson","RS Cars - Rajinder Singh","Dhillon Auto Dealer","Jaspreet Singh","Gama Auto Mobile","Chawla Motors - Jasmeet Singh","Abhishek- Punjab Cars","Luxury Machines - Satnam Singh","DSA Varinder","Gulati Motors Jalandhar - Inderbir Singh","DSA Munish karnal","Manpreet Singh Dealer","Singh Cars-Roop Singh","Lalli Freelancer","Rohit Arora Jalandhar Cars","Brother Car Bazaar - Arun Narula","Simar gurukirpa","Anmol Car Dreams","Saransh shri om  car bazar","Fortune Ride - Ranjit Singh","Car Trendz - Sonu Baidwan","Lucky Car Bazar- Lakhwinder Singh","Rahul Motors - Rahul","A TO Z Cars - Ranyodh Singh","The Auto Mart - Ajay Arya","Sukhmani car bazar","The Ride Zone","Deep Car word","Direct Source Banker","True drive Gurpreet singh","DSA-Amanpreet Kaur","Deepak bajwa","DSA-Sumandeep Kaur","DSA-Amit Sharma","Shree Shyam Associated","Urban Money - Sachin Gondhi","Shivam Av Auto","Elite Cars","Punjab Auto zone Gagan","Virat car tree","Tanuj Aneja","Sirjin Motors","Bhart bhushan","Narula Cars","Sai moter Sandeep","Ravinder Kumar","DSA Harkesh","DSA Harjeet Singh - Amritsar","Pal Car Bazaar","BN Car Point navnoor singh","Freelancer-Jaskirat Singh Jalandhar","Sumeet Mahajan-Car Hub Pathankot","Freelancer-Sourabh Nawashahar","Riki jalandhar dealer","SK Car Loan","Hari Dreams Solution","Millennium Cars - Rahul Juneja","Rahul Pathankot","Freelancer - Vipin","Shree Balaji Car Bazar","DSA Laxman","Pinka Hobby Motors","Davinder Arora","kundu Car Bazaar Kaithal","Car Choice-Nishu Pathankot","Diamond Car Bazar - Diljinder Singh","Harvinder DSA Delhi","Bittu - New Punjab Car Bazaar Jldh","Naveen Kumar -- Panchkula","Gurunanak Car Bazar Jalandhar - Jaswinderpal Singh","Guru Motors Raju","Majha Dealer","Freelancer","Sirjan Motors","Royal Cars"];
 var models=["Swift","Dzire","Scorpio-N","Bolero","XUV-500","Compass","Creta","i20","Baleno","Innova"];
 var sources=["Website","Referral","Walk-in","WhatsApp","Social ad"];
@@ -1282,28 +1284,8 @@ function selectField(k,label,list){
 }
 
 function lenderOptions(){
-  /* Full lender/bank master list shown consistently in Audience, Login Business,
-     and Login Disbursement filters, plus every lender present in loaded data. */
-  var master=[
-    "AU Small Finance Bank","Axis Bank","Bank of Baroda","Bank of India","Bank of Maharashtra",
-    "Canara Bank","Central Bank of India","Cholamandalam Finance","City Union Bank",
-    "DBS Bank India","DCB Bank","Federal Bank","HDFC Bank","ICICI Bank","IDBI Bank",
-    "IDFC FIRST Bank","Indian Bank","Indian Overseas Bank","IndusInd Bank","J&K Bank",
-    "Karur Vysya Bank","Kotak Mahindra Bank","Kotak Mahindra Prime Ltd","L&T Finance",
-    "Mahindra Finance","Manappuram Finance","Muthoot Finance","Nainital Bank","Poonawalla Fincorp",
-    "Punjab & Sind Bank","Punjab National Bank","RBL Bank","Saraswat Bank","Shriram Finance",
-    "SK Finance","South Indian Bank","State Bank of India","Tata Capital","UCO Bank",
-    "Union Bank of India","YES Bank","Hero Fincorp","Cholamandalam Finance"
-  ];
-  var all=master.concat(lenders||[]);
-  /* Always build the dropdown from the complete shared lead set. Some users
-     (for example Ravi) are scoped to their own leads in the page view; that
-     view scope must not hide lender choices in the Add lead form. */
-  var allRows=(typeof fullLeads==="function"?fullLeads():(leads||[]));
-  (allRows||[]).forEach(function(l){var n=String(l.lender||"").trim();if(n)all.push(n);});
-  all=all.filter(function(n,i,a){return n&&a.indexOf(n)===i;});
-  all.sort(function(a,b){return a.localeCompare(b);});
-  return all;
+  /* Lender dropdown = only the banks / financiers listed in the PDD sheet */
+  return LENDER_MASTER.slice().sort(function(a,b){return a.localeCompare(b);});
 }
 function businessGroups(mode){
   var map={};
@@ -2125,7 +2107,7 @@ function rowsToLeads(data,tag){
     var ownHit=owners.filter(function(x){return x.toLowerCase()===own.toLowerCase();})[0];
     if(own&&!ownHit){own=own===own.toUpperCase()||own===own.toLowerCase()?own.toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();}):own;ownHit=owners.filter(function(x){return x.toLowerCase()===own.toLowerCase();})[0]||own;if(owners.indexOf(ownHit)<0)owners.push(ownHit);}
     var make=cleanVal(get("Vehicle Make","Vehicle")), mdl=cleanVal(get("Vehicle Model"));
-    var lend=cleanVal(get("Lender","Lendor","Bank"));if(lend&&lenders.indexOf(lend)<0)lenders.push(lend);
+    var lend=lenderNorm(cleanVal(get("Lender","Lendor","Bank")));if(lend&&lenders.indexOf(lend)<0&&LENDER_MASTER.indexOf(lend)>-1)lenders.push(lend);
     var dlr=cleanVal(get("Dealer Name","Dealer","Channel"));if(dlr&&dealers.indexOf(dlr)<0)dealers.push(dlr);
     var l=newLead({name:nm,phone:cleanVal(get("Mobile","Phone","Phone Number")).replace(/\.0$/,""),owner:ownHit||owners[0],
       product:prod||products[0],amount:Number(String(get("Loan Amount","Required Amount","Amount","Business Amount")||0).replace(/[₹,\s]/g,""))||0,
@@ -2251,7 +2233,7 @@ function importPddRows(data,silent){
     var prod=cleanVal(get("product"));prod=PROD_ALIAS[prod.toLowerCase()]||prod;if(prod&&products.indexOf(prod)<0)products.push(prod);
     var own=canonOwner(cleanVal(get("Lead Owner","Owner")));var ownHit=owners.filter(function(x){return x.toLowerCase()===own.toLowerCase();})[0];
     if(own&&!ownHit){ownHit=own;owners.push(own);}
-    var lend=cleanVal(get("lendor","Lender","Bank"));if(lend&&lenders.indexOf(lend)<0)lenders.push(lend);
+    var lend=lenderNorm(cleanVal(get("lendor","Lender","Bank")));if(lend&&lenders.indexOf(lend)<0&&LENDER_MASTER.indexOf(lend)>-1)lenders.push(lend);
     var dlr=cleanVal(get("dealer","Dealer Name"));if(dlr&&dealers.indexOf(dlr)<0)dealers.push(dlr);
     var make=cleanVal(get("vehicle","Vehicle Make")),mdl=cleanVal(get("vehicle_model","Vehicle Model"));
     var amt=Number(String(get("required_amount","Loan Amount","Amount")||0).replace(/[₹,\s]/g,""))||0;
@@ -2320,7 +2302,7 @@ function importHoldRejectFile(file,targetKey){
       if(!date&&matches&&matches.length){matches.sort();date=matches[0].slice(0,10);tm=matches[0].slice(11);}
       if(!date)date=ymd(TODAY);
       var own=canonOwner(cleanVal(get("Lead Owner","Owner")))||"Unassigned";
-      var prod=cleanVal(get("Product"));var lender=cleanVal(get("Lender","Lendor","Bank"));
+      var prod=cleanVal(get("Product"));var lender=lenderNorm(cleanVal(get("Lender","Lendor","Bank")));
       var dealer=cleanVal(get("Dealer","Dealer Name","Channel"));
       var make=cleanVal(get("Vehicle Make","Vehicle")),model=cleanVal(get("Vehicle Model"));
       var amount=Number(String(get("Required Amount","Loan Amount","Amount")||0).replace(/[₹,\s]/g,""))||0;
@@ -2333,7 +2315,7 @@ function importHoldRejectFile(file,targetKey){
       base.push(l);
       if(MASTER){if(isSharedHRLead(l,userById(state.meUser)))leads.push(l);}else leads.push(l);
       if(owners.indexOf(own)<0)owners.push(own);if(prod&&products.indexOf(prod)<0)products.push(prod);
-      if(lender&&lenders.indexOf(lender)<0)lenders.push(lender);if(dealer&&dealers.indexOf(dealer)<0)dealers.push(dealer);
+      if(lender&&lenders.indexOf(lender)<0&&LENDER_MASTER.indexOf(lender)>-1)lenders.push(lender);if(dealer&&dealers.indexOf(dealer)<0)dealers.push(dealer);
       added++;
     });
     base.sort(function(a,b){return a.ts<b.ts?1:-1;});
@@ -2408,7 +2390,7 @@ function wbParse(sheets){
       var ph=String(cleanVal(get("mobile"))).replace(/\.0$/,"").replace(/\D/g,"");if(ph.length>10)ph=ph.slice(-10);
       var own=wbOwner(get("owner"),rep);if(!own)rep.blankOwner++;
       var prod=cleanVal(get("product"));prod=PROD_ALIAS[prod.toLowerCase()]||prod;if(prod&&products.indexOf(prod)<0)products.push(prod);
-      var lend=cleanVal(get("lender"));if(lend&&lenders.indexOf(lend)<0)lenders.push(lend);
+      var lend=lenderNorm(cleanVal(get("lender")));if(lend&&lenders.indexOf(lend)<0&&LENDER_MASTER.indexOf(lend)>-1)lenders.push(lend);
       var dlr=cleanVal(get("dealer"));if(dlr&&dealers.indexOf(dlr)<0)dealers.push(dlr);
       var dt=pddDT(get("date"));if(!dt.d)dt={d:ymd(TODAY),t:"12:00:00"};
       var l={id:nextId++,name:nm,phone:ph,owner:own,product:prod,amount:Number(String(get("amount")||0).replace(/[₹,\s]/g,""))||0,status:st.st,stage:statusStage[st.st],source:"Excel import",date:dt.d,ts:dt.d+" "+dt.t,vehicle:cleanVal(get("model")),year:"",reg:cleanVal(get("reg")),lender:lend,dealer:dlr,pdd:"—",note:String(get("note")||"").replace(/<br\s*\/?>/gi,"\n").trim(),audId:String(Date.now())+String(nextId)};
@@ -2851,7 +2833,7 @@ function cpCalc(l){
   var base=loan-pf-ls; /* what the bank should pay: Loan Amount - Processing Fees - Loan Suraksha */
   return {loan:loan,pf:pf,ls:ls,r:r,c:c,o:o,base:base,client:base-r-c-o};
 }
-function cpPendLabel(pend){return pend!==null&&pend<0?"Excess from bank":"Pending from bank";}
+function cpPendLabel(pend){return pend!==null&&pend<0?"Difference with bank":"Difference with bank";}
 function cpPendVal(pend){return pend===null?"\u2014":money(Math.abs(pend));}
 function cpSnap(l){
   var x=ldx(l),nd=x.nd||{},net=lpNet(l);
@@ -2899,7 +2881,7 @@ function payShareText(l){
   a("Vehicle Make",l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"");a("Vehicle Model",l.vehicle);a("Vehicle Number",l.reg);
   L.push("","━━━━━━━━━━━━━━━━━━━━","","*2. LOAN & DEDUCTION DETAILS*");
   bold("Total Loan Amount",amt(c.loan));bold("Loan Suraksha",amt(c.ls));bold("Processing Fee",amt(c.pf));bold("RTO Charges",amt(c.r));bold("Challan Charges",amt(c.c));bold("Other Charges",amt(c.o));
-  bold("Total Deductions",amt(ded));bold("Net Amount After Bank Deductions",amt(c.base));bold("Net Amount Payable to Customer",mm(s.net));
+  bold("Total Deductions",amt(ded));bold("Net Disbursement To Client",mm(s.net));
   L.push("","━━━━━━━━━━━━━━━━━━━━","","*3. PAYMENTS MADE TO CUSTOMER*");
   if(s.list.length){
     s.list.forEach(function(e){
@@ -2907,8 +2889,10 @@ function payShareText(l){
       a("Payment Type",e.type||"Payment");bold("Amount Paid",amt(e.amt));a("Payment Date",e.date?fmtDate(e.date):"");a("Remarks",e.note||"");
     });
   } else L.push("No customer payments recorded");
-  L.push("","━━━━━━━━━━━━━━━━━━━━","","*4. FINAL PAYMENT SUMMARY*");
-  bold("Total Amount Paid",amt(s.paid));bold("Remaining Balance to Pay",mm(s.bal));
+  if(s.bal!==null&&s.bal<=0&&s.paid>0){ /* final payment summary only once the last balance is paid */
+    L.push("","━━━━━━━━━━━━━━━━━━━━","","*4. FINAL PAYMENT SUMMARY*");
+    bold("Total Amount Paid",amt(s.paid));bold("Remaining Balance to Pay",mm(0));
+  }
   L.push("","━━━━━━━━━━━━━━━━━━━━","","Please review the above payment details and contact us if any clarification is required.");
   return L.join("\n");
 }
@@ -2917,7 +2901,7 @@ function payShareOpen(l){
 }
 function ndCalcHtml(l){
   var nd=ldx(l).nd||{};
-  function f(k,label,val){return '<div class="nd-f"><label for="nd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="nd_'+k+'" data-nd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val===undefined||val===null?"":val)+'"></div></div>';}
+  function f(k,label,val){return '<div class="nd-f"><label for="nd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="nd_'+k+'" data-nd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val===undefined||val===null?"":val)+'"'+((k==="ch"||k==="rto"||k==="oth")?' readonly tabindex="-1" title="Not editable"':"")+'></div></div>';}
   return '<section class="nd-card" aria-label="Net disbursement calculator"><h3 class="nd-h">Net Disbursement Calculator</h3><div class="nd-grid">'+
     f("loan","Loan amount",l.amount||"")+f("pf","Processing fees",nd.pf)+f("ls","Loan Suraksha",nd.ls)+f("ch","Challan charges",nd.ch)+f("rto","RTO charges",nd.rto)+f("oth","Other amount (if any)",nd.oth)+
     '</div><div class="nd-res"><div><small>Total deductions</small><strong id="ndDed">—</strong></div><div><small>Net disbursement</small><strong id="ndNet">—</strong></div></div>'+
@@ -3011,7 +2995,7 @@ function rtoSumHtml(){
 function pddDetHtml(l){
   var x=ldx(l),nd=x.nd||{};
   function filled(a,b){return a!==undefined&&a!==null&&String(a).trim()!==""?a:(b||"");}
-  function n(k,label,val){return '<div class="nd-f"><label for="pd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pd_'+k+'" data-pd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val)+'"></div></div>';}
+  function n(k,label,val){return '<div class="nd-f"><label for="pd_'+k+'">'+label+'</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="pd_'+k+'" data-pd="'+k+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(val)+'" readonly tabindex="-1" title="Not editable"></div></div>';}
   function pk(k,label,val,list){var v=String(val||"").trim(),isOther=v!==""&&list.indexOf(v)<0||v==="Other";
     return '<div class="nd-f"><label for="pd_'+k+'_sel">'+label+'</label><select id="pd_'+k+'_sel" data-pdsel="'+k+'"><option value="">Select</option>'+list.map(function(o){return '<option'+((o==="Other"?isOther:o===v)?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select><input id="pd_'+k+'" data-pd="'+k+'" type="text" placeholder="Type '+label+'" aria-label="'+label+' (other)" value="'+esc(v==="Other"?"":v)+'" style="margin-top:6px'+(isOther?'':';display:none')+'"></div>';}
   var px0=l.px||{},dsbD=dsbIso(dsbDateVal(l)),insD=dsbIso(px0.insExp);
@@ -3027,7 +3011,7 @@ function pddDetHtml(l){
   return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
     pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields"><div class="nd-f"><label for="pd_rtoConfirm">RTO Confirmation</label><select id="pd_rtoConfirm" data-pdconfirm><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></div><div class="pv-fields pv-amts">'+
     n("rto","RTO charges",rtoRaw(l))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
-    '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div><p class="note">The charges are fetched automatically from Calculations. Saving here updates Calculations too.</p></section>';
+    '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div><p class="note">RTO, challan and other charges are fixed from the PDD sheet and cannot be edited here.</p></section>';
 }
 function pddDetWire(l,v){
   var b=v.querySelector("#pdSave");if(!b)return;
@@ -3081,7 +3065,7 @@ function ldRow(r){
   else val='<span>'+esc(r[3])+(r[3]===""||r[3]==null?"&nbsp;":"")+'</span>';
   return '<tr><td class="k">'+r[1]+'</td><td><div class="rv">'+val+'</div></td></tr>';
 }
-function ldArea(k,label,val){return '<tr><td class="k">'+label+'<span class="req">*</span></td><td><textarea data-ldarea="'+k+'" aria-label="'+label+'">'+esc(val)+'</textarea></td></tr>';}
+function ldArea(k,label,val){return '<tr><td class="k">'+label+'<span class="req">*</span></td><td><textarea data-ldarea="'+k+'" aria-label="'+label+'"'+(k==="rto"?' readonly':'')+'>'+esc(val)+'</textarea></td></tr>';}
 function ldTable(rows){return '<table class="ld-tbl"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>'+rows+'</tbody></table>';}
 function ldStub(t,s){return '<div class="stub"><h2>'+t+'</h2>'+s+'</div>';}
 function ldSave(l,k,val,q){
@@ -3273,10 +3257,10 @@ function renderDisbLead(l){
           ldRow(["bankExec","Bank Executive",x.bankExec||"",x.bankExec||"—","text"]),
           ldRow(["amount","Loan Amount",l.amount,l.amount?money(l.amount):"—","num"]),
           P.ls,P.pf,
-          ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),"num"]),
+          ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),null]),
           '<tr><td class="k">RTO Confirmation</td><td><div class="rv"><select data-dsb-rto-confirm aria-label="RTO Confirmation"><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></td></tr>',
-          ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),"num"]),
-          ldRow(["oth","Other Charges",lpPddAmount(l,"Other charges"),money(lpNum(lpPddAmount(l,"Other charges"))),"num"]),
+          ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),null]),
+          ldRow(["oth","Other Charges",lpPddAmount(l,"Other charges"),money(lpNum(lpPddAmount(l,"Other charges"))),null]),
           '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
           '<tr><td class="k"><b>Net Disbursement to Client</b></td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div></td></tr>'
         ];
@@ -4977,7 +4961,7 @@ function openCustPay(id,host){
   var sub=esc((l.vehicle||"")+" "+(l.reg||"")).trim()+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
   var cc0=cpCalc(l);
   var h=(host?'<div class="pv-head"><h3 class="nd-h">Received Details</h3><p class="pv-sub">'+sub+'</p></div>':'<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+sub+'</p>')+
-   '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi kpi-pend"><b id="cpPend">—</b><span id="cpPendL">Pending from bank</span></div></div>';
+   '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi kpi-pend"><b id="cpPend">—</b><span id="cpPendL">Difference with bank</span></div></div>';
   if(net===null)h+='<p class="note pv-warn">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
   h+='<div class="pv-split"><div class="pv-block pv-bank" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><p class="cp-calc">Expected from bank = Loan '+esc(money(cc0.loan))+' &minus; Processing fees '+esc(money(cc0.pf))+' &minus; Loan Suraksha '+esc(money(cc0.ls))+' = <b>'+esc(money(cc0.base))+'</b> <button type="button" class="cp-fill" id="cpBankFill">Fill expected</button></p><div class="pv-fields pv-f1">'+
    '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
@@ -5008,7 +4992,7 @@ function openCustPay(id,host){
     var bk=lpNum(m.querySelector("#cpBank").value),pend=netD===null?null:netD-bk;
     var pe=document.getElementById("cpPend"),pl=document.getElementById("cpPendL");if(pe){pe.textContent=cpPendVal(pend);pe.classList.toggle("neg",pend!==null&&pend<0);}if(pl)pl.textContent=cpPendLabel(pend);
     m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("")+
-     '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Pending from bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
+     '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Difference with bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
     return tot;
   }
   function wireRow(r){
