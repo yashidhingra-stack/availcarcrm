@@ -704,6 +704,10 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .pv-kpis .kpi-pend,.pr-kpis .kpi-pend{background:rgba(214,69,69,.12);border-color:#d64545}
 .pv-kpis .kpi-pend b,.pr-kpis .kpi-pend b{color:#c43d3d}
 @media (max-width:900px){.pv-split{grid-template-columns:minmax(0,1fr)}.pv-bank{position:static}.td-row{grid-template-columns:minmax(0,1fr)}}
+.sh-preview{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:14px 16px;max-height:48vh;overflow:auto;white-space:normal;overflow-wrap:anywhere}
+.sh-line{padding:2px 0;line-height:1.5}.sh-line strong{font-weight:800;color:var(--ink)}
+.sh-gap{height:8px}.sh-rule{border-top:1px solid var(--line);margin:8px 0}
+#shEditWrap textarea{width:100%;min-height:190px;white-space:pre-wrap;line-height:1.5}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -5857,12 +5861,7 @@ function ldPrint(l){
     if(hd&&t.indexOf(":")<0)return '<h3>'+esc(hd[1])+'</h3>';
     return '<p>'+esc(t.replace(/\*/g,""))+'</p>';
   }).join("");
-  var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(l.name)+' - lead details</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px}h1{font-size:20px;margin:0 0 2px}h3{font-size:14px;border-bottom:1px solid #bbb;padding-bottom:3px;margin:18px 0 6px}p{margin:3px 0;font-size:13px;line-height:1.4}.m{color:#555;font-size:12px;margin-bottom:6px}
-.sh-preview{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:14px 16px;max-height:48vh;overflow:auto;white-space:normal;overflow-wrap:anywhere}
-.sh-line{padding:2px 0;line-height:1.5}.sh-line strong{font-weight:800;color:var(--ink)}
-.sh-gap{height:8px}.sh-rule{border-top:1px solid var(--line);margin:8px 0}
-#shEditWrap textarea{width:100%;min-height:190px;white-space:pre-wrap;line-height:1.5}
-</style></head><body><h1>'+esc(l.name)+'</h1><div class="m">Audience ID '+esc(audOf(l))+' &middot; Printed '+esc(stamp())+'</div>'+body+'</body></html>';
+  var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(l.name)+' - lead details</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:24px}h1{font-size:20px;margin:0 0 2px}h3{font-size:14px;border-bottom:1px solid #bbb;padding-bottom:3px;margin:18px 0 6px}p{margin:3px 0;font-size:13px;line-height:1.4}.m{color:#555;font-size:12px;margin-bottom:6px}</style></head><body><h1>'+esc(l.name)+'</h1><div class="m">Audience ID '+esc(audOf(l))+' &middot; Printed '+esc(stamp())+'</div>'+body+'</body></html>';
   var f=document.createElement("iframe");f.setAttribute("aria-hidden","true");f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(f);
   var d=f.contentWindow.document;d.open();d.write(doc);d.close();
