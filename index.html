@@ -4715,10 +4715,11 @@ function uniq(a){return a.filter(function(v,i){return v&&a.indexOf(v)===i;}).sor
 function voucherNo(p){return "PV-"+p.date.replace(/-/g,"")+"-"+String(p.id).slice(-4);}
 
 /* payouts tab filters */
-function payMatch(x){var f=state.pf;if(f.q&&x.dealer.toLowerCase().indexOf(f.q.toLowerCase())<0)return false;if(f.st==="pending"&&x.bal<=0)return false;if(f.st==="paid"&&x.bal>0)return false;return true;}
+function payMatch(x){var f=state.pf;if(f.q&&x.dealer.toLowerCase().indexOf(f.q.toLowerCase())<0)return false;if(f.st==="pending"&&x.bal<=0)return false;return true;}
+function dealerClosed(x){return x.total>0&&x.bal<=0;}
 function payFilterBar(){
   function o(v,l){return '<option value="'+v+'"'+(state.pf.st===v?" selected":"")+'>'+l+'</option>';}
-  return '<div class="tb pfilt"><input id="pfQ" type="search" placeholder="Search dealer" value="'+esc(state.pf.q)+'" aria-label="Search dealer"><select id="pfSt" aria-label="Balance status">'+o("all","All dealers")+o("pending","Balance pending")+o("paid","Fully paid")+'</select></div>';
+  return '<div class="tb pfilt"><input id="pfQ" type="search" placeholder="Search dealer" value="'+esc(state.pf.q)+'" aria-label="Search dealer"><select id="pfSt" aria-label="Balance status">'+o("all","All dealers")+o("pending","Balance pending")+'</select></div>';
 }
 
 /* payment history */
@@ -4800,14 +4801,16 @@ function printReceipt(id){
 }
 storeLoadLocal(); rebuildPaid();
 
-state.pay={opt:"last30",from:"",to:"",label:""};
-function payApply(opt){
-  var r=state.pay; r.opt=opt;
-  if(opt==="last30"){var f=new Date(TODAY);f.setDate(f.getDate()-29);r.from=ymd(f);r.to=ymd(TODAY);r.label="Last 30 days";}
-  else if(opt.charAt(0)==="q"||opt.charAt(0)==="h"){var it=periodList(opt.charAt(0)==="q"?"Q":"H",state.fyBasis)[+opt.slice(1)];if(it){r.from=it.from;r.to=it.to;r.label=it.label;}}
-  else{r.label=fmtDate(r.from)+" to "+fmtDate(r.to);}
+state.pay={opt:"ym",year:String(TODAY.getFullYear()),month:"all",from:"",to:"",label:""};
+var PAY_MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function payApply(){
+  var r=state.pay,y=r.year,m=r.month;
+  if(y==="all"){r.from="0000-01-01";r.to="9999-12-31";r.label="All time";return;}
+  var yy=+y;
+  if(m==="all"){r.from=yy+"-01-01";r.to=yy+"-12-31";r.label="Year "+yy;}
+  else{var mm=+m,last=new Date(yy,mm,0).getDate(),p=function(n){return String(n).padStart(2,"0");};r.from=yy+"-"+p(mm)+"-01";r.to=yy+"-"+p(mm)+"-"+p(last);r.label=PAY_MONTHS[mm-1]+" "+yy;}
 }
-payApply("last30");
+payApply();
 function dRate(d){var c=state.dcfg[d];if(c&&c.rate!==undefined)return c.rate;return DEALER_RATE[d]!==undefined?DEALER_RATE[d]:1;}
 function dApp(d){return (state.dcfg[d]&&state.dcfg[d].appId)||"";}
 /* rate for one file: a rate set on that file wins over the dealer's rate */
@@ -4838,26 +4841,78 @@ function dealerSum(d){
 }
 function allDealerSums(){return dealers.map(dealerSum).sort(function(a,b){return b.bal-a.bal||b.total-a.total;});}
 function emailKey(d){return d+"|"+state.pay.from+"|"+state.pay.to;}
+function payYears(){
+  var ys={};ys[String(TODAY.getFullYear())]=1;
+  leads.forEach(function(l){if(l.status==="Disburse"&&!l.cat&&l.dealer&&/^\d{4}/.test(l.date||""))ys[l.date.slice(0,4)]=1;});
+  if(/^\d{4}$/.test(state.pay.year))ys[state.pay.year]=1;
+  return Object.keys(ys).sort().reverse();
+}
 function payControls(){
-  var qs=periodList("Q",state.fyBasis),hs=periodList("H",state.fyBasis),o=state.pay.opt;
-  function op(v,l){return '<option value="'+v+'"'+(o===v?" selected":"")+'>'+esc(l)+'</option>';}
-  return '<div class="tb" style="margin:14px 0"><select id="payBasis" aria-label="Year type"><option value="fy"'+(state.fyBasis==="fy"?" selected":"")+'>Financial year (Apr to Mar)</option><option value="cy"'+(state.fyBasis==="cy"?" selected":"")+'>Calendar year</option></select>'+
-   '<select id="payPeriod" aria-label="Period">'+op("last30","Last 30 days")+'<optgroup label="Quarterly">'+qs.map(function(x,i){return op("q"+i,x.label);}).join("")+'</optgroup><optgroup label="Half yearly">'+hs.map(function(x,i){return op("h"+i,x.label);}).join("")+'</optgroup>'+op("custom","Custom dates")+'</select>'+
-   (o==="custom"?'<div class="range"><input type="date" id="payFrom" value="'+state.pay.from+'" aria-label="From date"><span>to</span><input type="date" id="payTo" value="'+state.pay.to+'" aria-label="To date"></div>':"")+'</div>';
+  var y=state.pay.year,m=state.pay.month;
+  return '<div class="tb" style="margin:14px 0"><select id="payYear" aria-label="Year"><option value="all"'+(y==="all"?" selected":"")+'>All years</option>'+payYears().map(function(v){return '<option value="'+v+'"'+(y===v?" selected":"")+'>'+v+'</option>';}).join("")+'</select>'+
+   '<select id="payMonth" aria-label="Month"'+(y==="all"?" disabled":"")+'><option value="all"'+(m==="all"?" selected":"")+'>All months</option>'+PAY_MONTHS.map(function(n,i){return '<option value="'+(i+1)+'"'+(String(m)===String(i+1)?" selected":"")+'>'+n+'</option>';}).join("")+'</select></div>';
 }
 function payPayoutsTab(list,tot){
-  var rows=list.filter(function(x){return x.n>0&&payMatch(x);});
+  var allRows=list.filter(function(x){return x.n>0&&payMatch(x);}),rows=allRows.filter(function(x){return !dealerClosed(x);});
   function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' file'+(n===1?"":"s")+'</span></div>';}
-  var T=rows.reduce(function(a,x){return {n:a.n+x.n,total:a.total+x.total,paid:a.paid+x.paid,paidN:a.paidN+x.paidN,bal:a.bal+x.bal,balN:a.balN+x.balN};},{n:0,total:0,paid:0,paidN:0,bal:0,balN:0});
-  var PIT=rows.reduce(function(a,x){return a+piTotal(x.dealer);},0);
+  var T=allRows.reduce(function(a,x){return {n:a.n+x.n,total:a.total+x.total,paid:a.paid+x.paid,paidN:a.paidN+x.paidN,bal:a.bal+x.bal,balN:a.balN+x.balN};},{n:0,total:0,paid:0,paidN:0,bal:0,balN:0});
+  var PIT=allRows.reduce(function(a,x){return a+piTotal(x.dealer);},0);
   return '<div class="sumbar">'+card("Total payout",T.total,T.n)+card("Paid",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'<div class="sum-card"><span class="sum-label">Pay in received <button class="icon-btn" data-pilist="" title="View all pay in" aria-label="View all pay in" style="vertical-align:middle">'+ic("eye")+'</button></span><b>'+money(PIT)+'</b><span class="sum-files">from dealers</span></div></div>'+
    (rows.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:1100px"><thead><tr><th>Sr. No.</th><th class="l">Dealer</th><th>Files</th><th>Loan amount</th><th>Payout %</th><th>Total payout</th><th>Paid %</th><th>Paid</th><th>Balance</th><th>Pay in</th><th>In-app notice</th><th>Action</th></tr></thead><tbody>'+
     rows.map(function(x,i){
       var em=state.emailed[emailKey(x.dealer)], d=esc(x.dealer);
       return '<tr><td>'+(i+1)+'</td><td class="l"><button class="name-link" data-paview="'+d+'">'+d+'</button></td><td>'+x.n+'</td><td>'+money(x.loan)+'</td><td>'+dfPct(x.total,x.loan)+'%</td><td>'+money(x.total)+'</td><td>'+dfPct(x.paid,x.loan)+'%</td><td>'+money(x.paid)+'</td><td><b>'+money(x.bal)+'</b></td><td>'+(piTotal(x.dealer)?'<button class="name-link" data-pilist="'+d+'" title="View pay in history">'+money(piTotal(x.dealer))+'</button>':money(0))+'</td><td>'+(em?'Notified '+esc(em.slice(0,10)):(dApp(x.dealer)?'Not notified':'<span class="st-inactive">No app ID set</span>'))+'</td>'+
-       '<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay '+d+'" title="Record payment"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn" data-papin="'+d+'" aria-label="Pay in from '+d+'" title="Pay in (receive from dealer)">'+ic("plus")+'</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
-   :'<div class="stub"><h2>'+(state.pf.q||state.pf.st!=="all"?"No dealers match your filters":"No disbursed files in this period")+'</h2>Choose another period or clear the filters above. Payouts are worked out from files with the Disburse status.</div>')+
+       '<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papin="'+d+'" aria-label="Pay in from '+d+'" title="Pay in (receive from dealer)">'+ic("plus")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay out to '+d+'" title="Pay out (record payment)"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn" data-pacalc="'+d+'" aria-label="Calculator for '+d+'" title="Calculator" style="font-weight:700">&#8721;</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
+   :'<div class="stub"><h2>'+(state.pf.q||state.pf.st!=="all"?"No dealers match your filters":(allRows.length?"All dealers in this period are fully paid. See the Closure tab.":"No disbursed files in this period"))+'</h2>Choose another period or clear the filters above. Payouts are worked out from files with the Disburse status.</div>')+
    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Excel data"></textarea>';
+}
+
+
+/* ---------- Dealer payments: Calculator tab ---------- */
+state.dcalc={dealer:"",q:"",rate:""};
+function dealerCalcHtml(){
+  var dc=state.dcalc,q=(dc.q||"").toLowerCase();
+  var opts=dealers.filter(function(d){return payCases(d).length>0&&(!q||d.toLowerCase().indexOf(q)>-1);}).sort();
+  if(dc.dealer&&opts.indexOf(dc.dealer)<0&&payCases(dc.dealer).length)opts.unshift(dc.dealer);
+  var pick='<section class="card" aria-label="Dealer calculator"><div class="nd-grid"><div class="nd-f"><label for="dc_q">Find dealer</label><input id="dc_q" type="search" placeholder="Dealer name" value="'+esc(dc.q)+'"></div>'+
+   '<div class="nd-f"><label for="dc_dealer">Dealer</label><select id="dc_dealer"><option value="">Select dealer</option>'+opts.map(function(d){return '<option value="'+esc(d)+'"'+(d===dc.dealer?" selected":"")+'>'+esc(d)+'</option>';}).join("")+'</select></div>'+
+   '<div class="nd-f"><label for="dc_rate">Try a payout % (optional)</label><input id="dc_rate" type="number" min="0" max="100" step="0.01" inputmode="decimal" placeholder="Saved rate is used" value="'+esc(dc.rate)+'"></div></div></section>';
+  if(!dc.dealer)return pick+'<p class="note" style="margin-top:12px">Select a dealer to see their payout calculation for '+esc(state.pay.label)+'. You can also click the calculator icon on a dealer in Dealer payouts.</p>';
+  var d=dc.dealer,s=dealerSum(d),tryRate=parseFloat(dc.rate),useTry=!isNaN(tryRate);
+  var tot=0,rowsH=s.cases.slice().sort(function(a,b){return a.date<b.date?1:-1;}).map(function(l,i){
+    var locked=state.paidAmt[l.id]!==undefined,rate=useTry&&!locked?tryRate:(locked?dfPct(state.paidAmt[l.id],l.amount):fRate(l));
+    var pay=locked?state.paidAmt[l.id]:Math.round(l.amount*rate/100),pa=Math.min(dfPaidAmt(l),pay);tot+=pay;
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(fmtDate(l.date))+'</td><td class="l"><button class="name-link" data-dfview="'+l.id+'">'+esc(l.name)+'</button></td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+rate+'%</td><td>'+money(pay)+'</td><td>'+money(pa)+'</td><td><b>'+money(Math.max(0,pay-pa))+'</b></td></tr>';}).join("");
+  function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
+  var bal=Math.max(0,tot-s.paid);
+  return pick+'<div class="dd-title" style="margin:14px 0 8px"><h2>'+esc(d)+'</h2><p class="dlnote">'+esc(state.pay.label)+'. Saved dealer rate '+s.rate+'%.'+(useTry?' Showing the calculation at '+tryRate+'% (not saved).':'')+'</p></div>'+
+   '<div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(tot),"Total payout")+kpi(money(s.paid),"Paid out")+kpi(money(piTotal(d)),"Pay in received")+kpi(money(bal),"Balance to pay")+'</div>'+
+   '<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:900px"><thead><tr><th>Sr. No.</th><th>Disbursal date</th><th class="l">Customer</th><th>Lender</th><th>Loan amount</th><th>Payout %</th><th>Payout amount</th><th>Paid</th><th>Balance</th></tr></thead><tbody>'+rowsH+'</tbody></table></div></div>'+
+   '<div class="tb" style="margin-top:12px"><button class="btn" data-papin="'+esc(d)+'">'+ic("plus")+' Pay in</button>'+(bal>0?'<button class="btn primary" data-papay="'+esc(d)+'">Pay out</button>':'')+'<button class="btn" data-paview="'+esc(d)+'">Open dealer files</button></div>';
+}
+function dealerCalcWire(){
+  var v=document.getElementById("view");function g(i){return v.querySelector("#"+i);}
+  g("dc_q").onchange=function(){state.dcalc.q=this.value;renderPayments();};
+  g("dc_dealer").onchange=function(){state.dcalc.dealer=this.value;state.dcalc.rate="";renderPayments();};
+  g("dc_rate").onchange=function(){state.dcalc.rate=this.value;renderPayments();};
+}
+/* ---------- Dealer payments: Closure tab (fully paid dealers and customers) ---------- */
+function closureHtml(){
+  var dl=allDealerSums().filter(function(x){return x.n>0&&dealerClosed(x);});
+  var saved=state.lp.cf;state.lp.cf={q:"",lender:"",dealer:"",stage:"",pay:"",hold:""};
+  var cr=lpCustRows(true).filter(function(r){return r.ps==="Paid";});state.lp.cf=saved;
+  var dT=dl.reduce(function(a,x){return a+x.total;},0),cT=cr.reduce(function(a,r){return a+r.paid;},0);
+  function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' '+(n===1?"record":"records")+'</span></div>';}
+  var dtab=dl.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:900px"><thead><tr><th>Sr. No.</th><th class="l">Dealer</th><th>Files</th><th>Loan amount</th><th>Total payout</th><th>Paid</th><th>Pay in</th><th>Balance</th></tr></thead><tbody>'+
+    dl.map(function(x,i){var d=esc(x.dealer);return '<tr><td>'+(i+1)+'</td><td class="l"><button class="name-link" data-paview="'+d+'">'+d+'</button></td><td>'+x.n+'</td><td>'+money(x.loan)+'</td><td>'+money(x.total)+'</td><td>'+money(x.paid)+'</td><td>'+money(piTotal(x.dealer))+'</td><td><b>'+money(x.bal)+'</b></td></tr>';}).join("")+'</tbody></table></div></div>':'<p class="note">No dealer is fully paid for '+esc(state.pay.label)+' yet.</p>';
+  var ctab=cr.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:900px"><thead><tr><th>Sr. No.</th><th>Date</th><th class="l">Client name</th><th>Vehicle number</th><th>Lender</th><th>Dealer</th><th>Loan amount</th><th>Net after PDD</th><th>Total paid</th></tr></thead><tbody>'+
+    cr.slice(0,300).map(function(r,i){var l=r.l;return '<tr><td>'+(i+1)+'</td><td>'+lpEntry(l)+'</td><td class="l"><button class="name-link" data-cpay="'+l.id+'" title="Open payments">'+esc(l.name)+'</button></td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+esc(l.dealer||"—")+'</td><td>'+money(lpNum(l.amount))+'</td><td>'+(r.net===null?"—":money(r.net))+'</td><td>'+money(r.paid)+'</td></tr>';}).join("")+'</tbody></table></div></div>':'<p class="note">No customer file is fully paid yet.</p>';
+  return '<div class="sumbar">'+card("Dealers fully paid",dT,dl.length)+card("Customers fully paid",cT,cr.length)+'</div>'+
+   '<h3 style="margin:18px 0 8px">Dealers fully paid</h3>'+dtab+'<h3 style="margin:22px 0 8px">Customers fully paid</h3><p class="note" style="margin:0 0 8px">Customer files are shown for all periods.</p>'+ctab;
+}
+function closureWire(){
+  var v=document.getElementById("view");
+  v.querySelectorAll("[data-cpay]").forEach(function(b){b.onclick=function(){openLeadPay(+b.getAttribute("data-cpay"));};});
 }
 
 /* ---------- Payments: customer / dealer / staff. Charge categories fetch their amount from PDD Details ---------- */
@@ -4940,7 +4995,7 @@ function lpNet(l){
 var CP_TYPES=["Partial payment","Full payment","Other"];
 function cpList(l){var x=ldx(l);return Array.isArray(x.cpay)?x.cpay:null;}
 function cpPaid(l){var c=cpList(l),t=0;if(c){c.forEach(function(e){t+=lpNum(e&&e.amt);});return t;}var nd=ldx(l).nd||{};return lpNum(nd.p1)+lpNum(nd.p2)+lpNum(nd.p3);}
-function lpCustRows(){
+function lpCustRows(includePaid){
   var f=state.lp.cf,q=(f.q||"").toLowerCase(),out=[];
   leads.forEach(function(l){
     if(l.stage!=="Disbursed"||l.cat)return;
@@ -4956,19 +5011,21 @@ function lpCustRows(){
     if(f.stage==="approved"&&pdd)return;
     if(f.stage==="pdd"&&!pdd)return;
     if(f.pay&&ps!==f.pay)return;
+    if(!includePaid&&ps==="Paid")return;
     if(f.hold==="yes"&&hold<=0)return;
-    out.push({l:l,pdd:pdd,net:net,netD:net===null?null:net+r+c+o,r:r,c:c,o:o,ch:r+c+o,paid:paid,hold:hold,bal:bal,ps:ps});
+    out.push({l:l,pdd:pdd,net:net,netD:net===null?null:net+r+c+o,bankDiff:net===null?null:lpNum(l.amount)-(net+r+c+o),r:r,c:c,o:o,ch:r+c+o,paid:paid,hold:hold,bal:bal,ps:ps});
   });
   out.sort(function(a,b){return String(a.l.ts||"")<String(b.l.ts||"")?1:-1;});
   return out;
 }
 function lpEntry(l){var t=String(l.ts||l.date||""),d=t.slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return "—";return esc(fmtDate(d))+(t.length>10?'<br><small class="note">'+esc(t.slice(11,16))+'</small>':'');}
 function lpDuesHtml(){
-  var f=state.lp.cf,rows=lpCustRows();
+  var f=state.lp.cf,rows=lpCustRows(),allRows=lpCustRows(true);
   var lenders={},dealers={};
   leads.forEach(function(l){if(l.stage==="Disbursed"&&!l.cat){if(l.lender)lenders[l.lender]=1;if(l.dealer)dealers[l.dealer]=1;}});
-  var T={loan:0,loanN:0,pf:0,pfN:0,ls:0,lsN:0,r:0,rN:0,c:0,cN:0,o:0,oN:0,net:0,netN:0,netD:0,ch:0,chN:0,paid:0,paidN:0,hold:0,bal:0,balN:0};
-  rows.forEach(function(r){var nd9=ldx(r.l).nd||{},pf9=lpNum(nd9.pf),ls9=lpNum(nd9.ls);T.loan+=lpNum(r.l.amount);if(lpNum(r.l.amount)>0)T.loanN++;T.pf+=pf9;if(pf9>0)T.pfN++;T.ls+=ls9;if(ls9>0)T.lsN++;T.r+=r.r;if(r.r>0)T.rN++;T.c+=r.c;if(r.c>0)T.cN++;T.o+=r.o;if(r.o>0)T.oN++;if(r.net!==null){T.net+=r.net;T.netD+=r.netD;T.netN++;}T.ch+=r.ch;if(r.ch>0)T.chN++;T.paid+=r.paid;if(r.paid>0)T.paidN++;T.hold+=r.hold;if(r.bal!==null){T.bal+=r.bal;if(r.bal>0)T.balN++;}});
+  function TZ(){return {loan:0,loanN:0,pf:0,pfN:0,ls:0,lsN:0,r:0,rN:0,c:0,cN:0,o:0,oN:0,net:0,netN:0,netD:0,ch:0,chN:0,paid:0,paidN:0,hold:0,bal:0,balN:0};}
+  function acc(T,list){list.forEach(function(r){var nd9=ldx(r.l).nd||{},pf9=lpNum(nd9.pf),ls9=lpNum(nd9.ls);T.loan+=lpNum(r.l.amount);if(lpNum(r.l.amount)>0)T.loanN++;T.pf+=pf9;if(pf9>0)T.pfN++;T.ls+=ls9;if(ls9>0)T.lsN++;T.r+=r.r;if(r.r>0)T.rN++;T.c+=r.c;if(r.c>0)T.cN++;T.o+=r.o;if(r.o>0)T.oN++;if(r.net!==null){T.net+=r.net;T.netD+=r.netD;T.netN++;}T.ch+=r.ch;if(r.ch>0)T.chN++;T.paid+=r.paid;if(r.paid>0)T.paidN++;T.hold+=r.hold;if(r.bal!==null){T.bal+=r.bal;if(r.bal>0)T.balN++;}});}
+  var T=TZ();acc(T,allRows);var T2=TZ();acc(T2,rows);
   function m(v){return esc(money(v));}
   function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' file'+(n===1?"":"s")+'</span></div>';}
   var cards='<div class="sumbar">'+card("Loan amount",T.loan,T.loanN)+card("Net disbursement",T.netD,T.netN)+card("Net disbursement to client",T.net,T.netN)+card("Paid to customers",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'</div>';
@@ -4976,13 +5033,13 @@ function lpDuesHtml(){
     '<select id="cf_stage" aria-label="Stage">'+lpOpt([["approved","Login disbursement"],["pdd","PDD status (Disburse)"]],f.stage,"All stages")+'</select>'+
     '<select id="cf_lender" aria-label="Lender">'+lpOpt(Object.keys(lenders).sort(),f.lender,"All lenders")+'</select>'+
     '<select id="cf_dealer" aria-label="Dealer">'+lpOpt(Object.keys(dealers).sort(),f.dealer,"All dealers")+'</select>'+
-    '<select id="cf_pay" aria-label="Payment status">'+lpOpt(["Pending","Part paid","Paid"],f.pay,"All payment status")+'</select>'+
+    '<select id="cf_pay" aria-label="Payment status">'+lpOpt(["Pending","Part paid"],f.pay,"All payment status")+'</select>'+
     '<button class="btn" id="cfClear">Clear</button><button class="btn" id="cfCsv">Download Excel</button></div>';
-  var tbl=rows.length?'<div class="tscroll"><table class="pm-tbl" style="min-width:1250px"><thead><tr><th>Date</th><th>Client name</th><th>Vehicle model</th><th>Vehicle number</th><th>Lender</th><th>Loan amount</th><th>Net disbursement</th><th>PDD charges</th><th>Net after PDD</th><th>Total paid</th><th>Balance</th><th>Status</th></tr></thead><tbody>'+
-    rows.slice(0,200).map(function(r){var l=r.l,n=esc(l.name);return '<tr><td>'+lpEntry(l)+'</td><td><button class="name-link" data-cpay="'+l.id+'" title="Open payments">'+n+'</button></td><td>'+esc(l.vehicle||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.netD===null?"—":m(r.netD))+'</td><td>'+m(r.ch)+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td></tr>';}).join("")+
-    '</tbody><tfoot><tr><th colspan="5">Total ('+rows.length+')</th><th>'+m(T.loan)+'</th><th>'+m(T.netD)+'</th><th>'+m(T.ch)+'</th><th>'+m(T.net)+'</th><th>'+m(T.paid)+'</th><th>'+m(T.bal)+'</th><th></th></tr></tfoot></table></div>'+(rows.length>200?'<p class="note">Showing the first 200. Use the filters to narrow the list.</p>':''):
+  var tbl=rows.length?'<div class="tscroll"><table class="pm-tbl" style="min-width:1350px"><thead><tr><th>Date</th><th>Client name</th><th>Vehicle model</th><th>Vehicle number</th><th>Lender</th><th>Loan amount</th><th>Net disbursement</th><th>Difference with bank</th><th>PDD charges</th><th>Net after PDD</th><th>Total paid</th><th>Balance</th><th>Status</th></tr></thead><tbody>'+
+    rows.slice(0,200).map(function(r){var l=r.l,n=esc(l.name);return '<tr><td>'+lpEntry(l)+'</td><td><button class="name-link" data-cpay="'+l.id+'" title="Open payments">'+n+'</button></td><td>'+esc(l.vehicle||"—")+'</td><td>'+esc(l.reg||"—")+'</td><td>'+esc(l.lender||"—")+'</td><td>'+m(lpNum(l.amount))+'</td><td>'+(r.netD===null?"—":m(r.netD))+'</td><td>'+(r.bankDiff===null?"—":m(r.bankDiff))+'</td><td>'+m(r.ch)+'</td><td>'+(r.net===null?"—":m(r.net))+'</td><td>'+m(r.paid)+'</td><td>'+(r.bal===null?"—":m(r.bal))+'</td><td>'+r.ps+'</td></tr>';}).join("")+
+    '</tbody><tfoot><tr><th colspan="5">Total ('+rows.length+')</th><th>'+m(T2.loan)+'</th><th>'+m(T2.netD)+'</th><th>'+m(T2.loan-T2.netD)+'</th><th>'+m(T2.ch)+'</th><th>'+m(T2.net)+'</th><th>'+m(T2.paid)+'</th><th>'+m(T2.bal)+'</th><th></th></tr></tfoot></table></div>'+(rows.length>200?'<p class="note">Showing the first 200. Use the filters to narrow the list.</p>':''):
     '<p class="note">No files match. Files appear here once they move from Login business to Login disbursement or PDD status.</p>';
-  return cards+'<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer payments</h3>'+filt+tbl+'<p class="note">Net disbursement to client = Net disbursement − RTO, Challan and Other charges. Click a client name to open Payments 1 to 6 for that client.</p></section>';
+  return cards+'<section class="nd-card" aria-label="Customer leads"><h3 class="nd-h">Customer payments</h3>'+filt+tbl+'<p class="note">Net disbursement to client = Net disbursement − RTO, Challan and Other charges. Difference with bank = Loan amount − Net disbursement (what the bank deducted). Fully paid files move to Dealer payments → Closure. Click a client name to open Payments 1 to 6 for that client.</p></section>';
 }
 function openCustPay(id,host){
   var l=lead(id);if(!l)return;ensure(l);
@@ -5127,8 +5184,8 @@ function lpWire(kind){
     v.querySelectorAll("[data-lppay]").forEach(function(b){b.onclick=function(){state.lp.lead=+b.getAttribute("data-lppay");renderPayments();var c=v.querySelector('[aria-label="Net disbursement calculator"]');if(c)c.scrollIntoView({behavior:"smooth",block:"start"});};});
     v.querySelectorAll("[data-cpay]").forEach(function(b){b.onclick=function(){openLeadPay(+b.getAttribute("data-cpay"));};});
     g("cfCsv").onclick=function(){
-      var rows=[["Date","Client name","Vehicle model","Vehicle number","Lender","Loan amount","Net disbursement","PDD charges","Net after PDD","Total paid","Balance","Status"]];
-      lpCustRows().forEach(function(r){var l=r.l;rows.push([String(l.ts||l.date||"").slice(0,10),l.name,l.vehicle||"",l.reg||"",l.lender||"",lpNum(l.amount),r.netD===null?"":r.netD,r.ch,r.net===null?"":r.net,r.paid,r.bal===null?"":r.bal,r.ps]);});
+      var rows=[["Date","Client name","Vehicle model","Vehicle number","Lender","Loan amount","Net disbursement","Difference with bank","PDD charges","Net after PDD","Total paid","Balance","Status"]];
+      lpCustRows().forEach(function(r){var l=r.l;rows.push([String(l.ts||l.date||"").slice(0,10),l.name,l.vehicle||"",l.reg||"",l.lender||"",lpNum(l.amount),r.netD===null?"":r.netD,r.bankDiff===null?"":r.bankDiff,r.ch,r.net===null?"":r.net,r.paid,r.bal===null?"":r.bal,r.ps]);});
       saveCsv("customer-payments-"+ymd(TODAY)+".xlsx",csvText(rows));
     };
     return;
@@ -5229,7 +5286,7 @@ function stWire(){
 }
 function renderPayments(){
   var kind=(state.route.split("/")[1]||"dealer");if(["customer","dealer","staff"].indexOf(kind)<0)kind="dealer";
-  var TABS={dealer:[["payouts","Dealer payouts"]],customer:[["lead","Customer payments"]],staff:[["lead","Staff payments"]]};
+  var TABS={dealer:[["payouts","Dealer payouts"],["dcalc","Calculator"],["closure","Closure"]],customer:[["lead","Customer payments"]],staff:[["lead","Staff payments"]]};
   var tabs=TABS[kind];
   if(state.payKindLast!==kind){state.payKindLast=kind;state.payDetail=null;state.ptab=tabs[0][0];state.lp.fq="";state.lp.fc="";state.lp.ft="";}
   if(!tabs.some(function(t){return t[0]===state.ptab;}))state.ptab=tabs[0][0];
@@ -5239,12 +5296,13 @@ function renderPayments(){
   var blurb=kind==="customer"?"Approved and disbursed files with PDD charges, net disbursement, payments and the net disbursement calculator.":kind==="staff"?"Salary, incentive, commission and other payments to staff.":"Pay dealer payouts and send dealers their payout details.";
   var list=payout&&!state.payDetail?allDealerSums():null;
   var tools=hist?'<div class="tb"><button class="btn" id="payHistCsv">Download Excel</button></div>':payout&&!state.payDetail?'<div class="tb"><button class="btn" id="payEmailAll">'+ic("bell")+' Notify all dealers</button><button class="btn" id="payCsv">Download Excel</button></div>':'';
-  var body=kind==="staff"?stHtml():calc?calcTabHtml():lpt?lpTabHtml(kind):hist?payHistoryTab():(payout&&state.payDetail)?dealerDetailHtml(state.payDetail):payPayoutsTab(list);
+  var dcalcT=kind==="dealer"&&tab==="dcalc",closureT=kind==="dealer"&&tab==="closure";
+  var body=kind==="staff"?stHtml():calc?calcTabHtml():lpt?lpTabHtml(kind):hist?payHistoryTab():dcalcT?dealerCalcHtml():closureT?closureHtml():(payout&&state.payDetail)?dealerDetailHtml(state.payDetail):payPayoutsTab(list);
   document.getElementById("view").innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>'+title+'</h1><p class="note" style="margin:0">'+blurb+'</p></div></div>'+tools+'</div>'+
    (kind==="dealer"?'<div class="appcard"><div class="ai"><b>Dealer app (Android preview)</b><span>Preview build with sample data. It is not connected to this CRM yet, so it does not show real payments or receive in-app notifications. Debug build, 17.5M.</span></div><a class="btn primary" href="downloads/dealer-app.apk" download="dealer-app.apk">Download APK</a></div>':'')+
    (tabs.length>1?'<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ptab===t[0])+'" data-ptab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div>':'')+
-   (kind==="dealer"&&!lpt?'<p class="dlnote">'+storeNote()+'</p>'+(payout?payControls()+(state.payDetail?'':payFilterBar()):''):'')+'<div style="margin-top:14px">'+body+'</div>';
-  if(kind==="staff")stWire();else if(calc)calcWire();else if(lpt)lpWire(kind);
+   (kind==="dealer"&&!lpt?'<p class="dlnote">'+storeNote()+'</p>'+((payout||dcalcT||closureT)?payControls()+(payout&&!state.payDetail?payFilterBar():''):''):'')+'<div style="margin-top:14px">'+body+'</div>';
+  if(kind==="staff")stWire();else if(calc)calcWire();else if(lpt)lpWire(kind);else if(dcalcT)dealerCalcWire();else if(closureT)closureWire();
 }
 /* ---------- Dealer payments: click a dealer to see its files ---------- */
 function ddRateCell(l){
@@ -5257,7 +5315,7 @@ function dealerDetailHtml(d){
   var s=dealerSum(d),cs=s.cases.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.id-a.id;}),dd=esc(d);
   function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
   var head='<div class="dd-head"><button class="btn" data-ddback="1">'+ic("back")+' All dealers</button><div class="dd-title"><h2>'+dd+'</h2><p class="dlnote">'+esc(state.pay.label)+(dApp(d)?'. App ID '+esc(dApp(d)):'. No app ID set')+'. Dealer rate '+s.rate+'%. Click a rate to change it for that file.</p></div>'+
-    '<div class="tb"><button class="btn" data-stcsv="'+dd+'">Download Excel</button><button class="btn" data-paemail="'+dd+'">'+ic("bell")+' Notify in app</button><button class="icon-btn" data-paset="'+dd+'" aria-label="Rate and app ID for '+dd+'" title="Rate and app ID">'+ic("cog")+'</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+dd+'">Record payment</button>':'')+'<button class="btn" data-papin="'+dd+'">'+ic("plus")+' Pay in</button></div></div>';
+    '<div class="tb"><button class="btn" data-stcsv="'+dd+'">Download Excel</button><button class="btn" data-paemail="'+dd+'">'+ic("bell")+' Notify in app</button><button class="icon-btn" data-paset="'+dd+'" aria-label="Rate and app ID for '+dd+'" title="Rate and app ID">'+ic("cog")+'</button>'+'<button class="btn" data-papin="'+dd+'">'+ic("plus")+' Pay in</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+dd+'">Pay out</button>':'')+'<button class="btn" data-pacalc="'+dd+'">Calculator</button></div></div>';
   var kp='<div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(s.total),"Total payout")+kpi(money(s.paid),"Paid")+kpi(money(s.bal),"Balance")+kpi(money(piTotal(d)),"Pay in received")+'</div>';
   if(!cs.length)return head+kp+'<div class="stub"><h2>No disbursed files in this period</h2>Choose another period above.</div>';
   var rows=cs.map(function(l,i){var pay=casePayout(l),pa=dfPaidAmt(l),paid=pay>0&&pa>=pay,part=!paid&&pa>0;
@@ -6297,12 +6355,13 @@ document.addEventListener("click",function(e){
   if(t.id==="uAdd"){if(state.utab==="roles")openRole();else if(state.utab==="users")openAddUser();else if(state.utab==="teams")openTeam();return;}
   if(d.utab){state.utab=d.utab;renderUsers();return;}
   if(d.ptab){state.ptab=d.ptab;renderPayments();return;}
-  if(d.paview){state.payDetail=d.paview;renderPayments();var ms=document.getElementById("mainScroll");if(ms)ms.scrollTop=0;return;}
+  if(d.paview){state.payDetail=d.paview;if(state.route.indexOf("payments/dealer")===0)state.ptab="payouts";renderPayments();var ms=document.getElementById("mainScroll");if(ms)ms.scrollTop=0;return;}
   if(d.ddback!==undefined){state.payDetail=null;renderPayments();return;}
   if(d.frate){startRateEdit(t);return;}
   if(d.fshare){shareFile(+d.fshare);return;}
   if(d.papay){openPay(d.papay);return;}
   if(d.papin){openPayIn(d.papin);return;}
+  if(d.pacalc){state.dcalc.dealer=d.pacalc;state.dcalc.rate="";state.dcalc.q="";state.ptab="dcalc";state.payDetail=null;renderPayments();return;}
   if(d.pilist!==undefined){openPayInList(d.pilist);return;}
   if(d.paemail){openEmail(d.paemail,false);return;}
   if(d.paset){openDealerCfg(d.paset);return;}
@@ -6489,9 +6548,8 @@ document.addEventListener("change",function(e){
   if(t.id==="rFrom"||t.id==="rTo"){
     var f1=document.getElementById("rFrom").value,t1=document.getElementById("rTo").value;
     if(f1&&t1&&f1<=t1){state.range={from:f1,to:t1};drawCharts();}else toast("Pick a start date before the end date");return;}
-  if(t.id==="payBasis"){state.fyBasis=t.value;if(/^[qh]/.test(state.pay.opt))payApply(state.pay.opt);renderPayments();return;}
-  if(t.id==="payPeriod"){if(t.value==="custom"){state.pay.opt="custom";state.pay.label=fmtDate(state.pay.from)+" to "+fmtDate(state.pay.to);}else payApply(t.value);renderPayments();return;}
-  if(t.id==="payFrom"||t.id==="payTo"){var pf=document.getElementById("payFrom").value,pt=document.getElementById("payTo").value;if(pf&&pt&&pf<=pt){state.pay.from=pf;state.pay.to=pt;state.pay.opt="custom";state.pay.label=fmtDate(pf)+" to "+fmtDate(pt);renderPayments();}else toast("Pick a start date before the end date");return;}
+  if(t.id==="payYear"){state.pay.year=t.value;if(t.value==="all")state.pay.month="all";payApply();renderPayments();return;}
+  if(t.id==="payMonth"){state.pay.month=t.value;payApply();renderPayments();return;}
   if(d.pcall!==undefined){var on=t.checked;[].slice.call(document.querySelectorAll("input[data-pc]")).forEach(function(c){c.checked=on;});payRecalc();return;}
   if(d.pc!==undefined){payRecalc();return;}
   if(t.id==="plugActive"){state.bulkOn=t.checked;renderIntegration();return;}
