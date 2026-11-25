@@ -4849,12 +4849,13 @@ function payPayoutsTab(list,tot){
   var rows=list.filter(function(x){return x.n>0&&payMatch(x);});
   function card(l,amt,n){return '<div class="sum-card"><span class="sum-label">'+l+'</span><b>'+money(amt)+'</b><span class="sum-files">'+n+' file'+(n===1?"":"s")+'</span></div>';}
   var T=rows.reduce(function(a,x){return {n:a.n+x.n,total:a.total+x.total,paid:a.paid+x.paid,paidN:a.paidN+x.paidN,bal:a.bal+x.bal,balN:a.balN+x.balN};},{n:0,total:0,paid:0,paidN:0,bal:0,balN:0});
-  return '<div class="sumbar">'+card("Total payout",T.total,T.n)+card("Paid",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'</div>'+
-   (rows.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:1000px"><thead><tr><th>Sr. No.</th><th class="l">Dealer</th><th>Files</th><th>Loan amount</th><th>Payout %</th><th>Total payout</th><th>Paid %</th><th>Paid</th><th>Balance</th><th>In-app notice</th><th>Action</th></tr></thead><tbody>'+
+  var PIT=rows.reduce(function(a,x){return a+piTotal(x.dealer);},0);
+  return '<div class="sumbar">'+card("Total payout",T.total,T.n)+card("Paid",T.paid,T.paidN)+card("Balance to pay",T.bal,T.balN)+'<div class="sum-card"><span class="sum-label">Pay in received <button class="icon-btn" data-pilist="" title="View all pay in" aria-label="View all pay in" style="vertical-align:middle">'+ic("eye")+'</button></span><b>'+money(PIT)+'</b><span class="sum-files">from dealers</span></div></div>'+
+   (rows.length?'<div class="tcard"><div class="tscroll"><table class="center striped" style="min-width:1100px"><thead><tr><th>Sr. No.</th><th class="l">Dealer</th><th>Files</th><th>Loan amount</th><th>Payout %</th><th>Total payout</th><th>Paid %</th><th>Paid</th><th>Balance</th><th>Pay in</th><th>In-app notice</th><th>Action</th></tr></thead><tbody>'+
     rows.map(function(x,i){
       var em=state.emailed[emailKey(x.dealer)], d=esc(x.dealer);
-      return '<tr><td>'+(i+1)+'</td><td class="l"><button class="name-link" data-paview="'+d+'">'+d+'</button></td><td>'+x.n+'</td><td>'+money(x.loan)+'</td><td>'+dfPct(x.total,x.loan)+'%</td><td>'+money(x.total)+'</td><td>'+dfPct(x.paid,x.loan)+'%</td><td>'+money(x.paid)+'</td><td><b>'+money(x.bal)+'</b></td><td>'+(em?'Notified '+esc(em.slice(0,10)):(dApp(x.dealer)?'Not notified':'<span class="st-inactive">No app ID set</span>'))+'</td>'+
-       '<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay '+d+'" title="Record payment"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
+      return '<tr><td>'+(i+1)+'</td><td class="l"><button class="name-link" data-paview="'+d+'">'+d+'</button></td><td>'+x.n+'</td><td>'+money(x.loan)+'</td><td>'+dfPct(x.total,x.loan)+'%</td><td>'+money(x.total)+'</td><td>'+dfPct(x.paid,x.loan)+'%</td><td>'+money(x.paid)+'</td><td><b>'+money(x.bal)+'</b></td><td>'+(piTotal(x.dealer)?'<button class="name-link" data-pilist="'+d+'" title="View pay in history">'+money(piTotal(x.dealer))+'</button>':money(0))+'</td><td>'+(em?'Notified '+esc(em.slice(0,10)):(dApp(x.dealer)?'Not notified':'<span class="st-inactive">No app ID set</span>'))+'</td>'+
+       '<td><div class="act" style="justify-content:center"><button class="icon-btn seg-eye" data-paview="'+d+'" aria-label="View statement for '+d+'" title="View statement">'+ic("eye")+'</button><button class="icon-btn" data-papay="'+d+'" aria-label="Pay '+d+'" title="Record payment"'+(x.bal>0?"":" disabled")+'>'+ic("card")+'</button><button class="icon-btn" data-papin="'+d+'" aria-label="Pay in from '+d+'" title="Pay in (receive from dealer)">'+ic("plus")+'</button><button class="icon-btn seg-edit" data-paemail="'+d+'" aria-label="Notify '+d+' in app" title="Notify in app">'+ic("bell")+'</button><button class="icon-btn" data-paset="'+d+'" aria-label="Rate and app ID for '+d+'" title="Rate and app ID">'+ic("cog")+'</button></div></td></tr>';}).join("")+'</tbody></table></div></div>'
    :'<div class="stub"><h2>'+(state.pf.q||state.pf.st!=="all"?"No dealers match your filters":"No disbursed files in this period")+'</h2>Choose another period or clear the filters above. Payouts are worked out from files with the Disburse status.</div>')+
    '<textarea class="csvbox" id="repFallback" rows="6" readonly hidden aria-label="Excel data"></textarea>';
 }
@@ -4868,6 +4869,35 @@ var ST_CATS=["Salary","Incentive","Commission","Reimbursement","Advance","Other"
 var ST_KEY="avail_crm_staffpays_v1";
 state.staffPays=[];try{state.staffPays=JSON.parse(localStorage.getItem(ST_KEY)||"[]")||[];}catch(e){}
 function stSave(){try{localStorage.setItem(ST_KEY,JSON.stringify(state.staffPays));}catch(e){toast("Could not save staff payments in this browser");}}
+/* ---------- Dealer pay in: money received FROM a dealer ---------- */
+var PI_KEY="avail_crm_dealer_payins_v1";
+state.payIns=[];try{state.payIns=JSON.parse(localStorage.getItem(PI_KEY)||"[]")||[];}catch(e){}
+function piSave(){try{localStorage.setItem(PI_KEY,JSON.stringify(state.payIns));}catch(e){toast("Could not save pay in in this browser");}try{if(window.CRM_SYNC&&window.CRM_SYNC.pushMaster)window.CRM_SYNC.pushMaster(true);}catch(_p){}}
+function piTotal(d){return state.payIns.filter(function(p){return p.status!=="void"&&(!d||p.dealer===d);}).reduce(function(a,p){return a+(+p.amount||0);},0);}
+function openPayIn(dealer){
+  var m=openPayModal('<h2>Pay in from '+esc(dealer)+'</h2><p class="dlnote">Record money received from this dealer. Already received so far: <b>'+money(piTotal(dealer))+'</b>.</p>'+
+   '<div class="row"><div class="field"><label for="piAmt">Amount received</label><input id="piAmt" type="number" min="1" step="0.01" inputmode="decimal"></div><div class="field"><label for="piDate">Date</label><input type="date" id="piDate" value="'+ymd(TODAY)+'"></div></div>'+
+   '<div class="row"><div class="field"><label for="piMode">Mode</label><select id="piMode"><option>Bank transfer (NEFT/RTGS)</option><option>UPI</option><option>Cheque</option><option>Cash</option></select></div><div class="field"><label for="piRef">Reference (UTR or cheque number)</label><input id="piRef"></div></div>'+
+   '<div class="field"><label for="piNote">Note (optional)</label><input id="piNote" placeholder="e.g. refund of excess payout"></div>'+
+   '<div class="actions"><button class="btn" data-close>Cancel</button><button class="btn primary" id="piSaveBtn">Save pay in</button></div>');
+  document.getElementById("piSaveBtn").onclick=function(){
+    var amt=parseFloat(document.getElementById("piAmt").value),date=document.getElementById("piDate").value;
+    if(!(amt>0)){toast("Enter the amount received");return;}
+    if(!date){toast("Choose the date");return;}
+    state.payIns.push({id:Date.now(),dealer:dealer,amount:Math.round(amt*100)/100,date:date,mode:document.getElementById("piMode").value,ref:document.getElementById("piRef").value.trim(),note:document.getElementById("piNote").value.trim(),status:"active",createdBy:whoAmI(),createdAtText:stamp()});
+    piSave();closeAll();renderPayments();toast("Pay in of "+money(amt)+" recorded for "+dealer);
+  };
+}
+function openPayInList(dealer){
+  var list=state.payIns.filter(function(p){return !dealer||p.dealer===dealer;}).sort(function(a,b){return b.id-a.id;});
+  var m=openPayModal('<h2>Pay in history'+(dealer?': '+esc(dealer):'')+'</h2>'+(list.length?'<div class="repscroll"><table class="center striped" style="min-width:640px"><thead><tr><th>Date</th>'+(dealer?'':'<th class="l">Dealer</th>')+'<th>Amount</th><th>Mode</th><th>Reference</th><th>Note</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(p){var vo=p.status==="void";return '<tr'+(vo?' class="pvoid"':'')+'><td>'+esc(fmtDate(p.date))+'</td>'+(dealer?'':'<td class="l">'+esc(p.dealer)+'</td>')+'<td>'+money(p.amount)+'</td><td>'+esc(p.mode)+'</td><td>'+esc(p.ref||"-")+'</td><td>'+esc(p.note||"-")+'</td><td>'+(vo?'Cancelled':'Received')+'</td><td>'+(vo?'':'<button class="icon-btn" data-pidel="'+p.id+'" title="Cancel this pay in" aria-label="Cancel pay in">'+ic("trash")+'</button>')+'</td></tr>';}).join("")+'</tbody></table></div>':'<p class="dlnote">No pay in recorded yet.</p>')+
+   '<div class="actions"><button class="btn" data-close>Close</button>'+(dealer?'<button class="btn primary" id="piAddBtn">'+ic("plus")+' Pay in</button>':'')+'</div>');
+  m.classList.add("wide");
+  var ab=document.getElementById("piAddBtn");if(ab)ab.onclick=function(){openPayIn(dealer);};
+  m.querySelectorAll("[data-pidel]").forEach(function(b){b.onclick=function(){var id=+b.getAttribute("data-pidel"),p=state.payIns.filter(function(x){return x.id===id;})[0];if(!p)return;p.status="void";p.voidedBy=whoAmI();p.voidedAtText=stamp();piSave();closeAll();renderPayments();toast("Pay in cancelled");};});
+}
+
 state.lp={q:"",lead:0,ft:"",fc:"",fq:"",cq:"",calc:0,cf:{q:"",lender:"",dealer:"",stage:"",pay:"",hold:""}};
 function lpType(e){return e.type||(e.dealer?"dealer":e.from?"lender":"");}
 function lpTypeName(e){var t=lpType(e),m=LP_TYPES.filter(function(x){return x[0]===t;})[0];return m?m[1]:"Payment";}
@@ -5227,8 +5257,8 @@ function dealerDetailHtml(d){
   var s=dealerSum(d),cs=s.cases.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.id-a.id;}),dd=esc(d);
   function kpi(v,l){return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>';}
   var head='<div class="dd-head"><button class="btn" data-ddback="1">'+ic("back")+' All dealers</button><div class="dd-title"><h2>'+dd+'</h2><p class="dlnote">'+esc(state.pay.label)+(dApp(d)?'. App ID '+esc(dApp(d)):'. No app ID set')+'. Dealer rate '+s.rate+'%. Click a rate to change it for that file.</p></div>'+
-    '<div class="tb"><button class="btn" data-stcsv="'+dd+'">Download Excel</button><button class="btn" data-paemail="'+dd+'">'+ic("bell")+' Notify in app</button><button class="icon-btn" data-paset="'+dd+'" aria-label="Rate and app ID for '+dd+'" title="Rate and app ID">'+ic("cog")+'</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+dd+'">Record payment</button>':'')+'</div></div>';
-  var kp='<div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(s.total),"Total payout")+kpi(money(s.paid),"Paid")+kpi(money(s.bal),"Balance")+'</div>';
+    '<div class="tb"><button class="btn" data-stcsv="'+dd+'">Download Excel</button><button class="btn" data-paemail="'+dd+'">'+ic("bell")+' Notify in app</button><button class="icon-btn" data-paset="'+dd+'" aria-label="Rate and app ID for '+dd+'" title="Rate and app ID">'+ic("cog")+'</button>'+(s.bal>0?'<button class="btn primary" data-papay="'+dd+'">Record payment</button>':'')+'<button class="btn" data-papin="'+dd+'">'+ic("plus")+' Pay in</button></div></div>';
+  var kp='<div class="kpis">'+kpi(s.n,"Files")+kpi(money(s.loan),"Loan amount")+kpi(money(s.total),"Total payout")+kpi(money(s.paid),"Paid")+kpi(money(s.bal),"Balance")+kpi(money(piTotal(d)),"Pay in received")+'</div>';
   if(!cs.length)return head+kp+'<div class="stub"><h2>No disbursed files in this period</h2>Choose another period above.</div>';
   var rows=cs.map(function(l,i){var pay=casePayout(l),pa=dfPaidAmt(l),paid=pay>0&&pa>=pay,part=!paid&&pa>0;
     return '<tr><td>'+(i+1)+'</td><td>'+esc(fmtDate(l.date))+'</td><td class="l"><button class="name-link" data-dfview="'+l.id+'" title="Open payment details">'+esc(l.name)+'</button></td><td>'+esc(l.phone||"-")+'</td><td>'+esc(l.vehicle||"-")+'</td><td>'+esc(l.reg||"-")+'</td><td>'+esc(l.lender||"-")+'</td><td>'+money(l.amount)+'</td><td>'+ddRateCell(l)+'</td><td>'+money(pay)+'</td><td>'+dfPct(pa,l.amount)+'%</td><td>'+money(pa)+'</td><td><span class="pill '+(paid?"Disbursed":"Hold")+'">'+(paid?"Paid":part?"Part paid":"Pending")+'</span></td>'+
@@ -6272,6 +6302,8 @@ document.addEventListener("click",function(e){
   if(d.frate){startRateEdit(t);return;}
   if(d.fshare){shareFile(+d.fshare);return;}
   if(d.papay){openPay(d.papay);return;}
+  if(d.papin){openPayIn(d.papin);return;}
+  if(d.pilist!==undefined){openPayInList(d.pilist);return;}
   if(d.paemail){openEmail(d.paemail,false);return;}
   if(d.paset){openDealerCfg(d.paset);return;}
   if(d.savedc){saveDealerCfg(d.savedc);return;}
