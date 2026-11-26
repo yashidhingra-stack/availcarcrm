@@ -94,6 +94,33 @@ table.hier td{vertical-align:top}.hwrap{display:flex;flex-wrap:wrap;gap:6px 14px
 .mau{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;font-size:12px;color:var(--muted)}
 .mau strong{font-size:15px;color:var(--ink);font-weight:600}
 
+
+/* dashboard banner + month KPIs */
+.hero-ban{position:relative;overflow:hidden;display:flex;justify-content:space-between;gap:24px;align-items:center;flex-wrap:wrap;border-radius:18px;padding:24px 28px;margin-bottom:18px;color:#fff;background:linear-gradient(120deg,#0e2a35 0%,#1c4a5a 50%,#e4572e 150%);box-shadow:var(--shadow)}
+.hero-ban::before,.hero-ban::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none}
+.hero-ban::before{width:260px;height:260px;right:-60px;top:-110px}.hero-ban::after{width:170px;height:170px;right:150px;bottom:-100px}
+.hero-ban>*{position:relative;z-index:1}
+.hero-date{display:inline-block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.8;margin-bottom:6px}
+.hero-ban h1{margin:0 0 2px;font-size:26px;font-weight:600;letter-spacing:-.01em}
+.hero-ban h1 b{color:#ffd2c2}
+.hero-ban p{margin:0 0 14px;font-size:15px;opacity:.9}
+.hero-ban .chip{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.3);color:#fff}
+.hero-ban .chip:hover{background:#fff;color:#c4421d;border-color:#fff}
+.hero-ban .mau{background:rgba(255,255,255,.96);color:#4b5b63;border-radius:14px;padding:12px 18px}
+.hero-ban .mau strong{color:#14262e}
+.month-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:5px 12px;font-size:13px;margin-bottom:12px}
+.month-pill i{width:8px;height:8px;border-radius:50%;background:#7be0a4;display:inline-block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px}
+.kpi{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px 14px 20px;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s}
+.kpi:hover{transform:translateY(-2px)}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--kc,var(--accent))}
+.kpi span{display:block;font-size:12.5px;color:var(--muted);font-weight:500}
+.kpi b{display:block;font-size:24px;margin:4px 0 2px;letter-spacing:-.01em;font-weight:600}
+.kpi small{color:var(--muted);font-size:12px}
+.kpi .bar{height:5px;border-radius:99px;background:var(--bg);margin-top:8px;overflow:hidden}.kpi .bar i{display:block;height:100%;border-radius:99px;background:var(--kc,var(--accent))}
+.grid .card{border-radius:14px;transition:box-shadow .15s}.grid .card:hover{box-shadow:0 6px 22px rgba(0,0,0,.09)}
+.sec-head h2{position:relative;padding-left:12px}.sec-head h2::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:4px;border-radius:4px;background:var(--accent)}
+
 /* analysis */
 .sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 14px}
 .sec-head h2{margin:0;font-size:20px;font-weight:500}
@@ -722,7 +749,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
   <div class="main" id="mainScroll">
     <header class="top">
       <button class="burger icon-btn" id="burger" aria-label="Open menu"></button>
-      <div class="dash-title"><strong id="dashName">August disbursement</strong><button class="icon-btn" id="renameDash" aria-label="Rename dashboard"></button></div>
+      <div class="dash-title"><strong id="dashName">Disbursement</strong><button class="icon-btn" id="renameDash" aria-label="Rename dashboard"></button></div>
       <div class="top-right">
         <div class="who" id="who"></div>
         <button class="icon-btn" id="themeBtn" aria-label="Toggle light or dark theme"></button>
@@ -1080,10 +1107,13 @@ function ring(pct){
 }
 function renderDashboard(){
   var v=document.getElementById("view");
-  var h='<section class="hero"><div><h1>Hi <b>'+esc(whoAmI())+'</b>,</h1><p>What would you like to do today?</p><div class="chips">';
+  var MN=["January","February","March","April","May","June","July","August","September","October","November","December"],hr=new Date().getHours();
+  var greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening",monthName=MN[TODAY.getMonth()]+" "+TODAY.getFullYear();
+  var h='<section class="hero-ban"><div><span class="hero-date">'+esc(TODAY.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))+'</span><div><span class="month-pill"><i></i>'+esc(monthName)+' disbursement</span></div><h1>'+greet+', <b>'+esc(whoAmI())+'</b></h1><p>What would you like to do today?</p><div class="chips">';
   channels.forEach(function(c,i){if(canChannel(i))h+='<button class="chip" data-newcamp="'+i+'">'+c[0]+'</button>';});
   h+='</div></div><div class="mau">'+ring(25)+'<strong>Active contacts 2,480</strong><span>Limit 10,000 · renews Nov 4, 2026</span></div></section>';
   var showG=canDo("Dashboard","Leads Collected");
+  if(showG)h+=dashKpis(monthName);
   if(showG)h+='<div class="sec-head"><h2>Analysis graph</h2><div class="range"><input type="date" id="rFrom" value="'+state.range.from+'" aria-label="From date"><span>to</span><input type="date" id="rTo" value="'+state.range.to+'" aria-label="To date"></div></div><div class="grid" id="grid">';
   (showG?state.widgets:[]).forEach(function(w){
     if(w.page&&!hierPageOk(w.page))return; /* category not ticked for this user on the Hierarchy page */
@@ -1095,6 +1125,24 @@ function renderDashboard(){
   if(showG&&state.removed.length)h+='<button class="restore" id="restore">Restore '+state.removed.length+' removed chart'+(state.removed.length>1?"s":"")+'</button>';
   v.innerHTML=h;
   drawCharts();
+}
+function dashKpis(monthName){
+  var ym=ymd(TODAY).slice(0,7),all=teamLeads();
+  var mrows=all.filter(function(l){return !l.cat&&String(l.date||"").slice(0,7)===ym;});
+  function by(st){return mrows.filter(function(l){return l.stage===st;});}
+  function sum(a){return a.reduce(function(t,l){return t+(+l.amount||0);},0);}
+  var dis=by("Disbursed"),lg=by("Login"),au=by("Audience"),hr=by("Hold").concat(by("Rejected"));
+  var pdd=all.filter(function(l){return inPddNow(l)&&!isApprovedRto(l);}).length;
+  var conv=mrows.length?Math.round(dis.length/mrows.length*100):0;
+  function k(label,val,sub,color,bar){return '<div class="kpi" style="--kc:'+color+'"><span>'+label+'</span><b>'+val+'</b><small>'+sub+'</small>'+(bar!==undefined?'<div class="bar"><i style="width:'+Math.min(100,bar)+'%"></i></div>':'')+'</div>';}
+  var f=function(n){return n+(n===1?" file":" files");};
+  return '<div class="kpis" aria-label="'+esc(monthName)+' summary">'+
+    k(esc(monthName)+" disbursed",money(sum(dis)),f(dis.length)+" · "+conv+"% of this month's leads","#2f8f5b",conv)+
+    k("Login business",money(sum(lg)),f(lg.length)+" in progress","#2b7de9")+
+    k("Audience leads",String(au.length),money(sum(au))+" pipeline","#e8a31a")+
+    k("Hold / Reject",String(hr.length),money(sum(hr))+" this month","#c43d3d")+
+    k("PDD pending",String(pdd),"files waiting for RC","#7c5cc4")+
+  '</div>';
 }
 function tool(a,i,l){return '<button class="icon-btn" data-tool="'+a+'" aria-label="'+l+'" title="'+l+'">'+ic(i)+'</button>';}
 
@@ -6307,6 +6355,7 @@ function go(r){if(r==="leads/Rejected")r="leads/Hold";if(r==="leads/channel"){r=
 /* ---------- events ---------- */
 document.getElementById("burger").innerHTML=ic("menu");
 document.getElementById("renameDash").innerHTML=ic("pencil");
+(function(){var M=["January","February","March","April","May","June","July","August","September","October","November","December"],e=document.getElementById("dashName");if(e)e.textContent=M[TODAY.getMonth()]+" "+TODAY.getFullYear()+" disbursement";})();
 document.getElementById("searchBtn").innerHTML=ic("search");
 document.getElementById("bellBtn").insertAdjacentHTML("afterbegin",ic("bell"));
 document.getElementById("themeBtn").innerHTML=ic("moon");
