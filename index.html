@@ -2804,6 +2804,7 @@ function dsbNetHtml(l){var n=dsbNetVal(l);return n===null?"—":'<span'+(n<0?' s
 function dsbMissing(l){
   var px=l.px||{},m=[];
   if(!dsbHas(px.idv))m.push("IDV Value");
+  if(!dsbIso(px.insExp))m.push("Insurance Expiry");
   if(!dsbHas((ldx(l).nd||{}).pf))m.push("Processing Fees");
   return m;
 }
@@ -3256,9 +3257,9 @@ function renderDisbLead(l){
           ldRow(["reg","Vehicle Number",l.reg||"",l.reg||"—","text"]),
           ldRow(["bankExec","Bank Executive",x.bankExec||"",x.bankExec||"—","text"]),
           ldRow(["amount","Loan Amount",l.amount,l.amount?money(l.amount):"—","num"]),
-          P.ls,P.pf,
+          P.idv,P.ins,P.pf,P.ls,
           ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),null]),
-          '<tr><td class="k">RTO Confirmation</td><td><div class="rv"><select data-dsb-rto-confirm aria-label="RTO Confirmation"><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></td></tr>',
+          ldRow(["rtoConfirm","RTO Confirmation",x.rtoConfirm||"",x.rtoConfirm||"—",null]), /* view only: RTO Confirmation is entered in PDD Details */
           ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),null]),
           ldRow(["oth","Other Charges",lpPddAmount(l,"Other charges"),money(lpNum(lpPddAmount(l,"Other charges"))),null]),
           '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
