@@ -506,6 +506,7 @@ td small{color:var(--muted)}
 /* ---- Disbursement lead view ---- */
 .name-link{border:0;background:none;padding:0;color:var(--focus);font-weight:500;text-align:left}
 .dd-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 4px}.dd-title{flex:1;min-width:200px}.dd-title h2{margin:0;font-size:20px}.dd-title .dlnote{margin:2px 0 0}
+.rto-chip{display:inline-block;padding:3px 12px;border-radius:99px;font-weight:600}.rto-chip.ok{color:#1f7a4a;background:rgba(47,143,91,.15)}.rto-chip.bad{color:#b02f2f;background:rgba(196,61,61,.15)}
 .rate-edit{border:1px dashed var(--line);background:var(--surface);color:var(--focus);border-radius:6px;padding:2px 9px;font:inherit;font-weight:500;cursor:text}.rate-edit:hover{border-color:var(--focus)}.rate-edit.custom{background:#fff7e6;border-color:#e0a030;color:#8a5a00}
 .rate-in{width:74px;padding:3px 6px;border:1px solid var(--focus);border-radius:6px;font:inherit;text-align:center}
 .name-link:hover{text-decoration:underline}
@@ -1231,6 +1232,17 @@ function colState(key){
   attrsForListPage(key).forEach(function(a){if(cso["a_"+a.key]===undefined)cso["a_"+a.key]=true;});
   return cso;
 }
+function leadSearchText(l,key){ /* everything shown in any column of this page, plus the raw values */
+  var out=[];
+  try{pageCols(key).forEach(function(c){
+    var id=c[0];if(id==="sno")return;
+    if(id==="caseBooked"){out.push(ldx(l).caseBooked);return;}
+    try{out.push(String(cell(l,id,0)==null?"":cell(l,id,0)).replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,"&"));}catch(_e){}
+  });}catch(_e2){}
+  out.push(l.name,l.phone,l.reg,l.vehicle,l.make,l.owner,l.dealer,l.lender,l.product,l.status,l.year,l.amount,l.date,l.ts,l.email,audOf(l));
+  try{out.push(fmtDate(l.date));}catch(_e3){}
+  return out.join(" ").toLowerCase();
+}
 function leadRows(key,noSel){
   var st=pageStages(key), q=state.q.trim().toLowerCase(), f=state.f, lr=getRange(key), sf=state.sf;
   if(key==="Hold")st=["Hold","Rejected"]; /* Hold/Reject: one common list */
@@ -1262,13 +1274,8 @@ function leadRows(key,noSel){
     if(f.min!==""&&l.amount<+f.min)return false;
     if(f.max!==""&&l.amount>+f.max)return false;
     if(q){
-      var hay=[];
-      if(sf.name)hay.push(l.name);
-      if(sf.phone)hay.push(l.phone);
-      if(sf.veh)hay.push(l.reg,l.vehicle);
-      if(sf.lender)hay.push(l.lender);
-      if(sf.dealer)hay.push(l.dealer);
-      if(hay.join(" ").toLowerCase().indexOf(q)<0)return false;
+      var hay=leadSearchText(l,key),qt=q.split(/\s+/).filter(Boolean),qi;
+      for(qi=0;qi<qt.length;qi++){if(hay.indexOf(qt[qi])<0)return false;}
     }
     return true;
   });
@@ -1672,8 +1679,7 @@ function renderLeads(){
   var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><h1>'+title+'</h1></div><div class="tb">';
   h+='<div class="pw"><button class="btn dark" data-pop="status" aria-haspopup="true" aria-expanded="false"><span id="selLabel"></span> '+caret+'</button><div class="pop" id="pop-status" hidden><div class="pop-top"><button data-sel="all">Select all</button><button data-sel="reset">Reset all</button></div><div class="pop-list">'+
     opts.map(function(s){return '<label class="chk"><input type="checkbox" data-status="'+s+'"'+(state.sel.indexOf(s)>-1?" checked":"")+'>'+dotted(s)+s+'</label>';}).join("")+'</div></div></div>';
-  h+='<div class="searchbox pw"'+(key==="Login"||key==="Disbursed"||key==="pdd"?' hidden style="display:none"':'')+'><input type="search" id="q" placeholder="Name, mobile or vehicle number" value="'+esc(state.q)+'" aria-label="Search leads"><button class="icon-btn" data-pop="sfields" aria-label="Choose search fields" aria-haspopup="true" aria-expanded="false">'+ic("sliders")+'</button><div class="pop r" id="pop-sfields" hidden><div class="pop-top"><strong>Search in</strong></div>'+
-    [["name","Name"],["phone","Mobile"],["veh","Vehicle and number"],["lender","Lender"],["dealer","Dealer"]].map(function(x){return '<label class="chk"><input type="checkbox" data-sf="'+x[0]+'"'+(state.sf[x[0]]?" checked":"")+'>'+x[1]+'</label>';}).join("")+'</div></div>';
+  h+='<div class="searchbox pw"><input type="search" id="q" placeholder="Search any column: name, mobile, vehicle, lender, dealer, owner, status..." value="'+esc(state.q)+'" aria-label="Search leads in any column"></div>';
   if((key==="Audience"||key==="Login")&&canDo("Leads","Add lead"))h+='<button class="btn primary" data-addlead>'+ic("plusS")+' Add new lead</button>';
   h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Import leads")?'<button class="menu-item" '+(key==="pdd"?'data-importpdd':'data-importcsv')+'>Import Excel</button>':"")+'<button class="menu-item" data-fpdl>Export Excel</button></div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="wbIn" accept=".xlsx,.xls" hidden>';
   if(key==="data"&&hierIsAdmin(userById(state.meUser))&&canDo("Leads","Import leads"))
@@ -1696,7 +1702,7 @@ function renderLeads(){
   if(key==="Audience")h+='<div class="audbar" id="audbar"></div>';
   if(calcOn(key))h+='<div class="sumbar" id="sumbar"></div><section class="card repcard" id="repbox"></section>';
   if(!NOFILTER[key])h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'"><span id="fpLabel">Filter</span> '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
-    '<div class="field"><label for="fpFrom">Date from</label><input type="date" id="fpFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="fpTo">Date to</label><input type="date" id="fpTo" value="'+getRange(key).to+'"></div><div class="field"><button class="btn" data-fpall title="Show files of all dates">All dates</button></div>'+
+    '<div class="field"><label for="fpFrom">Date from</label><input type="date" id="fpFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="fpTo">Date to</label><input type="date" id="fpTo" value="'+getRange(key).to+'"></div>'+(key==="Audience"?'':'<div class="field"><button class="btn" data-fpall title="Show files of all dates">All dates</button></div>')+
     (key==="Audience"?monthField()+selectField("owner","Lead owner",owners):
 selectField("product","Product",products)+selectField("lender","Lender",lenderOptions())+selectField("dealer","Dealer",dealerFilterOptions())+selectField("owner","Lead owner",owners)+selectField("team","Team",roleNames())+selectField("year","Year",Array.from(new Set((leads||[]).map(function(l){return String(l.year||"").trim();}).filter(Boolean))).sort().reverse())+selectField("source","Source",sources)+
     (key==="Disbursed"?"":'<div class="field"><label for="f_min">Loan amount from (₹)</label><input type="number" id="f_min" data-f="min" min="0" step="50000" value="'+esc(state.f.min)+'"></div>'+
@@ -2862,7 +2868,7 @@ function dsbGuard(l,ns){ /* a disbursement file cannot move on (Disburse / anoth
   if(!(ns==="Disburse"||statusStage[ns]!=="Disbursed"))return true;
   var m=dsbMissing(l);if(!m.length)return true;
   toast("Fill the mandatory details first: "+m.join(", "));
-  var first=null;document.querySelectorAll("[data-dsb-inline]").forEach(function(e){if(!String(e.value).trim()){e.style.borderColor="#c43d3d";if(!first)first=e;}});
+  var first=null;document.querySelectorAll('[data-dsb-inline],[data-bx="idv"],[data-bx="insExp"],[data-bx="pf"]').forEach(function(e){if(!String(e.value).trim()){e.style.borderColor="#c43d3d";if(!first)first=e;}});
   if(first){try{first.scrollIntoView({block:"center",behavior:"smooth"});first.focus({preventScroll:true});}catch(_e){}}
   return false;
 }
@@ -2872,8 +2878,8 @@ function dsbRowParts(l){
   return {
     idv:ldRow(["idv","IDV Value"+req,idv,dsbHas(idv)&&!isNaN(parseFloat(idv))?money(parseFloat(idv)):String(idv),"num"]),
     ins:ldRow(["insExp","Insurance Expiry"+req,ins,ins?fmtDate(ins):String(px.insExp||""),"cxDate"]),
-    pf:ldRow(["pf","Processing Fees"+req,pf,dsbHas(pf)?money(dsbNum(pf)):"",null]),
-    ls:ldRow(["ls","Loan Suraksha"+req,ls,dsbHas(ls)?money(dsbNum(ls)):"",null]),
+    pf:ldRow(["pf","Processing Fees"+req,pf,dsbHas(pf)?money(dsbNum(pf)):"","num"]),
+    ls:ldRow(["ls","Loan Suraksha"+req,ls,dsbHas(ls)?money(dsbNum(ls)):"","num"]),
     net:'<tr><td class="k">Net Disbursement from Bank'+req+'</td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div><small class="note">Auto-calculated: Loan Amount \u2212 Processing Fees \u2212 Loan Suraksha</small></td></tr>',
     netClient:'<tr><td class="k">Net Disbursement To Client</td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div><small class="note">From PDD Details: Net Disbursement from Bank \u2212 RTO charges \u2212 Challan charges \u2212 Other charges</small></td></tr>'
   };
@@ -2884,7 +2890,7 @@ function dsbInlineRow(l,k){ /* IDV Value, Insurance Expiry, Processing Fees and 
   var v=isI?dsbIso(px.insExp):k==="idv"?(dsbHas(px.idv)?px.idv:""):(dsbHas(nd[k])?nd[k]:"");
   return '<tr><td class="k">'+L+star+'</td><td><div class="rv"><input data-dsb-inline="'+k+'" type="'+(isI?"date":"number")+'"'+(isI?"":' min="0" step="any" inputmode="decimal" placeholder="Enter '+L+'"')+' value="'+esc(v)+'" aria-label="'+L+'"></div></td></tr>';
 }
-function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.pf+P.ls+P.net+P.netClient;}
+function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.ins+P.ls+P.pf+P.net+P.netClient;}
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
   return '<div class="pv" aria-label="Payment details"><div id="payKpiTop"></div><div class="pv-grid pv-one"><section class="nd-card pv-card" id="recvHost" aria-label="Received details"></section></div></div>';
@@ -3073,10 +3079,12 @@ function pddDetHtml(l){
     ro("Challan Charges",money(lpNum(lpPddAmount(l,"Challan charges"))))+
     ro("Other charges",money(lpNum(lpPddAmount(l,"Other charges"))))+
     ro("Net Disbursement from Bank",dsbNetBase(l)===null?"":money(dsbNetBase(l)))+ro("Net Disbursement To Client",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
-  return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
+  var pddOut='<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
     pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields"><div class="nd-f"><label for="pd_rtoConfirm">RTO Confirmation</label><select id="pd_rtoConfirm" data-pdconfirm><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></div><div class="pv-fields pv-amts">'+
     n("rto","RTO charges",rtoRaw(l))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
     '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div><p class="note">RTO, challan and other charges entered here are shown in Lead Details and used to calculate Net Disbursement to Client.</p></section>';
+  if(!canEditPdd()){pddOut=pddOut.replace(/<(input|select|textarea)\b/g,'<$1 disabled').replace(/<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details<\/button><\/div>/,'<div class="nd-foot"><span class="pr-ro">View only &middot; you do not have the right to edit PDD Details</span></div>');}
+  return pddOut;
 }
 function pddDetWire(l,v){
   var b=v.querySelector("#pdSave");if(!b)return;
@@ -3086,6 +3094,7 @@ function pddDetWire(l,v){
     if(sl.value==="Other"){inp.style.display="";if(list.indexOf(inp.value)>-1)inp.value="";inp.focus();}
     else{inp.style.display="none";inp.value=sl.value;}};});
   b.onclick=function(){
+    if(!canEditPdd()){toast(DENY);return;}
     var ks=["rto","oth","ch"],i;
     var ss=v.querySelectorAll("[data-pdsel]");for(i=0;i<ss.length;i++){if(ss[i].value==="Other"&&!raw(ss[i].getAttribute("data-pdsel"))){toast("Type the "+(ss[i].getAttribute("data-pdsel")==="auth"?"RTO authority":"RTO person"));return;}}
     for(i=0;i<ks.length;i++){var n=parseFloat(raw(ks[i]));if(!isNaN(n)&&n<0){toast("Amounts cannot be negative");return;}}
@@ -3315,14 +3324,15 @@ function renderDisbLead(l){
         var P=dsbRowParts(l);
         /* right side = loan and disbursement figures; left side = lead / vehicle details. Both sides are kept the same length. */
         var rightRows=[
+          P.idv,P.ins, /* IDV Value, Insurance Expiry, Loan Amount, Loan Suraksha, Processing Fees: editable only after clicking Edit, then Save */
           ldRow(["amount","Loan Amount",l.amount,l.amount?money(l.amount):"\u2014","num"]),
-          dsbInlineRow(l,"idv"),dsbInlineRow(l,"insExp"),dsbInlineRow(l,"pf"),dsbInlineRow(l,"ls"),
+          P.ls,P.pf,
           '<tr><td class="k"><b>Net Disbursement from Bank</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
           ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),null]),
           ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),null]),
           ldRow(["oth","Other Charges",lpPddAmount(l,"Other charges"),money(lpNum(lpPddAmount(l,"Other charges"))),null]),
           '<tr><td class="k"><b>Net Disbursement to Client</b></td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div></td></tr>',
-          ldRow(["rtoConfirm","RTO Confirmation",x.rtoConfirm||"",x.rtoConfirm||"\u2014",null]) /* view only: RTO Confirmation is entered in PDD Details */
+          (function(){var rc=String(x.rtoConfirm||"").trim(),ok=rc==="Confirmed";return '<tr><td class="k">RTO Confirmation</td><td><div class="rv"><span class="rto-chip '+(ok?"ok":"bad")+'">'+(ok?"Confirmed":esc(rc||"Not Confirmed"))+'</span></div></td></tr>';})() /* view only: entered in PDD Details; green = Confirmed, red = not confirmed */
         ];
         var mkv=l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"";
         var leftRows=[
@@ -3343,7 +3353,7 @@ function renderDisbLead(l){
         colR=rightRows.concat(exRows.slice(leftN-leftRows.length));
       }
     }
-    var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Fill them in below.</p>':'';
+    var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit, fill them in and Save.</p>':'';
     h+='<section class="ld-box'+(state.ldBox?' editing':'')+'" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
   } else if(state.ldTab==="pview"){ h+=payViewHtml(l);
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
@@ -3375,8 +3385,8 @@ function renderDisbLead(l){
     function bxChg(f){if(f.tagName==="SELECT"){var di=0,i;for(i=0;i<f.options.length;i++)if(f.options[i].defaultSelected){di=i;break;}return f.selectedIndex!==di;}return f.value!==f.defaultValue;}
     /* a field can appear in the top box and in Lead Details: save the copy the person actually changed */
     v.querySelectorAll("[data-bx]").forEach(function(f){var k=f.getAttribute("data-bx"),c=bxChg(f);if(!bxm[k]||(c&&!bxm[k].c))bxm[k]={f:f,c:c};});
-    Object.keys(bxm).forEach(function(k){if(ldSave(l,k,bxm[k].f.value,true)===false)bad=true;});
-    if(!bad)state.ldBox=false;renderLead();};});
+    Object.keys(bxm).forEach(function(k){if(!bxm[k].c&&(k==="idv"||k==="insExp"||k==="pf"))return;if(ldSave(l,k,bxm[k].f.value,true)===false)bad=true;});
+    if(!bad){state.ldBox=false;try{saveLeads();}catch(_s){}}renderLead();};});
   q("[data-ldgo]",function(b){b.onclick=function(){state.ldTab=b.getAttribute("data-ldgo");state.ldEdit=null;renderLead();};});
   q("[data-ledit]",function(b){b.onclick=function(){state.ldEdit=b.getAttribute("data-ledit");renderLead();var e=document.getElementById("ldE");if(e)e.focus();};});
   q("[data-ldcopy]",function(b){b.onclick=function(){var n=b.getAttribute("data-ldcopy");if(navigator.clipboard)navigator.clipboard.writeText(n).then(function(){toast("Number copied");},function(){toast("Could not copy");});else toast("Copy is not available in this browser");};});
@@ -3887,7 +3897,7 @@ var NOLAND=["Leads","Major Reports","Announcement","Campaign","Custom attributes
 var DASH_ACTS=["Campaign Stats","Leads Collected","Create Push","Create SMS","Create Email","Create Whatsapp","Create Journey","Email Campaign","Email Campaign Stats","SMS Campaign","SMS Campaign Stats","WhatsApp Campaign","WhatsApp Campaign Stats","Android Campaign","Android Campaign Stats","IOS Campaign","IOS Campaign Stats","WEB Campaign","WEB Campaign Stats","In-App Campaign","IVR Campaign"];
 var PERM={
  "Dashboard":[["Actions",DASH_ACTS]],
- "Leads":[["Pages",["Audience","Login Business","Hold","Login Disbursement","Reject Business","PDD Status","Data Upload"]],["Actions",["View lead","Add lead","Import leads","Delete lead","Move to Disbursement","Move to PDD"]],["Features",["Login Business Calculator"]]],
+ "Leads":[["Pages",["Audience","Login Business","Hold","Login Disbursement","Reject Business","PDD Status","Data Upload"]],["Actions",["View lead","Add lead","Import leads","Delete lead","Move to Disbursement","Move to PDD","Edit PDD Details","Edit Payment Details"]],["Features",["Login Business Calculator"]]],
  "Major Reports":[["Pages",["Channel List","Data","Leads report","Analysis","Download data","Staff details","Dealer details"]]],
  "Custom attributes":[["Pages",["Custom"]]],
  "Category":[["Pages",["Category"]]]};
@@ -3901,6 +3911,7 @@ function defPerm(id){
   if(o.m.Leads){o.i["Leads::Hold"]=true;o.i["Leads::Login Business"]=true;}
    o.i["Leads::Move to Disbursement"]=mvOk; o.i["Leads::Move to PDD"]=mvOk;
   o.i["Leads::Login Business Calculator"]=!!o.m.Leads&&(id===2||id===3||id===13);
+  o.i["Leads::Edit PDD Details"]=(id===13)&&!!o.m.Leads; o.i["Leads::Edit Payment Details"]=(id===13)&&!!o.m.Leads; /* only Admin by default; others view only until Admin gives the right */
   return o;
 }
 state.meUser=0;state.meRole=0; /* set by sign-in */
@@ -3930,6 +3941,8 @@ function permAdopt(j){
   Object.keys(state.perm).forEach(function(k){delete state.perm[k];});
   roles.forEach(function(r){state.perm[r.id]=j.perm[r.id]||defPerm(r.id);});
   Object.keys(state.perm).forEach(function(k){var i=state.perm[k]&&state.perm[k].i;if(!i||i["Leads::Login Disbursement"]!==undefined)return;["Leads::Approved Business","Leads::Disbursement Business"].forEach(function(o){if(i["Leads::Login Disbursement"]===undefined&&i[o]!==undefined)i["Leads::Login Disbursement"]=i[o];});});
+  Object.keys(state.perm).forEach(function(k){var i=state.perm[k]&&state.perm[k].i,rr=roles.filter(function(r){return String(r.id)===String(k);})[0];
+  if(!i)return;["Leads::Edit PDD Details","Leads::Edit Payment Details"].forEach(function(o){if(i[o]===undefined)i[o]=!!(rr&&rr.name==="Admin");});});
   if(state.perm[13])state.perm[13].m["User management"]=true;
   return true;
 }
@@ -3942,6 +3955,9 @@ function anuEnsure(u){return;} /* no hard-wired user: access follows Roles, Perm
 function permNow(){return state.perm[state.meRole];} /* only the permissions Admin gave to the role */
 function canMod(m){var p=permNow();return !!(p&&p.m[m]);}
 function canDo(m,it){var p=permNow();return !!(p&&p.m[m]&&p.i[m+"::"+it]);}
+function canEditRight(it){var p=permNow();if(!p)return false;if(hierIsAdmin(userById(state.meUser)))return true;return !!(p.m.Leads&&p.i["Leads::"+it]===true);}
+function canEditPdd(){return canEditRight("Edit PDD Details");}
+function canEditPay(){return canEditRight("Edit Payment Details");}
 var LEAD_PAGE={Audience:"Audience",Login:"Login Business",Hold:"Hold",Disbursed:"Login Disbursement",Rejected:"Reject Business",pdd:"PDD Status",Close:"PDD Status"};
 var INTEG={forms:"Forms",marketplace:"Marketplace",social:"Social Media",api:"API",bulk:"Bulk",custom:"Custom",telephony:"Telephony",ivr:"IVR",generic:"Generic"};
 var CH_ACT={"Push notification":"Create Push","SMS campaign":"Create SMS","Email campaign":"Create Email","WhatsApp campaign":"Create Whatsapp","In-app notification":"In-App Campaign","Journey campaign":"Create Journey","Auto call campaign":"IVR Campaign"};
@@ -5209,6 +5225,7 @@ function openCustPay(id,host){
   upd();
   m.querySelector("#cpBankFill").onclick=function(){var b=m.querySelector("#cpBank"),d=m.querySelector("#cpBankD");b.value=String(cc0.base);if(!d.value)d.value=ymd(TODAY);upd();};
   function doSave(extra){
+    if(!canEditPay()){toast(DENY);return false;}
     var out=[],bad=null,tot=0,added=0;
     trs().forEach(function(r,i){
       var a=lpNum(q("[data-cpa]",r).value),t=q("[data-cpt]",r).value,d=q("[data-cpd]",r).value,n=q("[data-cpn]",r).value.trim();
@@ -5230,6 +5247,11 @@ function openCustPay(id,host){
     return true;
   }
   m.querySelector("#cpSave").onclick=function(){doSave(null);};
+  if(!canEditPay()){ /* view only: no right to edit payments */
+    m.querySelectorAll("input,select,textarea").forEach(function(e){e.disabled=true;});
+    m.querySelectorAll("#cpSave,#cpAddRow,#cpBankFill,[data-cpfill],[data-cptoday]").forEach(function(e){e.style.display="none";});
+    var vo=document.createElement("p");vo.className="note";vo.textContent="View only: you do not have the right to edit payments.";var cs=m.querySelector("#cpSave");if(cs&&cs.parentNode)cs.parentNode.insertBefore(vo,cs);
+  }
 }
 function lpTabHtml(kind){
   var cfg=LP_KIND[kind],f=state.lp,rows=lpRows(kind),tot=0,hold=0;
@@ -6393,7 +6415,7 @@ document.addEventListener("click",function(e){
   if(t.hasAttribute("data-pddclear")){state.f.owner="";state.f.rtoPerson="";state.sel=[];delete state.lrangeBy.pdd;clearPeriodLabel();var rr=getRange("pdd"),pf2=document.getElementById("pdFrom"),pt2=document.getElementById("pdTo");if(pf2)pf2.value=rr.from;if(pt2)pt2.value=rr.to;var po=document.getElementById("f_owner"),ps2=document.getElementById("pddStatusSel");if(po)po.value="";if(ps2)ps2.value="";var cbs2=document.querySelectorAll("[data-status]"),j2;for(j2=0;j2<cbs2.length;j2++)cbs2[j2].checked=false;state.page=1;renderTable();return;}
   if(t.hasAttribute("data-firmsearch")){var fi=document.getElementById("f_firm");state.f.firm=fi?fi.value.trim():"";state.page=1;renderTable();return;}
   if(t.hasAttribute("data-firmclear")){var fi2=document.getElementById("f_firm");if(fi2)fi2.value="";state.f.firm="";state.page=1;renderTable();return;}
-  if(t.hasAttribute("data-clearf")){var ff=document.getElementById("f_firm");if(ff)ff.value="";state.f={product:"",lender:"",dealer:"",owner:"",source:"",team:"",year:"",month:"",min:"",max:""};var cs=document.querySelectorAll("[data-f]"),k;for(k=0;k<cs.length;k++)cs[k].value="";state.page=1;renderTable();return;}
+  if(t.hasAttribute("data-clearf")){var ff=document.getElementById("f_firm");if(ff)ff.value="";state.f={product:"",lender:"",dealer:"",owner:"",source:"",team:"",year:"",month:"",min:"",max:""};var cs=document.querySelectorAll("[data-f]"),k;for(k=0;k<cs.length;k++)cs[k].value="";if(pageKey()==="Audience"){delete state.lrangeBy.Audience;clearPeriodLabel();}state.page=1;renderTable();return;}
   if(d.sel){state.sel=d.sel==="all"?statusOptions(pageKey()).slice():[];var cbs=document.querySelectorAll("[data-status]"),j;for(j=0;j<cbs.length;j++)cbs[j].checked=state.sel.indexOf(cbs[j].dataset.status)>-1;state.page=1;renderTable();return;}
   if(d.sort){var so=state.sort;state.sort=so.k===d.sort?{k:d.sort,d:-so.d}:{k:d.sort,d:d.sort==="ts"?-1:1};renderTable();return;}
   if(d.pg){state.page+=d.pg==="next"?1:-1;renderTable();return;}
@@ -6702,7 +6724,7 @@ document.addEventListener("input",function(e){
    if(t.id==="uQ"){state.uq=t.value;renderUBody();return;}
   if(t.id==="segQ"){state.segQ=t.value;renderSegTable();return;}
   if(t.id==="repQ"){var rp=t.selectionStart;state.repQ=t.value;renderReportCard(pageKey());var rn=document.getElementById("repQ");if(rn){rn.focus();try{rn.setSelectionRange(rp,rp);}catch(_){}}return;}
-  if(t.id==="q"){state.q=t.value;state.page=1;renderTable();return;}
+  if(t.id==="q"){state.q=t.value;state.page=1;clearTimeout(window._qT);window._qT=setTimeout(renderTable,120);return;}
   if(t.dataset&&t.dataset.f&&t.tagName==="INPUT"){state.f[t.dataset.f]=t.value;state.page=1;renderTable();}
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"){closePops();closeAll();}});
