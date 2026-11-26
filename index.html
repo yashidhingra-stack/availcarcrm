@@ -2820,6 +2820,11 @@ function dsbRowParts(l){
     netClient:'<tr><td class="k">Net Disbursement To Client</td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div><small class="note">From PDD Details: Net Disbursement \u2212 RTO charges \u2212 Challan charges \u2212 Other charges</small></td></tr>'
   };
 }
+function dsbInlineRow(l,k){ /* IDV Value and Insurance Expiry: always editable here so the lead owner can fill them in; saves on change */
+  var px=l.px||{},req='<span class="req">*</span>',isI=k==="insExp";
+  var v=isI?dsbIso(px.insExp):(dsbHas(px.idv)?px.idv:"");
+  return '<tr><td class="k">'+(isI?"Insurance Expiry":"IDV Value")+req+'</td><td><div class="rv"><input data-dsb-inline="'+k+'" type="'+(isI?"date":"number")+'"'+(isI?"":' min="0" step="any" inputmode="decimal" placeholder="Enter IDV value"')+' value="'+esc(v)+'" aria-label="'+(isI?"Insurance Expiry":"IDV Value")+'"></div></td></tr>';
+}
 function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.pf+P.ls+P.net+P.netClient;}
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
@@ -3240,7 +3245,7 @@ function renderDisbLead(l){
       var mk=l.make||(typeof MAKE!=="undefined"&&MAKE[l.vehicle])||"";var A=[["make","Vehicle Make",mk,mk||"—","text"],["vehicle","Vehicle",l.vehicle||"",l.vehicle||"—","text"],["reg","Vehicle number",l.reg||"",l.reg||"—","text"],["lender","Lender",l.lender||"",l.lender||"—","lender"]];
       /* names already shown in Lead Details or in the lead header: never repeated */
       ["bankexecutive","casebookedin","dob","dealername","entrydate","leadcount","leadfollowdate","leadlastfollowdate","vehicle","vehiclenumber","loanamount","netdisbursementtoclient","previousleadowner","product","rtochargestocustomer","reportingmanager","lender","pddstatus",
-       "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","vehiclemake","make","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec","rtosetstatus","disbursedate","disbursementdate","disbursementamount","netdisbursement"].forEach(function(k){seen[k]=1;});
+       "dealer","amount","leadowner","owner","yearofmanufacturing","yearofmanufacturi","year","vehiclemake","make","leadstage","stage","status","source","leadsource","name","mobile","mobilenumber","phone","email","audienceid","addedon","updatedon","repeatcount","bankexec","rtosetstatus","rtoconfirmation","disbursedate","disbursementdate","disbursementamount","netdisbursement"].forEach(function(k){seen[k]=1;});
       var ex=[];
       if(dsbV)["loansuraksha","processingfee","processingfees","insuranceexpirydate","insuranceexpiry","idv","idvvalue","insuranceidvvalue","netdisbursementamount","rtochargesc"].forEach(function(k){seen[k]=1;});
       LG.forEach(function(G){G.attrs.forEach(function(a){var k=nk(a.label);if(seen[k]||seen["cx"+a.key])return;seen[k]=1;seen["cx"+a.key]=1;ex.push(cxRow(l,a));});});
@@ -3257,7 +3262,7 @@ function renderDisbLead(l){
           ldRow(["reg","Vehicle Number",l.reg||"",l.reg||"—","text"]),
           ldRow(["bankExec","Bank Executive",x.bankExec||"",x.bankExec||"—","text"]),
           ldRow(["amount","Loan Amount",l.amount,l.amount?money(l.amount):"—","num"]),
-          P.idv,P.ins,P.pf,P.ls,
+          dsbInlineRow(l,"idv"),dsbInlineRow(l,"insExp"),P.pf,P.ls,
           ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),null]),
           ldRow(["rtoConfirm","RTO Confirmation",x.rtoConfirm||"",x.rtoConfirm||"—",null]), /* view only: RTO Confirmation is entered in PDD Details */
           ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),null]),
@@ -3265,8 +3270,7 @@ function renderDisbLead(l){
           '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
           '<tr><td class="k"><b>Net Disbursement to Client</b></td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div></td></tr>'
         ];
-        var restRows=[ldRow(["dealer","Dealer Name",l.dealer,l.dealer||"—","dealer"]),ldRow(["entry","Entry Date",l.ts,l.ts,null]),
-          ldRow(CBR),ldRow(DOBR)].concat(ex.map(function(r){return ldRow(r);}));
+        var restRows=[ldRow(["dealer","Dealer Name",l.dealer,l.dealer||"—","dealer"]),ldRow(["entry","Entry Date",l.ts,l.ts,null])].concat(ex.map(function(r){return ldRow(r);}));
         colL=[ldRow(Rb[0]),ldRow(Rb[1]),ldRow(A[2]),ldRow(A[3]),ldRow(CBR),ldRow(DOBR)].concat(restRows);
         colR=rightRows;
       }
@@ -3312,7 +3316,7 @@ function renderDisbLead(l){
   q("[data-ldquickfu]",function(b){b.onclick=function(){ldQuickFu(l);};});
   q("[data-ldshare]",function(b){b.onclick=function(){payShareOpen(l);};});
   q("[data-payshare]",function(b){b.onclick=function(){payShareOpen(l);};});
-  q("[data-dsb-rto-confirm]",function(sel){sel.onchange=function(){var x=ldx(l);x.rtoConfirm=sel.value;l.hist.unshift({ts:stamp(),text:"RTO Confirmation updated to "+(sel.value||"Not set"),type:"system"});saveLeads();toast("RTO Confirmation saved");};});
+  q("[data-dsb-inline]",function(inp){inp.onchange=function(){var kk=inp.getAttribute("data-dsb-inline");if(ldSave(l,kk,inp.value,true)===false){inp.value=kk==="insExp"?dsbIso((l.px||{}).insExp):((l.px||{}).idv||"");return;}saveLeads();renderLead();};});
   q("[data-docup]",function(b){b.onclick=function(){state.docSlot=+b.getAttribute("data-docup");var i=document.getElementById("docIn");if(i)i.click();};});
   q("[data-docrm]",function(b){b.onclick=function(){var id=b.getAttribute("data-docrm"),f=(l.files||[]).filter(function(x){return x.id===id;})[0];if(!f)return;l.files=l.files.filter(function(x){return x.id!==id;});try{URL.revokeObjectURL(f.url);}catch(_){}if(f.slot>=0&&!l.files.some(function(x){return x.slot===f.slot;}))l.docs[DOCS[f.slot]]=false;renderLead();toast("File removed");};});
   q("[data-docfield]",function(b){b.onclick=function(){ldPick(b.getAttribute("data-docfield"));};});
