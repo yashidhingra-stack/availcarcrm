@@ -257,6 +257,9 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .menu-item{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:6px;white-space:nowrap}
 .menu-item:hover{background:var(--bg)}
 .pop .field{margin-bottom:8px}
+.fpanel{position:relative}.fp-x{position:absolute;top:9px;right:52px;z-index:2;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--bad);font-size:18px;line-height:1;cursor:pointer;padding:0}.fp-x:hover{background:var(--bad);color:#fff}.fp-x-inline{position:static;flex:none;align-self:flex-end;margin-bottom:6px}
+.rc-status{display:flex;align-items:center;gap:12px;margin:0 0 12px;padding:12px 16px;border-radius:10px;background:rgba(47,143,91,.16);border:1px solid var(--ok)}.rc-status span{color:var(--muted);font-size:13px}.rc-status b{color:#1f7a4a;font-size:17px;font-weight:800}
+.mp-up{margin:12px 0;padding:12px 14px;border:1px dashed var(--bad);border-radius:10px}.mp-up.ok{border:1px solid var(--ok);background:rgba(47,143,91,.08)}.mp-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.mp-lbl{font-weight:600}.pdd-share{align-self:end}
 .fpanel{border:1px solid var(--line);background:var(--surface);border-radius:10px;margin-bottom:4px}
 .fp-head{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;padding:12px 16px;font-weight:600;border-radius:10px}
 .fp-head svg{width:16px;height:16px;transition:transform .15s}
@@ -1319,7 +1322,7 @@ function cell(l,k,i){
     if(pageKey()==="pdd"||pageKey()==="Close")return '<span class="remark-cell remark-big" title="'+esc(String(full||""))+'">'+esc(ln.length?ln[ln.length-1]:"")+'</span>'; /* PDD: full remarks in a big column */
     return '<span class="remark-cell" title="'+esc(String(full||""))+'">'+esc(ln.length?ln[ln.length-1]:"")+'</span>';
   }
-  if(k==="caseBooked"&&(pageKey()==="pdd"||pageKey()==="Close")&&!canEditPdd())return esc(ldx(l).caseBooked||"");
+  if(k==="caseBooked"&&(pageKey()==="Close"||(pageKey()==="pdd"&&!canEditPdd())))return esc(ldx(l).caseBooked||"");
   if(k==="caseBooked")return '<input class="cb-in" data-cb="'+l.id+'" list="firmListT" value="'+esc(ldx(l).caseBooked||"")+'" placeholder="Select firm" aria-label="Case booked in for '+esc(l.name)+'">';
   if(k==="amount")return l.amount?money(l.amount):"";
   if(k==="status")return dotted(l.status)+esc(l.status);
@@ -1713,15 +1716,15 @@ function renderLeads(){
   h+='</div></div>';
   if(key==="Audience")h+='<div class="audbar" id="audbar"></div>';
   if(calcOn(key))h+='<div class="sumbar" id="sumbar"></div><section class="card repcard" id="repbox"></section>';
-  if(!NOFILTER[key])h+='<section class="fpanel"><button class="fp-head" data-panel aria-expanded="'+state.panel+'"><span id="fpLabel">Filter</span> '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
+  if(!NOFILTER[key])h+='<section class="fpanel"><button type="button" class="fp-x" data-xfilters aria-label="Remove all filters" title="Remove all filters">&times;</button><button class="fp-head" data-panel aria-expanded="'+state.panel+'"><span id="fpLabel">Filter</span> '+caret+'</button><div class="fp-body" id="fpBody"'+(state.panel?"":" hidden")+'>'+
     '<div class="field"><label for="fpFrom">Date from</label><input type="date" id="fpFrom" value="'+getRange(key).from+'"></div><div class="field"><label for="fpTo">Date to</label><input type="date" id="fpTo" value="'+getRange(key).to+'"></div>'+(key==="Audience"?'':'<div class="field"><button class="btn" data-fpall title="Show files of all dates">All dates</button></div>')+
     (key==="Audience"?monthField()+selectField("owner","Lead owner",owners):
-selectField("product","Product",products)+selectField("lender","Lender",lenderOptions())+selectField("dealer","Dealer",dealerFilterOptions())+selectField("owner","Lead owner",owners)+selectField("team","Team",roleNames())+selectField("year","Year",Array.from(new Set((leads||[]).map(function(l){return String(l.year||"").trim();}).filter(Boolean))).sort().reverse())+selectField("source","Source",sources)+
+(key==="Disbursed"?"":selectField("product","Product",products))+selectField("lender","Lender",lenderOptions())+selectField("dealer","Dealer",dealerFilterOptions())+selectField("owner","Lead owner",owners)+selectField("team","Team",roleNames())+(key==="Disbursed"?"":selectField("year","Year",Array.from(new Set((leads||[]).map(function(l){return String(l.year||"").trim();}).filter(Boolean))).sort().reverse())+selectField("source","Source",sources))+
     (key==="Disbursed"?"":'<div class="field"><label for="f_min">Loan amount from (₹)</label><input type="number" id="f_min" data-f="min" min="0" step="50000" value="'+esc(state.f.min)+'"></div>'+
     '<div class="field"><label for="f_max">Loan amount to (₹)</label><input type="number" id="f_max" data-f="max" min="0" step="50000" value="'+esc(state.f.max)+'"></div>'))+
     '<div class="field"><button class="btn" data-clearf>Clear filters</button></div></div></section>';
   h+=(NOFILTER[key]?'':'<p class="note" id="note"></p>');
-  if(key==="pdd")h+='<div class="firmbar pddbar"><div class="field"><label for="pdFrom">From</label><input type="date" id="pdFrom" value="'+getRange("pdd").from+'"></div><div class="field"><label for="pdTo">To</label><input type="date" id="pdTo" value="'+getRange("pdd").to+'"></div><button class="btn" data-pddall title="Show files of all dates">All dates</button><div class="field"><label for="f_owner">Lead owner</label><select id="f_owner" data-f="owner"><option value="">All</option>'+owners.map(function(o){return '<option'+(state.f.owner===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><div class="field"><label for="f_rtoPerson">RTO person</label><select id="f_rtoPerson" data-f="rtoPerson"><option value="">All</option>'+rtoPersonList().map(function(o){return '<option'+(state.f.rtoPerson===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><div class="field"><label for="pddStatusSel">Lead status</label><select id="pddStatusSel"><option value="">All</option><option value="multi" hidden>Multiple selected</option>'+pddOpenList().map(function(o){return '<option'+(state.sel.length===1&&state.sel[0]===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><button class="btn" data-pddclear>Clear</button></div>';
+  if(key==="pdd")h+='<div class="firmbar pddbar"><button type="button" class="fp-x fp-x-inline" data-pddclear aria-label="Remove all filters" title="Remove all filters">&times;</button><div class="field"><label for="pdFrom">From</label><input type="date" id="pdFrom" value="'+getRange("pdd").from+'"></div><div class="field"><label for="pdTo">To</label><input type="date" id="pdTo" value="'+getRange("pdd").to+'"></div><button class="btn" data-pddall title="Show files of all dates">All dates</button><div class="field"><label for="f_owner">Lead owner</label><select id="f_owner" data-f="owner"><option value="">All</option>'+owners.map(function(o){return '<option'+(state.f.owner===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><div class="field"><label for="f_rtoPerson">RTO person</label><select id="f_rtoPerson" data-f="rtoPerson"><option value="">All</option>'+rtoPersonList().map(function(o){return '<option'+(state.f.rtoPerson===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><div class="field"><label for="pddStatusSel">Lead status</label><select id="pddStatusSel"><option value="">All</option><option value="multi" hidden>Multiple selected</option>'+pddOpenList().map(function(o){return '<option'+(state.sel.length===1&&state.sel[0]===o?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div><button class="btn" data-pddclear>Clear</button></div>';
   if(key==="pdd")h+='<div id="rtoSum"></div>';
   h+='<div id="tbl" style="margin-top:12px"></div>';
   v.innerHTML=h;
@@ -1941,7 +1944,7 @@ function renderTable(){try{fpSync();}catch(_e){}
   }).join("")+'<th>Action</th></tr>';
   var body=shown.map(function(l,i){
     return '<tr>'+(dsOn?'<td><input type="checkbox" data-dsel="'+l.id+'"'+(state.dsel[l.id]?" checked":"")+(pddEligible(l)?"":' disabled')+' aria-label="Select '+esc(l.name)+'"></td>':"")+vis.map(function(c){return '<td'+(c[0]==="ts"?' class="dt"':"")+'>'+cell(l,c[0],start+i)+'</td>';}).join("")+
-      '<td><div class="act"><button class="icon-btn" data-view="'+l.id+'" aria-label="View '+esc(l.name)+'">'+ic("eye")+'</button><button class="icon-btn" data-ledit2="'+l.id+'" aria-label="Edit '+esc(l.name)+'" title="Edit lead">'+ic("pencil")+'</button><button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move '+esc(l.name)+' by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete '+esc(l.name)+'">'+ic("trash")+'</button></div></td></tr>';
+      '<td><div class="act"><button class="icon-btn" data-view="'+l.id+'" aria-label="View '+esc(l.name)+'">'+ic("eye")+'</button>'+(key==="Close"?'':'<button class="icon-btn" data-ledit2="'+l.id+'" aria-label="Edit '+esc(l.name)+'" title="Edit lead">'+ic("pencil")+'</button><button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move '+esc(l.name)+' by category" title="Move lead by category">'+ldi("swap")+'</button>')+'<button class="icon-btn" data-del="'+l.id+'" aria-label="Delete '+esc(l.name)+'">'+ic("trash")+'</button></div></td></tr>';
   }).join("");
   if(!rows.length)body='<tr><td colspan="'+(vis.length+1+(dsOn?1:0))+'" class="emptyrow">No leads match. Clear the filters or widen the date range.</td></tr>';
   var foot='<div class="foot"><label>Show <select id="pSize">'+[10,20,50,100].map(function(n){return '<option'+(n===size?" selected":"")+'>'+n+'</option>';}).join("")+'<option value="all"'+(size>=1e5?" selected":"")+'>All</option></select></label><span class="tc">Total count: '+rows.length+'</span><div class="pager"><button data-pg="prev"'+(state.page<=1?" disabled":"")+'>« Previous</button><span>'+state.page+' / '+pages+'</span><button data-pg="next"'+(state.page>=pages?" disabled":"")+'>Next »</button></div></div>';
@@ -3280,8 +3283,10 @@ function renderDisbLead(l){
   var pdetOn=pddV||(state.leadCtx==="Disbursed"&&l.stage==="Disbursed"&&!l.cat); /* PDD Details + Payment Details: PDD Status, Closed and Disbursement Business */
   var onPay=pdetOn&&state.ldTab==="paydet"; /* Payment Details tab is view only: no Edit, no print/download */
   var dsbHide=true; /* all stages: no follow-up/remarks/lead source in the summary box */
-  var editBar=(onPay||(pddV&&!canEditPdd()))?'':state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
-  var h='<div class="ld-bar">'+editBar+'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
+  var closedV=(state.leadCtx==="Close"&&l.stage==="Disbursed"&&!l.cat); /* Closed: Lead Details only, no editing */
+  if(closedV)state.ldBox=false;
+  var editBar=(onPay||closedV||(pddV&&!canEditPdd()))?'':state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
+  var h='<div class="ld-bar">'+editBar+(closedV?'':'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button>')+'<button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
    '<div class="ld-top"><section class="ld-prof" aria-label="Lead summary"><div class="ld-who"><span class="ld-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span>'+nameHtml+'</div>'+
    '<div class="ld-ids"><div><small>Audience ID</small><span class="ld-link">'+aud+'</span></div><div><small>Lead Stage:</small>'+stageHtml+'</div></div>'+
    '<dl class="ld-kv"><dt>Email:</dt><dd>'+emailHtml+'</dd><dt>Mobile:</dt><dd>'+mob+'</dd><dt>Added On:</dt><dd>'+esc(l.date)+'</dd><dt>Updated On:</dt><dd>'+esc(upd)+'</dd></dl></section>'+
@@ -3297,10 +3302,10 @@ function renderDisbLead(l){
      (dsbHide?"":sm("Latest Remarks",'<span class="ld-summary-text">'+esc(latestRemark)+'</span>','ld-summary-wide')+
      sm("Follow-up Notes",'<span class="ld-summary-text">'+esc(followupNote)+'</span>','ld-summary-wide')+
      sm("Previous Follow-ups",'<span class="ld-summary-text ld-history-text">'+esc(followupHistory)+'</span>','ld-summary-wide'))+
-   '</dl><div class="ld-ico">'+ldBtn('data-ldquickfu','Add follow-up','plus')+(onPay?'':ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file'))+'</div></section></div>';
+   '</dl><div class="ld-ico">'+(closedV?'':ldBtn('data-ldquickfu','Add follow-up','plus'))+(onPay?'':ldBtn('data-ldshare','Share details on WhatsApp','share')+ldBtn('data-ldprint','Print or save as PDF','file'))+'</div></section></div>';
   var payV=!!state.ldPay&&String(state.listRoute||"").indexOf("payments")===0&&l.stage==="Disbursed";
   var dsbV=(state.leadCtx==="Disbursed"||state.leadCtx==="pdd"||state.leadCtx==="Close")&&l.stage==="Disbursed"&&!l.cat; /* same lead details in Disbursement Business, PDD Status and Closed */
-  var tabs=payV?[["pview","Customer Payments"],["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]:(pdetOn?[["details","Lead Details"],["pdet","PDD Details"],["paydet","Payment Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]);
+  var tabs=closedV?[["details","Lead Details"]]:payV?[["pview","Customer Payments"],["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]:(pdetOn?[["details","Lead Details"],["pdet","PDD Details"],["paydet","Payment Details"],["followups","Follow up"],["docs","Documents"]]:[["details","Lead Details"],["followups","Follow up"],["docs","Documents"]]);
   if(!tabs.some(function(t){return t[0]===state.ldTab;}))state.ldTab="details";
   h+='<div class="tabs" role="tablist">'+tabs.map(function(t){return '<button class="tab" role="tab" aria-selected="'+(state.ldTab===t[0])+'" data-ldtab="'+t[0]+'">'+t[1]+'</button>';}).join("")+'</div><div class="ld-body">';
   if(state.ldTab==="details"||state.ldTab==="more"){
@@ -3366,7 +3371,7 @@ function renderDisbLead(l){
       }
     }
     var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit, fill them in and Save.</p>':'';
-    h+='<section class="ld-box'+(state.ldBox?' editing':'')+'" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
+    h+=(closedV?'<div class="rc-status"><span>RC Status</span><b>RC Approved</b></div>':'')+'<section class="ld-box'+(state.ldBox?' editing':'')+'" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
   } else if(state.ldTab==="pview"){ h+=payViewHtml(l);
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
@@ -3374,8 +3379,9 @@ function renderDisbLead(l){
   } else if(state.ldTab==="paydet"){ h+=payReadHtml(l);
   } else if(state.ldTab==="docs"){ h+=ldDocsTab(l); } else { h+=ldFollow(l,today,tom); }
   h+='</div>';
-  if(state.ldTab==="details"||state.ldTab==="more")h+=ldStatusBlock(l);
+  if((state.ldTab==="details"||state.ldTab==="more")&&!closedV)h+=ldStatusBlock(l);
   v.innerHTML=h;
+  if(closedV){v.querySelectorAll(".ld-box input,.ld-box select,.ld-box textarea,.ld-sum input,.ld-sum select").forEach(function(e){e.disabled=true;});v.querySelectorAll("[data-ledit],[data-ldbox],[data-docup]").forEach(function(e){e.remove();});}
   var q=function(s,fn){v.querySelectorAll(s).forEach(fn);};
   q("[data-ldtab]",function(b){b.onclick=function(){state.ldTab=b.getAttribute("data-ldtab");state.ldEdit=null;state.ldBox=false;renderLead();};});
   if(state.ldBox){ /* Edit mode: vehicle and year are the same searchable lists as Add new lead; picking a vehicle fills its Make */
@@ -3575,6 +3581,14 @@ function ldStatusList(l){
   if(allow){var out=allow.filter(function(x){return x===l.status||hierStatusOk(x);});if(l.status&&out.indexOf(l.status)<0&&l.status!==RTO_ST)out.push(l.status);return out;}
   return STATUS.filter(function(x){return (!st||st.indexOf(x[1])>-1)&&(x[0]!==RTO_ST||fromPdd||l.status===RTO_ST)&&(x[0]===l.status||(audOk(x)&&hierStatusOk(x[0])));}).map(function(x){return x[0];});
 }
+var MP_TAG="M Parivahan status";
+function mpFiles(l){return (l.files||[]).filter(function(f){return f.tag===MP_TAG;});}
+function mpPick(){
+  var i=document.getElementById("docInMP");
+  if(!i){i=document.createElement("input");i.type="file";i.id="docInMP";i.multiple=true;i.hidden=true;document.body.appendChild(i);} /* any file format */
+  i.onchange=function(){var l=curLead();if(l)ldAddFiles(l,i.files,-1,MP_TAG);i.value="";};
+  i.click();
+}
 function ldStatusBlock(l){
   var pd=inPddCtx(l), opts=pd?PDD_ST:ldStatusList(l), cur=pd?pddSt(l):l.status;
   var ownSel='<div class="field" style="max-width:320px;margin-bottom:12px"><label for="ldOwner">Lead owner</label><select id="ldOwner">'+(function(){var ol=moveOwnerOptions();if(l.owner&&ol.indexOf(l.owner)<0)ol.push(l.owner);return ol.map(function(o){return '<option value="'+esc(o)+'"'+(o===l.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("");})()+'</select></div>';
@@ -3582,10 +3596,12 @@ function ldStatusBlock(l){
   if(pd){
     var curT=pddTp(l), curS=cur===PDD_ST[4]?"Open":cur;
     var stOpts=PDD_ST.filter(function(x){return x!==PDD_ST[0]&&x!==PDD_ST[4];});
+    var mpFs=mpFiles(l),mpHtml='<div class="mp-up'+(mpFs.length?' ok':'')+'"><div class="mp-top"><span class="mp-lbl">Upload M Parivahan status document<span class="req">*</span></span><button class="btn" type="button" data-mpup>'+(mpFs.length?'Upload another':'Upload')+'</button></div>'+(mpFs.length?'<ul class="dc-files">'+mpFs.map(function(f){return '<li><a href="'+f.url+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">'+esc(f.name)+'</a><small>'+fmtSize(f.size)+' · '+esc(f.ts)+'</small><button class="icon-btn" type="button" data-docrm="'+f.id+'" aria-label="Remove '+esc(f.name)+'" title="Remove">'+ldi("close")+'</button></li>';}).join("")+'</ul>':'<small class="note">Required before Share to Closure. Any file format.</small>')+'</div>';
     var pddH='<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
      '<div class="field"><label for="pddStage">PDD stage</label><select id="pddStage"><option value="Open"'+(curS==="Open"?' selected':'')+'>Select stage</option>'+stOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===curS?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
-     '</div>'+noteH+
-     '<div class="st-sub" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn" id="ldSubmit">Submit</button><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div>';
+     '<div class="field pdd-share"><button class="btn primary" id="rcApproved" type="button">Share to Closure</button></div>'+
+     '</div>'+mpHtml+noteH+
+     '<div class="st-sub" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn" id="ldSubmit">Submit</button></div>';
     if(!canEditPdd())return '<p class="note"><b>View only:</b> you do not have the right to edit PDD Details.</p>'+pddH.replace(/<(select|textarea|button)\b/g,'<$1 disabled');
     return pddH;
   }
@@ -3596,6 +3612,7 @@ function ldStatusBlock(l){
 function submitLeadStatus(rcFlag){
   var l=curLead(); if(!l)return; ensure(l);
   if(inPddCtx(l)&&!canEditPdd()){toast(DENY);return;}
+  if(rcFlag&&inPddCtx(l)&&!mpFiles(l).length){toast("Upload the M Parivahan status document first");return;}
   var r=document.querySelector('input[name="ldst"]:checked'), nt=document.getElementById("ldNote2"); if(!nt)return;
   var pdSel=document.getElementById("pddStage"); if(!r&&!pdSel)return;
   var tx=nt.value.trim(), ns=r?r.value:"", old=l.status;
@@ -3609,7 +3626,7 @@ function submitLeadStatus(rcFlag){
     if(nt2!==pt){l.pddType=nt2;l.hist.unshift({ts:stamp(),text:"PDD type changed from "+pt+" to "+nt2,type:"status"});}
     if(ns!==po){l.pddSt=ns;l.hist.unshift({ts:stamp(),text:"PDD stage changed from "+po+" to "+ns,type:"status"});}
     l.hist.unshift({ts:stamp(),text:tx,type:"note"});addRemark(l,tx);saveLeads();
-    renderLead();toast(ns===PDD_ST[4]?"RC approved - file moved to Close":((ns!==po||nt2!==pt)?"PDD status updated":"Note added"));return;
+    renderLead();toast(ns===PDD_ST[4]?"Shared to Closure - file moved to Closed":((ns!==po||nt2!==pt)?"PDD status updated":"Note added"));return;
   }
   var movedPdd=false;
   if(ns!==old){
@@ -3627,7 +3644,7 @@ document.addEventListener("change",function(e){
   var t=e.target; if(!t||t.name!=="ldst")return;
   [].forEach.call(document.querySelectorAll(".st-pill"),function(x){x.classList.toggle("on",x.firstChild.checked);});
 });
-document.addEventListener("click",function(e){if(e.target.id==="ldSubmit")submitLeadStatus();if(e.target.id==="rcApproved")submitLeadStatus(true);});
+document.addEventListener("click",function(e){if(e.target.closest&&e.target.closest("[data-mpup]")){mpPick();return;}if(e.target.id==="ldSubmit")submitLeadStatus();if(e.target.id==="rcApproved")submitLeadStatus(true);});
 function changeStatus(ns){
   var l=curLead(); if(!l)return; ensure(l);
   var old=l.status; if(ns===old)return;
@@ -6430,6 +6447,7 @@ document.addEventListener("click",function(e){
   if(t.hasAttribute("data-pddclear")){state.f.owner="";state.f.rtoPerson="";state.sel=[];delete state.lrangeBy.pdd;clearPeriodLabel();var rr=getRange("pdd"),pf2=document.getElementById("pdFrom"),pt2=document.getElementById("pdTo");if(pf2)pf2.value=rr.from;if(pt2)pt2.value=rr.to;var po=document.getElementById("f_owner"),ps2=document.getElementById("pddStatusSel");if(po)po.value="";if(ps2)ps2.value="";var cbs2=document.querySelectorAll("[data-status]"),j2;for(j2=0;j2<cbs2.length;j2++)cbs2[j2].checked=false;state.page=1;renderTable();return;}
   if(t.hasAttribute("data-firmsearch")){var fi=document.getElementById("f_firm");state.f.firm=fi?fi.value.trim():"";state.page=1;renderTable();return;}
   if(t.hasAttribute("data-firmclear")){var fi2=document.getElementById("f_firm");if(fi2)fi2.value="";state.f.firm="";state.page=1;renderTable();return;}
+  if(t.hasAttribute("data-xfilters")){state.f={product:"",lender:"",dealer:"",owner:"",source:"",team:"",year:"",month:"",min:"",max:"",rtoPerson:""};state.sel=[];delete state.lrangeBy[pageKey()];clearPeriodLabel();state.page=1;renderLeads();return;}
   if(t.hasAttribute("data-clearf")){var ff=document.getElementById("f_firm");if(ff)ff.value="";state.f={product:"",lender:"",dealer:"",owner:"",source:"",team:"",year:"",month:"",min:"",max:""};var cs=document.querySelectorAll("[data-f]"),k;for(k=0;k<cs.length;k++)cs[k].value="";if(pageKey()==="Audience"){delete state.lrangeBy.Audience;clearPeriodLabel();}state.page=1;renderTable();return;}
   if(d.sel){state.sel=d.sel==="all"?statusOptions(pageKey()).slice():[];var cbs=document.querySelectorAll("[data-status]"),j;for(j=0;j<cbs.length;j++)cbs[j].checked=state.sel.indexOf(cbs[j].dataset.status)>-1;state.page=1;renderTable();return;}
   if(d.sort){var so=state.sort;state.sort=so.k===d.sort?{k:d.sort,d:-so.d}:{k:d.sort,d:d.sort==="ts"?-1:1};renderTable();return;}
@@ -6439,7 +6457,7 @@ document.addEventListener("click",function(e){
   if(d.pmore){state.person.limit+=100;renderPerson();return;}
   if(t.hasAttribute("data-pback")){openPending(state.pbKind);return;}
   if(d.viewdocs){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.viewdocs);state.ldTab="docs";renderLead();return;}
-  if(d.ledit2){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();var _pk2=pageKey();openLead(+d.ledit2);state.ldBoxId=+d.ledit2;state.ldBox=!((_pk2==="pdd"||_pk2==="Close")&&!canEditPdd());renderLead();return;}
+  if(d.ledit2){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();var _pk2=pageKey();openLead(+d.ledit2);state.ldBoxId=+d.ledit2;state.ldBox=!(_pk2==="Close"||(_pk2==="pdd"&&!canEditPdd()));renderLead();return;}
   if(d.dfview){closeAll();openDealerFile(+d.dfview);return;}
   if(d.lpview){closeAll();openLeadPay(+d.lpview);return;}
   if(d.view){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.view);return;}
