@@ -696,6 +696,17 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .pr-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2fr);gap:12px;background:var(--bg);border-radius:10px;padding:12px 14px}
 .pr-line small{display:block;font-size:12px;color:var(--muted)}
 .pr-line b{font-weight:600;font-variant-numeric:tabular-nums}
+.pr-tbl2{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.pr-tbl2 th,.pr-tbl2 td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.pr-tbl2 th:last-child,.pr-tbl2 td:last-child{border-right:0}
+.pr-tbl2 thead th{background:var(--surface-2,rgba(43,125,233,.09));font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+.pr-tbl2 tbody tr:nth-child(even) td{background:rgba(127,127,127,.06)}
+.pr-tbl2 .r{text-align:right;font-variant-numeric:tabular-nums}
+.pr-tbl2 .sn{width:64px;text-align:center}.pr-tbl2 .sn span{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:50%;background:rgba(43,125,233,.14);color:var(--focus);font-weight:700;font-size:12.5px}
+.pr-tbl2 .am{font-weight:700;color:var(--ok)}
+.pr-tbl2 .nt{color:var(--muted)}
+.pr-type{display:inline-block;padding:3px 11px;border-radius:99px;background:rgba(43,125,233,.12);color:var(--focus);font-size:12.5px;font-weight:600}
+.pr-tbl2 tfoot th{background:rgba(47,143,91,.14);color:var(--ink);font-size:14px;border-bottom:0}
 .pr-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 .pr-tbl th,.pr-tbl td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}
 .pr-tbl th{font-size:12px;font-weight:600;color:var(--muted)}
@@ -1048,7 +1059,7 @@ function renderNav(){
     {id:"office",label:"Office Use Only",icon:"db",kids:[["dealer-details","Dealer Details"],["channelwise","More Reports"],["integration/custom","Custom attributes"],["users","User management"],["hierarchy","Hierarchy"],["major/staff","Staff Details"],["chlist","Channel List"],["dataup","Calling Data"]]},
     {id:"reports",label:"Reports",icon:"chart",kids:[{group:"Major Reports",id:"rep-major",kids:[["data/report","Leads report"],["data/analysis","Analysis"],["leads/data","Data"]]}]},
     {id:"waba",label:"WABA",icon:"chat",route:"waba"},
-    {id:"payments",label:"Payments",icon:"card",kids:[["payments/customer","Customer payments"],["payments/dealer","Dealer payments"],["payments/closure","Closure"],["payments/staff","Staff payments"]]},
+    {id:"payments",label:"Payments",icon:"card",kids:[["payments/customer","Customer payments"],["payments/dealer","Dealer payments"],["payments/closure","Closure payments"],["payments/staff","Staff payments"]]},
     {id:"backup",label:"Backup",icon:"db",route:"backup",adminOnly:true},
     {id:"settings/category",label:"Category",icon:"sliders",route:"settings/category"},
     {id:"invoice",label:"Invoice & Quotations",icon:"doc",route:"invoice"}];
@@ -1921,7 +1932,7 @@ function renderTable(){try{fpSync();}catch(_e){}
   var fbl=document.getElementById("fpLabel");if(fbl)fbl.textContent=nf?"Filter ("+nf+")":"Filter";
   var nte=document.getElementById("note"),rg=getRange(key);if(nte)nte.textContent="** Showing "+(state.rlabel[key]?state.rlabel[key]+", ":"")+"records from "+fmtDate(rg.from)+" to "+fmtDate(rg.to)+(key==="Audience"&&!state.lrangeBy[key]?". All records are shown by default; use the Filter dates to narrow this.":". The last 30 days are shown by default"+(({Login:1,Disbursed:1})[key]?".":"; use the calendar to change this."));
   var sortable={ts:1,name:1,status:1,owner:1};
-  var dsOn=false /* bulk select / Move selected to PDD bar removed */,dsElig=dsOn?rows.filter(function(l){return pddEligible(l);}):[];state.dsel=state.dsel||{};
+  var dsOn=(key==="Disbursed"&&canDo("Leads","Move to PDD")),dsElig=dsOn?rows.filter(function(l){return pddEligible(l);}):[];state.dsel=state.dsel||{};
   var dsAllOn=dsElig.length>0&&dsElig.every(function(l){return state.dsel[l.id];}),dsN=Object.keys(state.dsel).filter(function(k){return state.dsel[k];}).length;
   var head='<tr>'+(dsOn?'<th><input type="checkbox" id="dsAll" aria-label="Select all disbursed files"'+(dsAllOn?" checked":"")+(dsElig.length?"":" disabled")+'></th>':"")+vis.map(function(c){
     var k=c[0]; if(!sortable[k])return '<th>'+c[1]+'</th>';
@@ -2925,7 +2936,7 @@ function payReadHtml(l){
   function dd(v){return v?esc(fmtDate(v)):"\u2014";}
   var sub=esc(((l.vehicle||"")+" "+(l.reg||"")).trim())+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
   var h='<section class="nd-card pv-card pr-card" aria-label="Payment details, view only">'+
-   '<div class="pr-head"><div><h3 class="nd-h">Payment Details</h3><p class="pv-sub">'+sub+'</p></div>'+
+   '<div class="pr-head"><div><h3 class="nd-h">Payment Details</h3></div>'+
    '<div class="pr-actions"><span class="pr-ro">View only &middot; from Customer payments</span><button class="btn primary" type="button" data-payshare>'+ldi("share")+' Share</button></div></div>'+
    '<div class="pr-kpis"><div class="kpi"><span>Net payable</span><b>'+mm(s.net)+'</b></div><div class="kpi"><span>Total paid</span><b>'+mm(s.paid)+'</b></div>'+
    '<div class="kpi kpi-bal"><span>Balance to pay</span><b'+(s.bal!==null&&s.bal<0?' class="neg"':'')+'>'+mm(s.bal)+'</b></div>'+
@@ -2935,9 +2946,9 @@ function payReadHtml(l){
   h+=s.bank.amt>0?'<div class="pr-line"><div><small>Amount</small><b>'+esc(money(s.bank.amt))+'</b></div><div><small>Date received</small><b>'+dd(s.bank.date)+'</b></div><div class="pr-wide"><small>Notes</small><b>'+(s.bank.note?esc(s.bank.note):"\u2014")+'</b></div></div>':'<p class="note">No amount received from bank has been entered in Customer payments.</p>';
   h+='<h4 class="pr-h">Payments</h4>';
   if(s.list.length){
-    h+='<div class="tscroll"><table class="pr-tbl"><thead><tr><th>#</th><th>Type</th><th class="r">Amount</th><th>Date</th><th>Notes</th></tr></thead><tbody>'+
-      s.list.map(function(e){return '<tr><td>'+e.n+'</td><td>'+esc(e.type)+'</td><td class="r">'+esc(money(e.amt))+'</td><td>'+dd(e.date)+'</td><td>'+(e.note?esc(e.note):"\u2014")+'</td></tr>';}).join("")+
-      '</tbody><tfoot><tr><th colspan="2">Total paid</th><th class="r">'+esc(money(s.paid))+'</th><th colspan="2"></th></tr></tfoot></table></div>';
+    h+='<div class="tscroll"><table class="pr-tbl2"><thead><tr><th>Sr.No</th><th>Date</th><th>Type</th><th>Notes</th><th class="r">Amount</th></tr></thead><tbody>'+
+      s.list.map(function(e){return '<tr><td class="sn"><span>'+e.n+'</span></td><td>'+dd(e.date)+'</td><td><span class="pr-type">'+esc(e.type)+'</span></td><td class="nt">'+(e.note?esc(e.note):"\u2014")+'</td><td class="r am">'+esc(money(e.amt))+'</td></tr>';}).join("")+
+      '</tbody><tfoot><tr><th colspan="4">Total paid</th><th class="r">'+esc(money(s.paid))+'</th></tr></tfoot></table></div>';
   }else h+='<p class="note">No payments have been entered in Customer payments yet.</p>';
   return h+'</section>';
 }
@@ -5416,7 +5427,7 @@ function renderPayments(){
   if(state.payKindLast!==pk){state.payKindLast=pk;state.payDetail=null;state.ptab=tabs[0][0];state.lp.fq="";state.lp.fc="";state.lp.ft="";}
   if(!tabs.some(function(t){return t[0]===state.ptab;}))state.ptab=tabs[0][0];
   var tab=state.ptab,hist=tab==="history",lpt=tab==="lead",calc=tab==="calc",payout=kind==="dealer"&&tab==="payouts";
-  var title=kind==="customer"?"Customer payments":kind==="staff"?"Staff payments":isClosure?"Closure":"Dealer payments";
+  var title=kind==="customer"?"Customer payments":kind==="staff"?"Staff payments":isClosure?"Closure payments":"Dealer payments";
   if(payout&&state.payDetail&&!dealers.some(function(x){return x===state.payDetail;}))state.payDetail=null;
   var blurb=isClosure?"Dealers and customers whose payments are fully paid.":kind==="customer"?"Approved and disbursed files with PDD charges, net disbursement from bank, payments and the net disbursement calculator.":kind==="staff"?"Salary, incentive, commission and other payments to staff.":"Pay dealer payouts and send dealers their payout details.";
   var list=payout&&!state.payDetail?allDealerSums():null;
