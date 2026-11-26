@@ -1308,6 +1308,7 @@ function cell(l,k,i){
     if(pageKey()==="pdd"||pageKey()==="Close")return '<span class="remark-cell remark-big" title="'+esc(String(full||""))+'">'+esc(ln.length?ln[ln.length-1]:"")+'</span>'; /* PDD: full remarks in a big column */
     return '<span class="remark-cell" title="'+esc(String(full||""))+'">'+esc(ln.length?ln[ln.length-1]:"")+'</span>';
   }
+  if(k==="caseBooked"&&(pageKey()==="pdd"||pageKey()==="Close")&&!canEditPdd())return esc(ldx(l).caseBooked||"");
   if(k==="caseBooked")return '<input class="cb-in" data-cb="'+l.id+'" list="firmListT" value="'+esc(ldx(l).caseBooked||"")+'" placeholder="Select firm" aria-label="Case booked in for '+esc(l.name)+'">';
   if(k==="amount")return l.amount?money(l.amount):"";
   if(k==="status")return dotted(l.status)+esc(l.status);
@@ -3268,7 +3269,7 @@ function renderDisbLead(l){
   var pdetOn=pddV||(state.leadCtx==="Disbursed"&&l.stage==="Disbursed"&&!l.cat); /* PDD Details + Payment Details: PDD Status, Closed and Disbursement Business */
   var onPay=pdetOn&&state.ldTab==="paydet"; /* Payment Details tab is view only: no Edit, no print/download */
   var dsbHide=true; /* all stages: no follow-up/remarks/lead source in the summary box */
-  var editBar=onPay?'':state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
+  var editBar=(onPay||(pddV&&!canEditPdd()))?'':state.ldBox?'<button class="btn primary" data-ldboxsave>Save</button><button class="btn" data-ldboxcancel>Cancel</button>':'<button class="btn" data-ldbox aria-label="Edit lead" title="Edit lead">'+ldi("pencil")+' Edit</button>';
   var h='<div class="ld-bar">'+editBar+'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
    '<div class="ld-top"><section class="ld-prof" aria-label="Lead summary"><div class="ld-who"><span class="ld-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span>'+nameHtml+'</div>'+
    '<div class="ld-ids"><div><small>Audience ID</small><span class="ld-link">'+aud+'</span></div><div><small>Lead Stage:</small>'+stageHtml+'</div></div>'+
@@ -3570,10 +3571,12 @@ function ldStatusBlock(l){
   if(pd){
     var curT=pddTp(l), curS=cur===PDD_ST[4]?"Open":cur;
     var stOpts=PDD_ST.filter(function(x){return x!==PDD_ST[0]&&x!==PDD_ST[4];});
-    return '<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
+    var pddH='<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
      '<div class="field"><label for="pddStage">PDD stage</label><select id="pddStage"><option value="Open"'+(curS==="Open"?' selected':'')+'>Select stage</option>'+stOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===curS?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
      '</div>'+noteH+
      '<div class="st-sub" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn" id="ldSubmit">Submit</button><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div>';
+    if(!canEditPdd())return '<p class="note"><b>View only:</b> you do not have the right to edit PDD Details.</p>'+pddH.replace(/<(select|textarea|button)\b/g,'<$1 disabled');
+    return pddH;
   }
   return ownSel+'<div class="st-grid" role="radiogroup" aria-label="Lead status">'+opts.map(function(o){
     return '<label class="st-pill'+(o===cur?" on":"")+'"><input type="radio" name="ldst" value="'+esc(o)+'"'+(o===cur?" checked":"")+'>'+esc(ST_LABEL[o]||o)+'</label>';}).join("")+'</div>'+noteH+
@@ -3581,6 +3584,7 @@ function ldStatusBlock(l){
 }
 function submitLeadStatus(rcFlag){
   var l=curLead(); if(!l)return; ensure(l);
+  if(inPddCtx(l)&&!canEditPdd()){toast(DENY);return;}
   var r=document.querySelector('input[name="ldst"]:checked'), nt=document.getElementById("ldNote2"); if(!nt)return;
   var pdSel=document.getElementById("pddStage"); if(!r&&!pdSel)return;
   var tx=nt.value.trim(), ns=r?r.value:"", old=l.status;
@@ -6424,7 +6428,7 @@ document.addEventListener("click",function(e){
   if(d.pmore){state.person.limit+=100;renderPerson();return;}
   if(t.hasAttribute("data-pback")){openPending(state.pbKind);return;}
   if(d.viewdocs){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.viewdocs);state.ldTab="docs";renderLead();return;}
-  if(d.ledit2){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.ledit2);state.ldBoxId=+d.ledit2;state.ldBox=true;renderLead();return;}
+  if(d.ledit2){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();var _pk2=pageKey();openLead(+d.ledit2);state.ldBoxId=+d.ledit2;state.ldBox=!((_pk2==="pdd"||_pk2==="Close")&&!canEditPdd());renderLead();return;}
   if(d.dfview){closeAll();openDealerFile(+d.dfview);return;}
   if(d.lpview){closeAll();openLeadPay(+d.lpview);return;}
   if(d.view){if(!canDo("Leads","View lead")){toast(DENY);return;}closeAll();openLead(+d.view);return;}
