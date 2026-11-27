@@ -748,10 +748,10 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .sh-gap{height:8px}.sh-rule{border-top:1px solid var(--line);margin:8px 0}
 #shEditWrap textarea{width:100%;min-height:190px;white-space:pre-wrap;line-height:1.5}
 /* Filled fields are highlighted (also in view-only tiles) */
-input.is-filled:not([type=checkbox]):not([type=radio]),textarea.is-filled,select.is-filled{background:#fff8d6!important;border-color:#e0b93a!important}
-.nd-in:has(input.is-filled){background:#fff8d6;border-color:#e0b93a}
-.pd-tile.is-filled{background:#fff8d6;border-color:#e0b93a}
-:root[data-theme="dark"] input.is-filled:not([type=checkbox]):not([type=radio]),:root[data-theme="dark"] textarea.is-filled,:root[data-theme="dark"] select.is-filled,:root[data-theme="dark"] .nd-in:has(input.is-filled),:root[data-theme="dark"] .pd-tile.is-filled{background:#3d3512!important;border-color:#a8872a!important}
+input.is-filled:not([type=checkbox]):not([type=radio]),textarea.is-filled,select.is-filled{background:#e9ecef!important;border-color:#aab0b8!important}
+.nd-in:has(input.is-filled){background:#e9ecef;border-color:#aab0b8}
+.pd-tile.is-filled{background:#e9ecef;border-color:#aab0b8}
+:root[data-theme="dark"] input.is-filled:not([type=checkbox]):not([type=radio]),:root[data-theme="dark"] textarea.is-filled,:root[data-theme="dark"] select.is-filled,:root[data-theme="dark"] .nd-in:has(input.is-filled),:root[data-theme="dark"] .pd-tile.is-filled{background:#33373d!important;border-color:#6b727b!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -2900,7 +2900,7 @@ function payReadHtml(l){
   function dd(v){return v?esc(fmtDate(v)):"\u2014";}
   var sub=esc(((l.vehicle||"")+" "+(l.reg||"")).trim())+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
   var h='<section class="nd-card pv-card pr-card" aria-label="Payment details, view only">'+
-   '<div class="pr-head"><div><h3 class="nd-h">Payment Details</h3><p class="pv-sub">'+sub+'</p></div>'+
+   '<div class="pr-head"><div><h3 class="nd-h">Payment Details</h3></div>'+
    '<div class="pr-actions"><button class="btn primary" type="button" data-payshare>'+ldi("share")+' Share</button></div></div>'+
    '<div class="pr-kpis"><div class="kpi"><span>Net payable</span><b>'+mm(s.net)+'</b></div><div class="kpi"><span>Total paid</span><b>'+mm(s.paid)+'</b></div>'+
    '<div class="kpi kpi-bal"><span>Balance to pay</span><b'+(s.bal!==null&&s.bal<0?' class="neg"':'')+'>'+mm(s.bal)+'</b></div>'+
@@ -3071,7 +3071,7 @@ function pddReadHtml(l){
   var sub=esc(((l.vehicle||"")+" "+(l.reg||"")).trim())+' &middot; '+esc(l.lender||"No lender")+' &middot; Loan '+esc(money(lpNum(l.amount)));
   var ls=remarkLinesDesc(l);
   return '<section class="nd-card pv-card pr-card pd-view" aria-label="PDD details, view only">'+
-    '<div class="pr-head"><div><h3 class="nd-h">PDD Details</h3><p class="pv-sub">'+sub+'</p></div><div class="pr-actions"><span class="pr-ro">View only</span></div></div>'+
+    '<div class="pr-head"><div><h3 class="nd-h">PDD Details</h3></div><div class="pr-actions"><span class="pr-ro">View only</span></div></div>'+
     '<h4 class="pd-h"><i class="pd-dot a"></i>RTO details</h4><div class="pd-tiles">'+
       tile("RTO Authority",x.rtoAuth)+tile("RTO Person",rtoPersonOf(l))+tileH("RTO Confirmation",badge)+'</div>'+
     '<h4 class="pd-h"><i class="pd-dot b"></i>Charges</h4><div class="pd-tiles pd-tiles4">'+
@@ -3344,7 +3344,7 @@ function renderDisbLead(l){
         colR=rightRows;
       }
     }
-    var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit to fill them in.</p>':'';
+    var boxBar='';
     h+='<section class="ld-box'+(state.ldBox?' editing':'')+(payV?' ld-eq':'')+'" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
   } else if(state.ldTab==="pview"){ h+=payViewHtml(l);
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
