@@ -752,6 +752,21 @@ input.is-filled:not([type=checkbox]):not([type=radio]),textarea.is-filled,select
 .nd-in:has(input.is-filled){background:#e9ecef;border-color:#aab0b8}
 .pd-tile.is-filled{background:#e9ecef;border-color:#aab0b8}
 :root[data-theme="dark"] input.is-filled:not([type=checkbox]):not([type=radio]),:root[data-theme="dark"] textarea.is-filled,:root[data-theme="dark"] select.is-filled,:root[data-theme="dark"] .nd-in:has(input.is-filled),:root[data-theme="dark"] .pd-tile.is-filled{background:#33373d!important;border-color:#6b727b!important}
+/* Payments to customers: bank-CRM style grid, one line per payment */
+.pv-right .pv-total{padding:0;overflow:hidden;border-radius:10px}
+.pv-right .cp-head,.pv-right .cp-row{display:grid;grid-template-columns:36px 150px 160px 170px minmax(140px,1fr) 40px;gap:12px;align-items:center}
+.pv-right .cp-head{margin:0;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.pv-right .cp-rows{gap:0}
+.pv-right .cp-row{padding:10px 16px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:var(--surface)}
+.pv-right .cp-row:nth-child(even){background:var(--bg)}
+.pv-right .cp-row:hover{background:var(--accent-soft)}
+.pv-right .cp-row:last-child{border-bottom:0}
+.pv-right .cp-row .cp-note,.pv-right .cp-row .cp-n{grid-column:auto}
+.pv-right .cp-row .nd-f{margin:0}
+.pv-right .cp-row .nd-f select,.pv-right .cp-row .nd-f input[type=date],.pv-right .cp-row .nd-f input[type=text],.pv-right .cp-row .nd-in{width:100%;min-width:0;height:36px;font-size:13.5px}
+.pv-right .cp-badge{justify-self:center}
+.pv-right .cp-plus{width:30px;height:30px;border-radius:6px;font-size:18px}
+@media (max-width:900px){.pv-right .cp-head{display:none}.pv-right .cp-row{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 40px}.pv-right .cp-row .cp-note{grid-column:2/4}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
