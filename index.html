@@ -724,6 +724,16 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .pd-rem{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
 .pd-rem li{background:var(--bg);border-radius:10px;padding:10px 14px;font-size:13.5px;border-left:3px solid var(--line)}
 .pd-rem li.new{background:var(--accent-soft);border-left-color:var(--accent);font-weight:600}
+
+/* ---- Customer payments: one-line payment rows ---- */
+.cp-head,.cp-row{display:grid;grid-template-columns:30px 150px 160px 150px minmax(0,1fr) 40px;gap:10px;align-items:center}
+.cp-head{padding:0 14px;margin-bottom:6px;font-size:12px;color:var(--muted);font-weight:500}
+.cp-row{padding:10px 14px}
+.cp-row .nd-f{margin:0}
+.cp-row .nd-f select,.cp-row .nd-f input[type=date],.cp-row .nd-f input[type=text],.cp-row .nd-in{width:100%;min-width:0}
+.cp-plus{width:36px;height:36px;border-radius:50%;border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.cp-plus:hover{filter:brightness(1.08)}
+@media (max-width:900px){.cp-head{display:none}.cp-row{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 40px}.cp-row .cp-amt{grid-column:2/3}.cp-row .cp-note{grid-column:3/4}}
 @media (max-width:900px){.pd-tiles5{grid-template-columns:repeat(3,minmax(0,1fr))}.pd-tiles4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.pd-tiles,.pd-tiles5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){.pv-split{grid-template-columns:minmax(0,1fr)}.pv-bank{position:static}.td-row{grid-template-columns:minmax(0,1fr)}}
@@ -5101,20 +5111,21 @@ function openCustPay(id,host){
   var h=(host?'<div class="pv-head"><h3 class="nd-h">Received Details</h3><p class="pv-sub">'+sub+'</p></div>':'<h2>Payments: '+esc(l.name)+'</h2><p class="dlnote">'+sub+'</p>')+
    '<div class="pv-kpis"><div class="kpi"><b id="cpNet">'+mm(net)+'</b><span>Net payable</span></div><div class="kpi"><b id="cpPaid">—</b><span>Total paid</span></div><div class="kpi kpi-bal"><b id="cpBal">—</b><span>Balance to pay</span></div><div class="kpi kpi-pend"><b id="cpPend">—</b><span id="cpPendL">Difference with bank</span></div></div>';
   if(net===null)h+='<p class="note pv-warn">Net disbursement is not saved for this client yet, so balance cannot be worked out and Full payment is off. Save it in the lead\'s Net Disbursement Calculator first.</p>';
-  h+='<div class="pv-split"><div class="pv-block pv-bank" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><p class="cp-calc">Expected from bank = Loan '+esc(money(cc0.loan))+' &minus; Processing fees '+esc(money(cc0.pf))+' &minus; Loan Suraksha '+esc(money(cc0.ls))+' = <b>'+esc(money(cc0.base))+'</b> <button type="button" class="cp-fill" id="cpBankFill">Fill expected</button></p><div class="pv-fields pv-f1">'+
+  h+='<div class="pv-split"><div class="pv-block pv-bank" aria-label="Received from bank"><h4 class="pv-bh"><span class="pv-step">1</span>Received from bank <small class="pv-tag">Optional</small></h4><div class="pv-fields pv-f1">'+
    '<div class="nd-f"><label for="cpBank">Amount received from bank</label><div class="nd-in"><span aria-hidden="true">₹</span><input id="cpBank" type="number" min="0" step="any" inputmode="decimal" value="'+esc(bank.amt||"")+'"></div></div>'+
    '<div class="nd-f"><label for="cpBankD">Date received</label><input id="cpBankD" type="date" value="'+esc(bank.date||"")+'"></div>'+
    '<div class="nd-f"><label for="cpBankN">Notes</label><input id="cpBankN" type="text" value="'+esc(bank.note||"")+'" placeholder="Notes"></div></div></div>';
   function cpRowHtml(i,e){e=e||{};
-    return '<div class="cp-row" data-cprow="'+i+'"><div class="cp-n"><span class="cp-badge">'+(i+1)+'</span>Payment '+(i+1)+'</div>'+
-     '<div class="nd-f cp-type"><span class="pv-l">Type</span><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></div>'+
-     '<div class="nd-f cp-amt"><span class="pv-l">Amount<button type="button" class="cp-fill" data-cpfill>Fill balance</button></span><div class="nd-in"><span aria-hidden="true">₹</span><input data-cpa type="number" min="0" step="any" inputmode="decimal" placeholder="0" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount"></div></div>'+
-     '<div class="nd-f cp-date"><span class="pv-l">Date<button type="button" class="cp-fill" data-cptoday>Today</button></span><input data-cpd type="date" value="'+esc(e.date||"")+'" aria-label="Payment '+(i+1)+' date"></div>'+
-     '<div class="nd-f cp-note"><span class="pv-l">Notes</span><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Add a note (optional)" aria-label="Payment '+(i+1)+' notes"></div></div>';}
+    return '<div class="cp-row" data-cprow="'+i+'"><span class="cp-badge">'+(i+1)+'</span>'+
+     '<div class="nd-f cp-date"><input data-cpd type="date" value="'+esc(e.date||ymd(TODAY))+'" aria-label="Payment '+(i+1)+' date"></div>'+
+     '<div class="nd-f cp-type"><select data-cpt aria-label="Payment '+(i+1)+' type">'+CP_TYPES.map(function(t){return '<option'+(t===(e.type||"Partial payment")?" selected":"")+(t==="Full payment"&&net===null?" disabled":"")+'>'+t+'</option>';}).join("")+'</select></div>'+
+     '<div class="nd-f cp-amt"><div class="nd-in"><span aria-hidden="true">\u20b9</span><input data-cpa type="number" min="0" step="any" inputmode="decimal" placeholder="0" value="'+esc(e.amt||"")+'" aria-label="Payment '+(i+1)+' amount"></div></div>'+
+     '<div class="nd-f cp-note"><input data-cpn type="text" value="'+esc(e.note||"")+'" placeholder="Notes (optional)" aria-label="Payment '+(i+1)+' notes"></div>'+
+     '<button type="button" class="cp-plus" data-cpplus title="Add another payment" aria-label="Add another payment">+</button></div>';}
   var cpShow=1;for(var ci=0;ci<cur.length;ci++){if(cur[ci]&&lpNum(cur[ci].amt)>0)cpShow=ci+1;}
-  h+='<div class="pv-right"><h4 class="pv-bh pv-rh"><span class="pv-step">2</span>Payments to customers</h4><div class="pv-block pv-total" aria-label="Total payments"><h4 class="pv-sh">Total payments <small class="pv-tag">Everything paid to the customer so far</small></h4><div class="cp-rows">';
+  h+='<div class="pv-right"><h4 class="pv-bh pv-rh"><span class="pv-step">2</span>Payments to customers</h4><div class="pv-block pv-total" aria-label="Total payments"><div class="cp-head"><span></span><span>Date</span><span>Type</span><span>Amount</span><span>Notes</span><span></span></div><div class="cp-rows">';
   for(var i=0;i<cpShow;i++){h+=cpRowHtml(i,cur[i]);}
-  h+='</div><button class="btn pv-add" type="button" id="cpAddRow">+ Add another payment</button></div></div></div><div class="cp-sub" id="cpSub"></div><div class="pv-foot">'+(host?'':'<button class="btn" data-close>Cancel</button>')+'<button class="btn primary" id="cpSave">Save payments</button></div>';
+  h+='</div></div></div></div><div class="pv-foot">'+(host?'':'<button class="btn" data-close>Cancel</button>')+'<button class="btn primary" id="cpSave">Save payments</button></div>';
   if(host){host.innerHTML=h;var kt=document.getElementById("payKpiTop"),kb=host.querySelector(".pv-kpis");if(kt&&kb)kt.appendChild(kb);}
   var m=host||openPayModal(h);if(!host)m.classList.add("wide");
   function q(sel,r){return r.querySelector(sel);}
@@ -5129,33 +5140,25 @@ function openCustPay(id,host){
     var b=document.getElementById("cpBal");b.textContent=net===null?"—":money(net-tot);b.classList.toggle("neg",net!==null&&net-tot<0);
     var bk=lpNum(m.querySelector("#cpBank").value),pend=netD===null?null:netD-bk;
     var pe=document.getElementById("cpPend"),pl=document.getElementById("cpPendL");if(pe){pe.textContent=cpPendVal(pend);pe.classList.toggle("neg",pend!==null&&pend<0);}if(pl)pl.textContent=cpPendLabel(pend);
-    m.querySelector("#cpSub").innerHTML=CP_TYPES.map(function(t){return '<div><small>'+t+'</small><strong>'+esc(money(sub[t]))+'</strong></div>';}).join("")+
-     '<div><small>Received from bank</small><strong>'+esc(money(bk))+'</strong></div><div><small>Difference with bank</small><strong'+(pend!==null&&pend<0?' class="neg"':'')+'>'+(pend===null?"—":esc(money(pend)))+'</strong></div>';
     return tot;
   }
   function wireRow(r){
     q("[data-cpa]",r).oninput=function(){var d=q("[data-cpd]",r);if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
-    q("[data-cpfill]",r).onclick=function(){
-      if(net===null){toast("Save the net disbursement first, so the balance can be worked out");return;}
-      var other=0;trs().forEach(function(o){if(o!==r)other+=lpNum(q("[data-cpa]",o).value);});
-      var v=Math.max(0,net-other),a=q("[data-cpa]",r);
-      a.value=v>0?String(Math.round(v*100)/100):"";
-      var d=q("[data-cpd]",r);if(v>0&&!d.value)d.value=ymd(TODAY);upd();
-    };
-    q("[data-cptoday]",r).onclick=function(){q("[data-cpd]",r).value=ymd(TODAY);};
+    q("[data-cpplus]",r).onclick=addRow;
     q("[data-cpt]",r).onchange=function(){
       if(this.value==="Full payment"){var dup=trs().some(function(o){return o!==r&&q("[data-cpt]",o).value==="Full payment";});if(dup){toast("Only one Full payment is allowed");this.value="Partial payment";}}
       var d=q("[data-cpd]",r);if(!d.value)d.value=ymd(TODAY);upd();};
   }
   trs().forEach(wireRow);
-  m.querySelector("#cpAddRow").onclick=function(){
+  function plusSync(){var rs=trs();rs.forEach(function(r,k){q("[data-cpplus]",r).style.visibility=(k===rs.length-1)?"visible":"hidden";});}
+  function addRow(){
     var n=trs().length,tb=m.querySelector(".cp-rows");
     tb.insertAdjacentHTML("beforeend",cpRowHtml(n,null));
-    var nr=trs()[n];wireRow(nr);var d=q("[data-cpd]",nr);if(!d.value)d.value=ymd(TODAY);q("[data-cpa]",nr).focus();upd();
-  };
+    var nr=trs()[n];wireRow(nr);plusSync();q("[data-cpa]",nr).focus();upd();
+  }
+  plusSync();
   m.querySelector("#cpBank").oninput=function(){var d=m.querySelector("#cpBankD");if(lpNum(this.value)>0&&!d.value)d.value=ymd(TODAY);upd();};
   upd();
-  m.querySelector("#cpBankFill").onclick=function(){var b=m.querySelector("#cpBank"),d=m.querySelector("#cpBankD");b.value=String(cc0.base);if(!d.value)d.value=ymd(TODAY);upd();};
   function doSave(extra){
     var out=[],bad=null,tot=0,added=0;
     trs().forEach(function(r,i){
