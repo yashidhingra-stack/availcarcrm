@@ -1092,7 +1092,8 @@ function renderNav(){
 function money(v){return "₹"+v.toLocaleString("en-IN");}
 function short(v){return v>=1e7?(v/1e7).toFixed(1).replace(".0","")+"Cr":v>=1e5?(v/1e5).toFixed(v%1e5?1:0)+"L":v;}
 function inRange(l){return l.date>=state.range.from&&l.date<=state.range.to;}
-function fmtDate(s){var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0];}
+function fmtDate(s){var p=String(s||"").slice(0,10).split("-");return p.length===3?p[2]+"-"+p[1]+"-"+p[0]:String(s||"");}
+function dmy(s){s=String(s==null?"":s);var m=s.match(/^(\d{4})-(\d{2})-(\d{2})(.*)$/);return m?m[3]+"-"+m[2]+"-"+m[1]+m[4]:s;}
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove("show");},2200);}
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 
@@ -1268,7 +1269,7 @@ function cell(l,k,i){
   if(k.indexOf("a_")===0)return esc(cxGet(l,k.slice(2)));
   if(k==="sno")return (i+1)+(PH[l.phone]>1?' <span class="rep" role="img" aria-label="Repeat lead" title="Repeat lead: this mobile number appears more than once">R</span>':"");
   if(k==="month")return l.stage==="Disbursed"?MON[+l.date.slice(5,7)-1]+" "+l.date.slice(0,4):"";
-  if(k==="ts")return l.ts.slice(0,10)+"<br>"+l.ts.slice(11);
+  if(k==="ts")return dmy(l.ts.slice(0,10))+"<br>"+l.ts.slice(11);
   if(k==="phone")return esc(l.phone)+(/^\d{10}$/.test(l.phone)?' <a class="wa" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener" aria-label="Message on WhatsApp">'+ic("chat")+'</a>':"");
   if(k==="make")return esc(l.make||MAKE[l.vehicle]||"");
   if(k==="pddSt")return esc(pddSt(l));
@@ -1932,7 +1933,7 @@ function openDrawer(id){
   var d=document.getElementById("drawer");
   d.innerHTML='<div class="page-head"><div><h2>'+esc(l.name)+'</h2><span>'+dotted(l.status)+esc(l.status)+'</span></div><button class="icon-btn" data-close aria-label="Close">✕</button></div>'+
    '<dl class="kv"><dt>Lead ID</dt><dd>'+l.id+'</dd><dt>Mobile</dt><dd>'+esc(l.phone)+'</dd><dt>Lead owner</dt><dd>'+l.owner+'</dd><dt>Product</dt><dd>'+l.product+'</dd><dt>Loan amount</dt><dd>'+money(l.amount)+'</dd>'+
-   '<dt>Vehicle</dt><dd>'+esc(l.vehicle||"—")+(l.reg?" / "+esc(l.reg):"")+'</dd><dt>Lender</dt><dd>'+esc(l.lender||"—")+'</dd><dt>Dealer</dt><dd>'+esc(l.dealer||"—")+'</dd><dt>Source</dt><dd>'+l.source+'</dd><dt>Entry date</dt><dd>'+esc(l.ts)+'</dd>'+(l.stage==="Disbursed"?'<dt>PDD</dt><dd>'+l.pdd+'</dd>':"")+'</dl>'+
+   '<dt>Vehicle</dt><dd>'+esc(l.vehicle||"—")+(l.reg?" / "+esc(l.reg):"")+'</dd><dt>Lender</dt><dd>'+esc(l.lender||"—")+'</dd><dt>Dealer</dt><dd>'+esc(l.dealer||"—")+'</dd><dt>Source</dt><dd>'+l.source+'</dd><dt>Entry date</dt><dd>'+esc(dmy(l.ts))+'</dd>'+(l.stage==="Disbursed"?'<dt>PDD</dt><dd>'+l.pdd+'</dd>':"")+'</dl>'+
    '<div class="field"><label for="dStatus">Lead status</label><select id="dStatus">'+STATUS.map(function(x){return '<option'+(x[0]===l.status?" selected":"")+'>'+x[0]+'</option>';}).join("")+'</select></div>'+
    '<div class="field"><label for="dNote">Notes</label><textarea id="dNote" rows="4" placeholder="Add a follow-up note">'+esc(l.note)+'</textarea></div>'+
    '<div class="actions"><button class="btn" data-lmove="'+l.id+'">Move category</button><button class="btn" data-close>Cancel</button><button class="btn primary" data-save="'+l.id+'">Save changes</button></div>';
@@ -2614,13 +2615,14 @@ function openLeadPay(id){closeAll();state.ldPayFlag=+id;openLead(+id);}
 function fld(id,label,val,type){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><input id="ld_'+id+'"'+(type?' type="'+type+'"':"")+' value="'+esc(val)+'"></div>';}
 function fsel(id,label,list,val,blank){return '<div class="field"><label for="ld_'+id+'">'+label+'</label><select id="ld_'+id+'">'+(blank?'<option value="">Not set</option>':"")+list.map(function(o){return '<option'+(o===val?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select></div>';}
 function renderLead(){
+  saveView();
   var l=curLead(), v=document.getElementById("view");
   if(!l){v.innerHTML='<div class="stub"><h2>Lead not found</h2>It may have been deleted.<p><button class="btn" data-back>Back to list</button></p></div>';return;}
   ensure(l);
   renderDisbLead(l);return; /* same Cronberry-style view (Lead Details / Additional Details tabs) for every stage */
   var got=DOCS.filter(function(n){return l.docs[n];}).length, pct=Math.round(got/DOCS.length*100);
   var tel=/^\d{10}$/.test(l.phone), today=ymd(TODAY), tom=new Date(TODAY);tom.setDate(tom.getDate()+1);
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-back aria-label="Back to list">'+ic("back")+'</button><div><h1>'+esc(l.name)+'</h1><p>Lead ID '+l.id+'. Entered '+esc(l.ts)+'.</p></div></div><div class="tb">'+
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-back aria-label="Back to list">'+ic("back")+'</button><div><h1>'+esc(l.name)+'</h1><p>Lead ID '+l.id+'. Entered '+esc(dmy(l.ts))+'.</p></div></div><div class="tb">'+
     '<div class="statusbar">'+dotted(l.status)+'<select id="ldStatus" aria-label="Lead status">'+STATUS.map(function(x){return '<option'+(x[0]===l.status?" selected":"")+'>'+x[0]+'</option>';}).join("")+'</select></div>'+
     (tel?'<a class="btn" href="tel:+91'+l.phone+'">Call</a><a class="btn" href="https://wa.me/91'+l.phone+'" target="_blank" rel="noopener">WhatsApp</a>':"")+
     '<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="btn" data-del="'+l.id+'">Delete</button><button class="icon-btn" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div></div>';
@@ -2638,7 +2640,7 @@ function renderLead(){
     (l.fu.length?l.fu.map(function(f,i){var od=!f.done&&f.date<today;return '<div class="fu-row'+(f.done?" done":"")+'"><input type="checkbox" data-fu="'+i+'" aria-label="Mark follow-up done"'+(f.done?" checked":"")+'><span class="t">'+esc(f.text)+'</span>'+(od?'<span class="pill Overdue">Overdue</span>':"")+'<time>'+fmtDate(f.date)+'</time></div>';}).join(""):'<p class="fu-empty">No follow-ups yet. Schedule the next call below.</p>')+
     '<div class="fu-add"><input type="date" id="fuDate" value="'+ymd(tom)+'" aria-label="Follow-up date"><input type="text" id="fuText" placeholder="What needs to happen?" aria-label="Follow-up note"><button class="btn" id="addFu">Schedule</button></div></section>';
   h+='<section class="card"><h3 class="card-title">Activity</h3><div class="noteform"><textarea id="noteText" rows="3" placeholder="Add a note about this lead" aria-label="Note"></textarea><button class="btn primary" id="addNote">Add note</button></div><ol class="timeline">'+
-    l.hist.map(function(e){return '<li class="'+e.type+'"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol></section>';
+    l.hist.map(function(e){return '<li class="'+e.type+'"><p>'+esc(e.text)+'</p><time>'+esc(dmy(e.ts))+'</time></li>';}).join("")+'</ol></section>';
   h+='</div></div>';
   h+=ldStatusBlock(l);
   v.innerHTML=h;
@@ -3182,7 +3184,7 @@ function ldFollow(l,today,tom){
     (l.fu.length?l.fu.map(function(f,i){var od=!f.done&&f.date<today;return '<div class="fu-row'+(f.done?" done":"")+'"><input type="checkbox" data-fu="'+i+'" aria-label="Mark follow-up done"'+(f.done?" checked":"")+'><span class="t">'+esc(f.text)+'</span>'+(od?'<span class="pill Overdue">Overdue</span>':"")+'<time>'+fmtDate(f.date)+'</time></div>';}).join(""):'<p class="fu-empty">No follow-ups yet. Schedule the next step below.</p>')+
     '<div class="fu-add"><input type="date" id="fuDate" value="'+ymd(tom)+'" aria-label="Follow-up date"><input type="text" id="fuText" placeholder="What needs to happen?" aria-label="Follow-up note"><button class="btn" id="addFu">Schedule</button></div></section>'+
     '<section class="card"><h3 class="card-title">Notes</h3><div class="noteform"><textarea id="noteText" rows="3" placeholder="Add a note about this lead" aria-label="Note"></textarea><button class="btn primary" id="addNote">Add note</button></div>'+
-    (notes.length?'<ol class="timeline">'+notes.map(function(e){return '<li class="note"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol>':'<p class="fu-empty">No notes yet.</p>')+'</section></div>';
+    (notes.length?'<ol class="timeline">'+notes.map(function(e){return '<li class="note"><p>'+esc(e.text)+'</p><time>'+esc(dmy(e.ts))+'</time></li>';}).join("")+'</ol>':'<p class="fu-empty">No notes yet.</p>')+'</section></div>';
 }
 
 function fmtSize(b){return b>=1048576?(b/1048576).toFixed(1)+" MB":Math.max(1,Math.round(b/1024))+" KB";}
@@ -3260,7 +3262,7 @@ function renderDisbLead(l){
   var h='<div class="ld-bar">'+editBar+'<button class="icon-btn" data-lmove="'+l.id+'" aria-label="Move lead by category" title="Move lead by category">'+ldi("swap")+'</button><button class="icon-btn" data-del="'+l.id+'" aria-label="Delete lead" title="Delete lead">'+ic("trash")+'</button><button class="icon-btn ld-close" data-back aria-label="Close lead" title="Close">'+ldi("close")+'</button></div>'+
    '<div class="ld-top"><section class="ld-prof" aria-label="Lead summary"><div class="ld-who"><span class="ld-av" aria-hidden="true">'+esc(l.name.charAt(0).toUpperCase())+'</span>'+nameHtml+'</div>'+
    '<div class="ld-ids"><div><small>Audience ID</small><span class="ld-link">'+aud+'</span></div><div><small>Lead Stage:</small>'+stageHtml+'</div></div>'+
-   '<dl class="ld-kv"><dt>Email:</dt><dd>'+emailHtml+'</dd><dt>Mobile:</dt><dd>'+mob+'</dd><dt>Added On:</dt><dd>'+esc(l.date)+'</dd><dt>Updated On:</dt><dd>'+esc(upd)+'</dd></dl></section>'+
+   '<dl class="ld-kv"><dt>Email:</dt><dd>'+emailHtml+'</dd><dt>Mobile:</dt><dd>'+mob+'</dd><dt>Added On:</dt><dd>'+esc(dmy(l.date))+'</dd><dt>Updated On:</dt><dd>'+esc(dmy(upd))+'</dd></dl></section>'+
    '<section class="ld-sum" aria-label="Lead overview"><dl class="ld-grid">'+
      sme("Lead Owner","owner",l.owner,"owner",esc(l.owner))+
      sme("Product","product",l.product,"product",esc(l.product||"—"))+
@@ -3284,7 +3286,7 @@ function renderDisbLead(l){
     var colL, colR;
     if(state.ldTab==="details"){
       var L=[["owner","Lead Owner",l.owner,l.owner,"owner"],["bankExec","Bank Executive",x.bankExec,x.bankExec,"text"],
-             ["dealer","Dealer Name",l.dealer,"["+(l.dealer||"Direct Source Banker")+"]","dealer"],["entry","Entry Date",l.ts,l.ts,null]];
+             ["dealer","Dealer Name",l.dealer,"["+(l.dealer||"Direct Source Banker")+"]","dealer"],["entry","Entry Date",l.ts,dmy(l.ts),null]];
       var R=[["amount","Loan Amount",l.amount,l.amount,"num"]], Rb=[["product","Product",l.product,"["+l.product+"]","product"],["year","Year of Manufacturing",l.year||"",l.year||"—","text"]], Rc=[];
       var dobRaw=String(x.dob||"").trim(),dobIso=dsbIso(dobRaw);
       var CBR=["caseBooked","Case booked in",x.caseBooked||"",x.caseBooked||"—","text"],DOBR=["dob","Date of Birth",dobIso,dobIso?fmtDate(dobIso):(dobRaw||"—"),"cxDate"];
@@ -3326,7 +3328,7 @@ function renderDisbLead(l){
           '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
           '<tr><td class="k"><b>Net Disbursement to Client</b></td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div></td></tr>'
         ];
-        var restRows=[ldRow(["dealer","Dealer Name",l.dealer,l.dealer||"—","dealer"]),ldRow(["entry","Entry Date",l.ts,l.ts,null]),
+        var restRows=[ldRow(["dealer","Dealer Name",l.dealer,l.dealer||"—","dealer"]),ldRow(["entry","Entry Date",l.ts,dmy(l.ts),null]),
           ldRow(CBR),ldRow(DOBR)].concat(ex.map(function(r){return ldRow(r);}));
         colL=[ldRow(Rb[0]),ldRow(Rb[1]),ldRow(A[2]),ldRow(A[3]),ldRow(CBR),ldRow(DOBR)].concat(restRows);
         colR=rightRows;
@@ -3994,13 +3996,14 @@ function applyChrome(){
   var sb=document.getElementById("searchBtn");if(sb)sb.style.display=routeOk("leads/data")?"":"none";
 }
 function showLogin(msg){
+  if(window.CRM_RESTORING&&!msg){document.body.classList.add("locked");return;} /* a saved session is being restored: no login flash */
   document.body.classList.add("locked");
   document.getElementById("login").hidden=false;
   document.getElementById("loginBrand").textContent=document.getElementById("brandName").textContent;
   document.getElementById("loginErr").textContent=msg||"";
   var pwEl=document.getElementById("loginPass");if(pwEl)pwEl.value="";var i=document.getElementById("loginEmail");i.value="";setTimeout(function(){i.focus();},0);
 }
-function loginErr(m){document.getElementById("loginErr").textContent=m;document.getElementById("loginEmail").focus();return false;}
+function loginErr(m){window.CRM_RESTORING=false;document.getElementById("login").hidden=false;document.getElementById("loginErr").textContent=m;document.getElementById("loginEmail").focus();return false;}
 var LOGIN_PW="";
 function doLogin(nm,pw){
   nm=String(nm||"").trim().toLowerCase().replace(/\s+/g," ");
@@ -4018,17 +4021,22 @@ function doLogin(nm,pw){
 }
 function signIn(u){
   hier=null; /* re-read the latest Hierarchy settings */
-  state.meUser=u.id;state.meRole=u.roleId;window.CRM_USER=u.name;
-  try{sessionStorage.setItem("crmUser",String(u.id));}catch(_){}
+  state.meUser=u.id;state.meRole=u.roleId;window.CRM_USER=u.name;window.CRM_RESTORING=false;
+  try{sessionStorage.setItem("crmUser",String(u.id));localStorage.setItem("crmUser",String(u.id));}catch(_){}
   document.getElementById("login").hidden=true;document.body.classList.remove("locked");
   state.route=landingRoute()||"dashboard";state.listRoute=null;state.leadCtx=null;resetList();
+  try{var sv=JSON.parse(localStorage.getItem("crmView")||"null");
+    if(sv&&sv.u===u.id&&sv.r&&routeOk(sv.r)&&!(sv.r.indexOf("lead/")===0&&!lead(+sv.r.slice(5)))){
+      state.route=sv.r;state.listRoute=sv.lr||null;state.leadCtx=sv.lc||null;
+      if(sv.r.indexOf("lead/")===0){state.ldTab=sv.tab||"details";state.ldPay=!!sv.pay;state.ldSub="main";state.ldEdit=null;}
+    }}catch(_){}
   render();
 }
 function signOut(msg){
   destroyCharts();closeAll();closePops();
   if(MASTER){leads=fullLeads();MASTER=null;SCOPED=null;}
-  state.meUser=0;state.meRole=0;window.CRM_USER=null;
-  try{sessionStorage.removeItem("crmUser");}catch(_){}
+  state.meUser=0;state.meRole=0;window.CRM_USER=null;window.CRM_RESTORING=false;
+  try{sessionStorage.removeItem("crmUser");localStorage.removeItem("crmUser");localStorage.removeItem("crmView");}catch(_){}
   state.route="dashboard";showLogin(msg);
 }
 document.getElementById("loginForm").addEventListener("submit",function(e){e.preventDefault();doLogin(document.getElementById("loginEmail").value,document.getElementById("loginPass").value);});
@@ -6168,7 +6176,7 @@ function duDetail(v,f){
   v.innerHTML='<div class="page-head"><div class="ph-title"><button class="icon-btn" id="duBack" aria-label="Back to Data">'+ic("back")+'</button><div><h1>'+esc(f.name)+'</h1><p>'+f.count+' rows · '+f.cols.length+' columns · uploaded '+esc(f.ts)+' by '+esc(f.by||"")+'</p></div></div><div>'+(admin?'<button class="btn" id="duDel">Delete</button>':'')+'</div></div>'+
     '<section class="card" style="margin-bottom:12px"><div class="field" style="margin:0;max-width:360px"><label for="duOwnSel">Assigned to (lead owner / user)</label>'+(admin?duOwnerSel(f.owner,'id="duOwnSel"'):'<input id="duOwnSel" value="'+esc(f.owner||"")+'" disabled>')+'</div><p class="note" style="margin-bottom:0">Only '+esc(f.owner||"the assigned user")+' and Admin can open this data.'+(admin?' Pick another user to change who has access.':'')+'</p></section>'+
     '<div class="firmbar" style="margin:0 0 12px"><input id="duRq" type="search" placeholder="Search in this data" aria-label="Search in this data" value="'+esc(D.rq)+'">'+duToolsHtml(f)+'</div><div id="duTbl"></div>'+
-    ((f.hist&&f.hist.length)?'<section class="card" style="margin-top:12px"><h3 class="card-title">Activity</h3><ol class="timeline">'+f.hist.map(function(e){return '<li class="system"><p>'+esc(e.text)+'</p><time>'+esc(e.ts)+'</time></li>';}).join("")+'</ol></section>':'');
+    ((f.hist&&f.hist.length)?'<section class="card" style="margin-top:12px"><h3 class="card-title">Activity</h3><ol class="timeline">'+f.hist.map(function(e){return '<li class="system"><p>'+esc(e.text)+'</p><time>'+esc(dmy(e.ts))+'</time></li>';}).join("")+'</ol></section>':'');
   document.getElementById("duBack").onclick=function(){D.sel=null;renderDataUp();};
   var dl=document.getElementById("duDel");if(dl)dl.onclick=function(){duDelete(f);};
   var os=document.getElementById("duOwnSel");if(admin&&os)os.onchange=function(){duSetOwner(f,os.value);};
@@ -6305,6 +6313,7 @@ function duSubmit(){
   })();
 }
 
+function saveView(){try{if(state.meUser&&state.route)localStorage.setItem("crmView",JSON.stringify({u:state.meUser,r:state.route,lr:state.listRoute,lc:state.leadCtx,tab:state.ldTab,pay:!!state.ldPay}));}catch(_){}}
 function render(){
   syncScope();
   saveLeadsSoon();
@@ -6319,6 +6328,7 @@ function render(){
   }
   applyChrome();
   renderNav();
+  saveView();
   document.getElementById("dashName").parentNode.style.visibility=state.route==="dashboard"?"visible":"hidden";
   var r=state.route;
   if(r!=="dashboard")destroyCharts();
@@ -6721,7 +6731,7 @@ document.addEventListener("change",function(e){
   if(m[t.id]){state[m[t.id][0]][m[t.id][1]]=t.value;renderPayments();}
 });
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){redrawCharts();});}catch(_){}
-var sid=0;try{sid=0;}catch(_){}
+var sid=0;
 var su=sid?userById(sid):null;
 /* Login business data comes from the embedded Login_Pending_to_Approved_Total_Business file */
 
@@ -7101,6 +7111,7 @@ function start(){
   if(SB_KEY.indexOf('sb_secret_')===0||SB_KEY.indexOf('service_role')>=0){loginErr('WRONG KEY: a secret key is in index.html. Use the publishable key and replace the secret key in Supabase.');return;}
   if(SB_KEY.indexOf('PASTE')===0||!window.supabase){loginErr('Setup needed: add the Supabase publishable key in index.html.');return;}
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  try{if(localStorage.getItem('crmView')){window.CRM_RESTORING=true;document.getElementById('login').hidden=true;}}catch(_){}
   document.querySelector('label[for=loginEmail]').textContent='Email';
   var inp=document.getElementById('loginEmail');inp.type='email';inp.placeholder='you@example.com';inp.autocomplete='username';
   var f=document.getElementById('loginForm'),nf=f.cloneNode(true);f.replaceWith(nf); /* drops the old local-password handler */
@@ -7112,7 +7123,7 @@ function start(){
     try{await enter(r.data.user);}catch(x){fail('Could not sign in: '+x.message);}
   });
   var so=signOut;signOut=function(m){so(m);try{sb.auth.signOut();synced=false;localStorage.removeItem(LEADS_KEY);leads=[];last={};clearInterval(pollT);}catch(e){}};
-  sb.auth.getSession().then(function(r){if(r.data.session)enter(r.data.session.user).catch(function(x){fail(x.message);});});
+  sb.auth.getSession().then(function(r){if(r.data.session)enter(r.data.session.user).catch(function(x){fail(x.message);});else{window.CRM_RESTORING=false;showLogin();}}).catch(function(){window.CRM_RESTORING=false;showLogin();});
 }
 doLogin=function(){return loginErr('Sign in with your email and password.');};
 start();
