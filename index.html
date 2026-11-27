@@ -682,6 +682,7 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .pr-calc .t span{color:var(--ink)}
 .cp-calc{margin:0 0 12px;font-size:13px;color:var(--muted)}
 .cp-calc b{color:var(--ink)}
+.ld-eq .ld-tbl{table-layout:fixed}.ld-eq .ld-tbl th,.ld-eq .ld-tbl td.k{width:50%}
 .ld-box.editing .tscroll{overflow:visible}.ld-box.editing .cbx-list{z-index:90}
 
 /* Customer payments: two sides, green balance, red pending */
@@ -3332,7 +3333,7 @@ function renderDisbLead(l){
       }
     }
     var boxBar=(dsbV&&state.ldTab==="details"&&dsbMissing(l).length)?'<p class="note" role="alert" style="color:var(--bad);margin:0 0 10px;padding:8px 12px"><b>Mandatory details pending:</b> '+esc(dsbMissing(l).join(", "))+'. Click Edit to fill them in.</p>':'';
-    h+='<section class="ld-box'+(state.ldBox?' editing':'')+'" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
+    h+='<section class="ld-box'+(state.ldBox?' editing':'')+(payV?' ld-eq':'')+'" aria-label="'+(state.ldTab==="more"?"Additional details":"Lead details")+'">'+boxBar+'<div class="ld-two"><div class="tscroll">'+ldTable(colL.join(""))+'</div><div class="tscroll">'+ldTable(colR.join(""))+'</div></div>'+'</section>';
   } else if(state.ldTab==="pview"){ h+=payViewHtml(l);
   } else if(state.ldTab==="pay"){ h+='<section class="ld-box" aria-label="Customer charges">'+payFormHtml(l)+'</section>';
   } else if(state.ldTab==="calc"){ h+='<section class="ld-box" aria-label="Calculations">'+(l.stage==="Disbursed"?ndCalcHtml(l):'<p class="note">Calculations are available for disbursed files.</p>')+'</section>';
