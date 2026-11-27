@@ -726,6 +726,11 @@ body.no-view .icon-btn[data-viewdocs]{display:none}
 .pd-rem li{background:var(--bg);border-radius:10px;padding:10px 14px;font-size:13.5px;border-left:3px solid var(--line)}
 .pd-rem li.new{background:var(--accent-soft);border-left-color:var(--accent);font-weight:600}
 
+.pdd-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
+.pdd-rc .btn{white-space:nowrap;padding:10px 22px}
+.rc-ok{margin:14px 0;padding:14px 18px;border-radius:12px;background:rgba(47,143,91,.14);border:1px solid #2f8f5b;color:#1f7a46;font-weight:800;font-size:18px;letter-spacing:.04em;text-transform:uppercase}
+@media (max-width:700px){.pdd-grid{grid-template-columns:minmax(0,1fr)}}
+
 /* ---- Customer payments: one-line payment rows ---- */
 .cp-head,.cp-row{display:grid;grid-template-columns:30px 150px 160px 150px minmax(0,1fr) 40px;gap:10px;align-items:center}
 .cp-head{padding:0 14px;margin-bottom:6px;font-size:12px;color:var(--muted);font-weight:500}
@@ -1165,7 +1170,7 @@ function drawCharts(){
 function resetList(){state.permDraft={};state.sort=pageKey()==="data"?{k:"ts",d:1}:{k:"ts",d:-1};state.q="";state.repQ="";state.sel=[];state.f={product:"",lender:"",dealer:"",owner:"",source:"",team:"",year:"",month:"",min:"",max:""};state.page=1;}
 function pageKey(){return state.route.split("/")[1];}
 var RTO_ST="File Approved in RTO"; /* kept out of every normal status list */
-var PDD_ST=["Open","Fee Done/Applied","Verification Stage","Approval Stage","File Approved In RTO","Hold"];
+var PDD_ST=["Open","Fee Done/Applied","Verification Stage","Approval Stage","File Approved In RTO","Hold","Approved"];
 var PDD_TYPES=["Open","Mobile Number Updation","State NOC","Loan Termination","Transfer of Ownership","Hypo Addition"];
 var PDD_LEGACY={"fee done file at inward":"Fee Done/Applied","pending at verification stage":"Verification Stage","pending at approval stage":"Approval Stage","state noc pending":"Open","rto paper pending":"Open"};
 function pddTp(l){return l.pddType||"Open";}
@@ -3412,7 +3417,7 @@ function moveCats(){
 }
 function moveStatuses(key){
   var c=moveCats().filter(function(x){return x.key===key;})[0]; if(!c)return [];
-  if(key==="pdd")return PDD_ST.slice();
+  if(key==="pdd")return ["Open"];
   if(key==="Close")return [PDD_ST[4]];
   if(key==="Disbursed")return ["Disbursement Pending","Advance Disbursement","Disbursed"];
   var ml=state.mvId?lead(state.mvId):null,fromPdd=!!ml&&inPddNow(ml); /* from PDD Status, Hold/Reject offers both Hold and Reject statuses */
@@ -3487,7 +3492,7 @@ function submitMoveCat(){
 document.addEventListener("change",function(e){
   if(e.target.id!=="mvCat")return;
   var st=document.getElementById("mvStatus"), l=moveStatuses(e.target.value);
-  st.innerHTML='<option value="">Select Status</option>'+l.map(function(o){return '<option>'+esc(o)+'</option>';}).join("");
+  st.innerHTML='<option value="">Select Status</option>'+l.map(function(o){return '<option>'+esc(o)+'</option>';}).join("");if(l.length===1)st.selectedIndex=1;
 });
 document.addEventListener("click",function(e){
   var b=e.target.closest&&e.target.closest("[data-lmove]");
@@ -3543,16 +3548,18 @@ function ldStatusList(l){
   return STATUS.filter(function(x){return (!st||st.indexOf(x[1])>-1)&&(x[0]!==RTO_ST||fromPdd||l.status===RTO_ST)&&(x[0]===l.status||(audOk(x)&&hierStatusOk(x[0])));}).map(function(x){return x[0];});
 }
 function ldStatusBlock(l){
+  if(state.leadCtx==="Close"&&l.stage==="Disbursed"&&!l.cat)return '<div class="rc-ok" role="status">RC APPROVED IN RTO</div>';
   var pd=inPddCtx(l), opts=pd?PDD_ST:ldStatusList(l), cur=pd?pddSt(l):l.status;
   var ownSel='<div class="field" style="max-width:320px;margin-bottom:12px"><label for="ldOwner">Lead owner</label><select id="ldOwner">'+(function(){var ol=moveOwnerOptions();if(l.owner&&ol.indexOf(l.owner)<0)ol.push(l.owner);return ol.map(function(o){return '<option value="'+esc(o)+'"'+(o===l.owner?' selected':'')+'>'+esc(o)+'</option>';}).join("");})()+'</select></div>';
   var noteH='<div class="st-note field"><label for="ldNote2">Note<span class="req">*</span></label><textarea id="ldNote2" rows="3" required></textarea></div>';
   if(pd){
     var curT=pddTp(l), curS=cur===PDD_ST[4]?"Open":cur;
     var stOpts=PDD_ST.filter(function(x){return x!==PDD_ST[0]&&x!==PDD_ST[4];});
-    return ownSel+'<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
+    return '<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
      '<div class="field"><label for="pddStage">PDD stage</label><select id="pddStage"><option value="Open"'+(curS==="Open"?' selected':'')+'>Select stage</option>'+stOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===curS?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
+     '<div class="field pdd-rc"><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div>'+
      '</div>'+noteH+
-     '<div class="st-sub" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn" id="ldSubmit">Submit</button><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div>';
+     '<div class="st-sub"><button class="btn" id="ldSubmit">Submit</button></div>';
   }
   return ownSel+'<div class="st-grid" role="radiogroup" aria-label="Lead status">'+opts.map(function(o){
     return '<label class="st-pill'+(o===cur?" on":"")+'"><input type="radio" name="ldst" value="'+esc(o)+'"'+(o===cur?" checked":"")+'>'+esc(ST_LABEL[o]||o)+'</label>';}).join("")+'</div>'+noteH+
