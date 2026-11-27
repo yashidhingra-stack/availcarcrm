@@ -2846,12 +2846,13 @@ function dsbRowParts(l){
   return {
     idv:ldRow(["idv","IDV Value"+req,idv,dsbHas(idv)&&!isNaN(parseFloat(idv))?money(parseFloat(idv)):String(idv),"num"]),
     ins:ldRow(["insExp","Insurance Expiry"+req,ins,ins?fmtDate(ins):String(px.insExp||""),"cxDate"]),
-    pf:ldRow(["pf","Processing Fees"+req,pf,dsbHas(pf)?money(dsbNum(pf)):"",null]),
-    ls:ldRow(["ls","Loan Suraksha",ls,dsbHas(ls)?money(dsbNum(ls)):"",null]),
+    pf:ldRow(["pf","Processing Fees"+req,pf,dsbHas(pf)?money(dsbNum(pf)):"","num"]),
+    ls:ldRow(["ls","Loan Suraksha",ls,dsbHas(ls)?money(dsbNum(ls)):"","num"]),
     net:'<tr><td class="k">Net Disbursement'+req+'</td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div><small class="note">Auto-calculated: Loan Amount \u2212 Processing Fees \u2212 Loan Suraksha</small></td></tr>',
     netClient:'<tr><td class="k">Net Disbursement To Client</td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div><small class="note">From PDD Details: Net Disbursement \u2212 RTO charges \u2212 Challan charges \u2212 Other charges</small></td></tr>'
   };
 }
+function dsbAdminEd(){var cu=userById(state.meUser);return cu&&hierIsAdmin(cu)?"num":null;}
 function dsbRowsHtml(l){var P=dsbRowParts(l);return P.idv+P.pf+P.ls+P.net+P.netClient;}
 /* Payments: person name opens this view: calculator, then Received details on one side and PDD details on the other */
 function payViewHtml(l){
@@ -3131,6 +3132,13 @@ function ldSave(l,k,val,q){
     if(val!==String(cxo[ck]||"")){cxo[ck]=val;l.hist.unshift({ts:stamp(),text:(ca?ca.label:ck)+" updated",type:"system"});toast("Saved");}
     rl();return;
   }
+  if(k==="rto"||k==="ch"||k==="oth"){
+    var cnm={rto:"RTO charges",ch:"Challan charges",oth:"Other charges"}[k];
+    if(val!==""&&(isNaN(parseFloat(val))||parseFloat(val)<0)){toast(cnm+" must be a valid amount");return false;}
+    var dch=ldx(l);state.ldEdit=null;var och=k==="rto"?rtoRaw(l):(dch.nd||{})[k];
+    if(String(och==null?"":och)!==val){var pnd={};pnd[k]=val;dch.nd=Object.assign({},dch.nd||{},pnd);if(k==="rto"){var rn=parseFloat(val);dch.rto=(!isNaN(rn)&&rn>0)?String(rn):"";}dsbSyncNet(l);l.hist.unshift({ts:stamp(),text:cnm+" updated"+(val?" to "+money(parseFloat(val)):""),type:"system"});toast("Saved");}
+    rl();return;
+  }
   if(k==="ls"){
     if(val!==""&&(isNaN(parseFloat(val))||parseFloat(val)<0)){toast("Loan Suraksha must be a valid amount");return false;}
     var dls=ldx(l);state.ldEdit=null;var ols=(dls.nd||{}).ls;
@@ -3310,10 +3318,10 @@ function renderDisbLead(l){
           ldRow(["bankExec","Bank Executive",x.bankExec||"",x.bankExec||"—","text"]),
           ldRow(["amount","Loan Amount",l.amount,l.amount?money(l.amount):"—","num"]),
           P.ls,P.pf,
-          ldRow(["rto","RTO Charges",lpPddAmount(l,"RTO charges"),money(lpNum(lpPddAmount(l,"RTO charges"))),null]),
+          ldRow(["rto","RTO Charges",(lpPddAmount(l,"RTO charges")==null?"":String(lpPddAmount(l,"RTO charges"))),money(lpNum(lpPddAmount(l,"RTO charges"))),dsbAdminEd()]),
           '<tr><td class="k">RTO Confirmation</td><td><div class="rv"><select data-dsb-rto-confirm aria-label="RTO Confirmation"><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></td></tr>',
-          ldRow(["ch","Challan Charges",lpPddAmount(l,"Challan charges"),money(lpNum(lpPddAmount(l,"Challan charges"))),null]),
-          ldRow(["oth","Other Charges",lpPddAmount(l,"Other charges"),money(lpNum(lpPddAmount(l,"Other charges"))),null]),
+          ldRow(["ch","Challan Charges",(lpPddAmount(l,"Challan charges")==null?"":String(lpPddAmount(l,"Challan charges"))),money(lpNum(lpPddAmount(l,"Challan charges"))),dsbAdminEd()]),
+          ldRow(["oth","Other Charges",(lpPddAmount(l,"Other charges")==null?"":String(lpPddAmount(l,"Other charges"))),money(lpNum(lpPddAmount(l,"Other charges"))),dsbAdminEd()]),
           '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
           '<tr><td class="k"><b>Net Disbursement to Client</b></td><td><div class="rv"><strong id="ldNetClient">'+dsbNetHtml(l)+'</strong></div></td></tr>'
         ];
