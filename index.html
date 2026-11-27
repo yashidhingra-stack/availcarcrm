@@ -767,6 +767,12 @@ input.is-filled:not([type=checkbox]):not([type=radio]),textarea.is-filled,select
 .pv-right .cp-badge{justify-self:center}
 .pv-right .cp-plus{width:30px;height:30px;border-radius:6px;font-size:18px}
 @media (max-width:900px){.pv-right .cp-head{display:none}.pv-right .cp-row{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 40px}.pv-right .cp-row .cp-note{grid-column:2/4}}
+[data-pendwrap][hidden]{display:none!important}
+.pdd-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto}
+.pdd-up .btn{white-space:nowrap;padding:10px 22px}
+.pdd-rc .btn[disabled]{opacity:.45;cursor:not-allowed}
+.pdd-upname{margin:8px 0 0}
+@media (max-width:700px){.pdd-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
@@ -3030,9 +3036,9 @@ function remarkLinesDesc(l){
 }
 function pddRemarksHtml(l){
   var ls=remarkLinesDesc(l);
-  return '<h4 class="nd-sub">Remarks <small class="pv-tag">Required to save</small></h4>'+
+  return '<h4 class="nd-sub">Remarks</h4>'+
     '<div class="nd-f nd-rem" style="margin-top:0"><textarea id="pd_rem" data-pdrem rows="3" placeholder="Add a remark" aria-label="Add a remark"></textarea></div>'+
-    '<div class="nd-f nd-rem"><span class="pv-l">Previous remarks (latest on top)</span>'+(ls.length?'<div class="pd-remscroll"><ol class="timeline pd-remlist">'+ls.map(function(z,i){return '<li class="note"><p'+(i===0?' style="font-weight:600"':'')+'>'+esc(z)+'</p></li>';}).join("")+'</ol></div>':'<p class="note">No remarks yet.</p>')+'</div>';
+    '<div class="nd-f nd-rem"><span class="pv-l">Previous remarks</span>'+(ls.length?'<div class="pd-remscroll"><ol class="timeline pd-remlist">'+ls.map(function(z,i){return '<li class="note"><p'+(i===0?' style="font-weight:600"':'')+'>'+esc(z)+'</p></li>';}).join("")+'</ol></div>':'<p class="note">No remarks yet.</p>')+'</div>';
 }
 var RTO_AUTH=["Chandigarh","Haryana","Punjab","Himachal","Kuwy","Gurgaon","Other"];
 var RTO_PERSONS=["Varun","Lovely","Ravi","Arvind","Sanjay Chawla","Harish","Honey","Joginder","Other"];
@@ -3069,9 +3075,9 @@ function pddDetHtml(l){
     ro("Other charges",money(lpNum(lpPddAmount(l,"Other charges"))))+
     ro("Net Disbursement",dsbNetBase(l)===null?"":money(dsbNetBase(l)))+ro("Net Disbursement To Client",dsbNetVal(l)===null?"":money(dsbNetVal(l)))+'</div>';
   return '<section class="nd-card pv-card" aria-label="PDD details"><h3 class="nd-h">PDD Details</h3>'+'<h4 class="nd-sub">RTO and charges</h4><div class="pv-fields">'+
-    pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields"><div class="nd-f"><label for="pd_rtoConfirm">RTO Confirmation</label><select id="pd_rtoConfirm" data-pdconfirm><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></div><div class="pv-fields pv-amts">'+
+    pk("auth","RTO Authority",x.rtoAuth,RTO_AUTH)+pk("work","RTO Person",rtoPersonOf(l),RTO_PERSONS)+'</div><div class="pv-fields pv-amts">'+
     n("rto","RTO charges",rtoRaw(l))+n("ch","Challan Charges",filled(nd.ch))+n("oth","Other charges",filled(nd.oth))+
-    '</div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div></section>';
+    '</div>'+'<div class="pv-fields"><div class="nd-f"><label for="pd_rtoConfirm">RTO Confirmation</label><select id="pd_rtoConfirm" data-pdconfirm><option value="">Select</option><option value="Confirmed"\'+(x.rtoConfirm==="Confirmed"?\' selected\':\'\')+\'>Confirmed</option><option value="Not Confirmed"\'+(x.rtoConfirm==="Not Confirmed"?\' selected\':\'\')+\'>Not Confirmed</option></select></div></div>'+'<div class="pv-fields" data-pendwrap'+(x.rtoConfirm==="Not Confirmed"?'':' hidden')+'><div class="nd-f"><label for="pd_rtoPend">RTO Pendency <span class="req">*</span></label><input id="pd_rtoPend" type="text" data-pdpend value="'+esc(x.rtoPend||"")+'" placeholder="Write the pendency"></div></div><div class="pv-fields"><div class="nd-f"><label for="pd_rtoNote">Notes</label><textarea id="pd_rtoNote" data-pdnote rows="2" placeholder="Notes">'+esc(x.rtoNote||"")+'</textarea></div></div>'+pddRemarksHtml(l)+'<div class="nd-foot"><button class="btn primary" id="pdSave">Save PDD details</button></div></section>';
 }
 /* ---------- PDD Details, view only (users who sign in with their user ID, Disbursement Business) ---------- */
 function pddViewOnly(l){var cu=userById(state.meUser);return state.leadCtx==="Disbursed"&&!!cu&&!hierIsAdmin(cu);}
@@ -3088,10 +3094,10 @@ function pddReadHtml(l){
   return '<section class="nd-card pv-card pr-card pd-view" aria-label="PDD details, view only">'+
     '<div class="pr-head"><div><h3 class="nd-h">PDD Details</h3></div><div class="pr-actions"><span class="pr-ro">View only</span></div></div>'+
     '<h4 class="pd-h"><i class="pd-dot a"></i>RTO details</h4><div class="pd-tiles">'+
-      tile("RTO Authority",x.rtoAuth)+tile("RTO Person",rtoPersonOf(l))+tileH("RTO Confirmation",badge)+'</div>'+
+      tile("RTO Authority",x.rtoAuth)+tile("RTO Person",rtoPersonOf(l))+tileH("RTO Confirmation",badge)+(rc==="Not Confirmed"?tile("RTO Pendency",x.rtoPend):"")+tile("RTO Notes",x.rtoNote)+'</div>'+
     '<h4 class="pd-h"><i class="pd-dot b"></i>Charges</h4><div class="pd-tiles pd-tiles4">'+
       tileH("RTO charges",mm(r))+tileH("Challan charges",mm(c))+tileH("Other charges",mm(o))+tileH("Total charges",mm(r+c+o),"pd-total")+'</div>'+
-    '<h4 class="pd-h"><i class="pd-dot d"></i>Remarks <small>latest on top</small></h4>'+
+    '<h4 class="pd-h"><i class="pd-dot d"></i>Remarks</h4>'+
     (ls.length?'<ol class="pd-rem">'+ls.map(function(z,i){return '<li'+(i===0?' class="new"':'')+'>'+esc(z)+'</li>';}).join("")+'</ol>':'<p class="note">No remarks yet.</p>')+
     '</section>';
 }
@@ -3106,8 +3112,9 @@ function pddDetWire(l,v){
     var ks=["rto","oth","ch"],i;
     var ss=v.querySelectorAll("[data-pdsel]");for(i=0;i<ss.length;i++){if(ss[i].value==="Other"&&!raw(ss[i].getAttribute("data-pdsel"))){toast("Type the "+(ss[i].getAttribute("data-pdsel")==="auth"?"RTO authority":"RTO person"));return;}}
     for(i=0;i<ks.length;i++){var n=parseFloat(raw(ks[i]));if(!isNaN(n)&&n<0){toast("Amounts cannot be negative");return;}}
+    var pdC0=v.querySelector("[data-pdconfirm]"),pdP0=v.querySelector("[data-pdpend]");if(pdC0&&pdC0.value==="Not Confirmed"&&pdP0&&!pdP0.value.trim()){toast("Write the RTO pendency");pdP0.focus();return;}
     var remChk=v.querySelector("[data-pdrem]");if(remChk&&!remChk.value.trim()){toast("Remarks are required");remChk.focus();return;}
-    var x=ldx(l);x.rtoAuth=raw("auth");x.rtoWork=raw("work");var rc=v.querySelector("[data-pdconfirm]");x.rtoConfirm=rc?rc.value:"";l.px=l.px||{};l.px.rtoPerson=raw("work");
+    var x=ldx(l);x.rtoAuth=raw("auth");x.rtoWork=raw("work");var rc=v.querySelector("[data-pdconfirm]");x.rtoConfirm=rc?rc.value:"";var pdE=v.querySelector("[data-pdpend]"),pdN=v.querySelector("[data-pdnote]");x.rtoPend=(x.rtoConfirm==="Not Confirmed"&&pdE)?pdE.value.trim():"";x.rtoNote=pdN?pdN.value.trim():"";l.px=l.px||{};l.px.rtoPerson=raw("work");
     var remEl=v.querySelector("[data-pdrem]"),remTx=remEl?remEl.value.trim():"";
     if(remTx){l.hist.unshift({ts:stamp(),text:remTx,type:"note"});addRemark(l,remTx);}
     x.nd=Object.assign({},x.nd||{},{rto:raw("rto"),oth:raw("oth"),ch:raw("ch")});
@@ -3348,6 +3355,8 @@ function renderDisbLead(l){
           P.ls,P.pf,
           ldRow(["rto","RTO Charges",(lpPddAmount(l,"RTO charges")==null?"":String(lpPddAmount(l,"RTO charges"))),money(lpNum(lpPddAmount(l,"RTO charges"))),dsbAdminEd()]),
           '<tr><td class="k">RTO Confirmation</td><td><div class="rv"><select data-dsb-rto-confirm aria-label="RTO Confirmation"><option value="">Select</option><option value="Confirmed"'+(x.rtoConfirm==="Confirmed"?' selected':'')+'>Confirmed</option><option value="Not Confirmed"'+(x.rtoConfirm==="Not Confirmed"?' selected':'')+'>Not Confirmed</option></select></div></td></tr>',
+          '<tr data-pendwrap'+(x.rtoConfirm==="Not Confirmed"?'':' hidden')+'><td class="k">RTO Pendency<span class="req">*</span></td><td><div class="rv"><input type="text" data-dsb-rto-pend value="'+esc(x.rtoPend||"")+'" placeholder="Write the pendency" aria-label="RTO Pendency"></div></td></tr>',
+          '<tr><td class="k">RTO Notes</td><td><div class="rv"><input type="text" data-dsb-rto-note value="'+esc(x.rtoNote||"")+'" placeholder="Notes" aria-label="RTO Notes"></div></td></tr>',
           ldRow(["ch","Challan Charges",(lpPddAmount(l,"Challan charges")==null?"":String(lpPddAmount(l,"Challan charges"))),money(lpNum(lpPddAmount(l,"Challan charges"))),dsbAdminEd()]),
           ldRow(["oth","Other Charges",(lpPddAmount(l,"Other charges")==null?"":String(lpPddAmount(l,"Other charges"))),money(lpNum(lpPddAmount(l,"Other charges"))),dsbAdminEd()]),
           '<tr><td class="k"><b>Net Disbursement</b></td><td><div class="rv"><strong id="ldNetAuto">'+dsbNetBaseHtml(l)+'</strong></div></td></tr>',
@@ -3574,11 +3583,15 @@ function ldStatusBlock(l){
   var noteH='<div class="st-note field"><label for="ldNote2">Note<span class="req">*</span></label><textarea id="ldNote2" rows="3" required></textarea></div>';
   if(pd){
     var curT=pddTp(l), curS=cur===PDD_ST[4]?"Open":cur;
+    var dr=state.pddDraft;if(dr&&dr.l===l){curT=dr.t||curT;curS=dr.s||curS;}
+    var upF=(l.files||[]).filter(function(f){return f.tag==="PDD Hypo Addition";}).pop();
+    var canShare=curT==="Hypo Addition"&&curS===PDD_ST[6]&&!!upF;
     var stOpts=PDD_ST.filter(function(x){return x!==PDD_ST[0]&&x!==PDD_ST[4];});
     return '<div class="st-grid pdd-grid"><div class="field"><label for="pddType">PDD type</label><select id="pddType">'+PDD_TYPES.map(function(o){return '<option value="'+esc(o)+'"'+(o===curT?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
      '<div class="field"><label for="pddStage">PDD stage</label><select id="pddStage"><option value="Open"'+(curS==="Open"?' selected':'')+'>Select stage</option>'+stOpts.map(function(o){return '<option value="'+esc(o)+'"'+(o===curS?' selected':'')+'>'+esc(o)+'</option>';}).join("")+'</select></div>'+
-     '<div class="field pdd-rc"><button class="btn primary" id="rcApproved" type="button">RC Approved</button></div>'+
-     '</div>'+noteH+
+     '<div class="field pdd-up"><label>Upload document<span class="req">*</span></label><input type="file" id="pddUpIn" hidden accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"><button class="btn" id="pddUpBtn" type="button">'+(upF?'Replace':'Upload')+'</button></div>'+
+     '<div class="field pdd-rc"><button class="btn primary" id="rcApproved" type="button"'+(canShare?'':' disabled')+' title="'+(canShare?'':'Needs PDD type Hypo Addition, PDD stage Approved and an uploaded document')+'">Share to Closure</button></div>'+
+     '</div>'+(upF?'<p class="note pdd-upname">Uploaded: '+esc(upF.name)+'</p>':'')+noteH+
      '<div class="st-sub"><button class="btn" id="ldSubmit">Submit</button></div>';
   }
   return ownSel+'<div class="st-grid" role="radiogroup" aria-label="Lead status">'+opts.map(function(o){
@@ -3594,6 +3607,8 @@ function submitLeadStatus(rcFlag){
   var ownEl=document.getElementById("ldOwner");
   if(ownEl&&ownEl.value&&ownEl.value!==l.owner){var po0=l.owner;l.owner=ownEl.value;l.hist.unshift({ts:stamp(),text:"Lead owner changed from "+(po0||"Unassigned")+" to "+l.owner,type:"owner"});saveLeads();}
   if(inPddCtx(l)){
+    state.pddDraft=null;
+    if(rcFlag&&!((l.files||[]).some(function(f){return f.tag==="PDD Hypo Addition";}))){toast("Upload the document first");return;}
     var po=pddSt(l), pt=pddTp(l), tEl=document.getElementById("pddType"), nt2=tEl?tEl.value:pt;
     ns=rcFlag?PDD_ST[4]:(pdSel?pdSel.value:po);
     if(nt2!==pt){l.pddType=nt2;l.hist.unshift({ts:stamp(),text:"PDD type changed from "+pt+" to "+nt2,type:"status"});}
@@ -3618,6 +3633,33 @@ document.addEventListener("change",function(e){
   [].forEach.call(document.querySelectorAll(".st-pill"),function(x){x.classList.toggle("on",x.firstChild.checked);});
 });
 document.addEventListener("click",function(e){if(e.target.id==="ldSubmit")submitLeadStatus();if(e.target.id==="rcApproved")submitLeadStatus(true);});
+/* RTO pendency / notes, PDD upload and Share to Closure gating */
+document.addEventListener("change",function(e){
+  var t=e.target;if(!t||!t.matches)return;
+  if(t.matches("[data-pdconfirm],[data-dsb-rto-confirm]")){
+    var sc=t.closest("section,table"),w=sc&&sc.querySelector("[data-pendwrap]");
+    if(w){if(t.value==="Not Confirmed"){w.removeAttribute("hidden");var i=w.querySelector("input");if(i)setTimeout(function(){i.focus();},0);}else w.setAttribute("hidden","");}
+  }
+  if(t.matches("[data-dsb-rto-pend],[data-dsb-rto-note]")){
+    var l=curLead();if(!l)return;var x=ldx(l);
+    if(t.hasAttribute("data-dsb-rto-pend"))x.rtoPend=t.value.trim();else x.rtoNote=t.value.trim();
+    saveLeads();toast("Saved");
+  }
+  if(t.id==="pddType"||t.id==="pddStage"){
+    var l2=curLead();if(!l2)return;
+    var ty=document.getElementById("pddType"),st=document.getElementById("pddStage");
+    state.pddDraft={l:l2,t:ty?ty.value:"",s:st?st.value:""};
+    var ok=ty&&st&&ty.value==="Hypo Addition"&&st.value===PDD_ST[6]&&(l2.files||[]).some(function(f){return f.tag==="PDD Hypo Addition";});
+    var b=document.getElementById("rcApproved");if(b){b.disabled=!ok;b.title=ok?"":"Needs PDD type Hypo Addition, PDD stage Approved and an uploaded document";}
+  }
+  if(t.id==="pddUpIn"){
+    var l3=curLead();if(!l3||!t.files.length)return;
+    var ty3=document.getElementById("pddType"),st3=document.getElementById("pddStage");
+    state.pddDraft={l:l3,t:ty3?ty3.value:"",s:st3?st3.value:""};
+    ldAddFiles(l3,t.files,-1,"PDD Hypo Addition");t.value="";
+  }
+});
+document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="pddUpBtn"){var i=document.getElementById("pddUpIn");if(i)i.click();}});
 function changeStatus(ns){
   var l=curLead(); if(!l)return; ensure(l);
   var old=l.status; if(ns===old)return;
