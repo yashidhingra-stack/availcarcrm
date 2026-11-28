@@ -1697,7 +1697,7 @@ function renderLeads(){
   if(key==="data"&&hierIsAdmin(userById(state.meUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button><button class="btn" id="removeDuplicateLeads">Remove duplicate entries</button>';
   if(key==="data"&&canDownloadLeadCategory())
-    h+='<button class="btn primary" id="dataDownloadBtn" data-fpdl title="Download the data shown (respects filters and date range) as Excel">'+ic("download")+' Download</button>';
+    h+='<button class="btn primary" id="dataDownloadBtn" title="Download the data shown (respects filters and date range) as Excel">'+ic("download")+' Download</button>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Rejected"?"Upload Reject Excel":"Upload Hold Excel")+'</button>'+(key==="Hold"?'<button class="btn primary" id="hrUploadBtnRej">Upload Reject Excel</button>':'')+'<input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
@@ -6469,6 +6469,7 @@ document.addEventListener("click",function(e){
   if(d.pop){var p=document.getElementById("pop-"+d.pop),was=!p.hidden;closePops();p.hidden=was;t.setAttribute("aria-expanded",String(!was));if(!was&&d.pop==="status"){}return;}
   if(d.fby){closePops();setPanel(true);var c=document.querySelector('[data-f="'+d.fby+'"]');if(c)c.focus();return;}
   if(t.hasAttribute("data-panel")){setPanel(document.getElementById("fpBody").hidden);return;}
+  if(t.id==="dataDownloadBtn"){window.CRM_ALLOW_DL=true;try{downloadPageExcel();}finally{window.CRM_ALLOW_DL=false;}return;}
   if(t.hasAttribute("data-fpdl")){downloadPageExcel();return;}
   if(t.hasAttribute("data-fpall")){var fr0={from:ALLFROM,to:(ALLTO>ymd(TODAY)?ALLTO:ymd(TODAY))};setRange(pageKey(),fr0);clearPeriodLabel();state.page=1;renderTable();return;}
   if(t.hasAttribute("data-pddall")){delete state.lrangeBy.pdd;clearPeriodLabel();var ra=getRange("pdd"),pf=document.getElementById("pdFrom"),pt=document.getElementById("pdTo");if(pf)pf.value=ra.from;if(pt)pt.value=ra.to;var lf=document.getElementById("lrFrom"),lt=document.getElementById("lrTo");if(lf)lf.value=ra.from;if(lt)lt.value=ra.to;state.page=1;renderTable();return;}
@@ -7278,10 +7279,10 @@ try{refreshNotif();}catch(x){}
   sync();setInterval(sync,300);
   var ac=HTMLAnchorElement.prototype.click;
   HTMLAnchorElement.prototype.click=function(){
-    if(this.hasAttribute("download")&&/\.(xlsx?|csv)$/i.test(this.getAttribute("download")||"")){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}
+    if(!window.CRM_ALLOW_DL&&this.hasAttribute("download")&&/\.(xlsx?|csv)$/i.test(this.getAttribute("download")||"")){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;}
     return ac.apply(this,arguments);
   };
-  function wrapX(){if(window.XLSX&&XLSX.writeFile&&!XLSX.__dlGuard){var w=XLSX.writeFile;XLSX.writeFile=function(){if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;};XLSX.__dlGuard=true;}}
+  function wrapX(){if(window.XLSX&&XLSX.writeFile&&!XLSX.__dlGuard){var w=XLSX.writeFile;XLSX.writeFile=function(){if(window.CRM_ALLOW_DL)return w.apply(this,arguments);if(window.CRM_BLOCK_DL)window.CRM_BLOCK_DL();return;};XLSX.__dlGuard=true;}}
   wrapX();window.addEventListener("load",wrapX);setTimeout(wrapX,1500);
 })();
 </script>
