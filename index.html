@@ -1696,6 +1696,8 @@ function renderLeads(){
   h+='<div class="pw"><button class="btn" data-pop="add" aria-haspopup="true" aria-expanded="false">'+ic("plusS")+' Add '+caret+'</button><div class="pop r" id="pop-add" hidden>'+(canDo("Leads","Import leads")?'<button class="menu-item" '+(key==="pdd"?'data-importpdd':'data-importcsv')+'>Import Excel</button>':"")+'<button class="menu-item" data-fpdl>Export Excel</button></div></div><input type="file" id="csvIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="pddIn" accept=".csv,.xlsx,.xls,text/csv" hidden><input type="file" id="wbIn" accept=".xlsx,.xls" hidden>';
   if(key==="data"&&hierIsAdmin(userById(state.meUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="majorWbUpload">'+ic("upload")+' Upload monthly workbook</button><button class="btn" id="removeDuplicateLeads">Remove duplicate entries</button>';
+  if(key==="data"&&canDownloadLeadCategory())
+    h+='<button class="btn primary" id="dataDownloadBtn" data-fpdl title="Download the data shown (respects filters and date range) as Excel">'+ic("download")+' Download</button>';
   var hrCurrentUser=userById(state.meUser);
   if((key==="Hold"||key==="Rejected")&&(!!hrUserKey(hrCurrentUser)||hierIsAdmin(hrCurrentUser))&&canDo("Leads","Import leads"))
     h+='<button class="btn primary" id="hrUploadBtn">'+(key==="Rejected"?"Upload Reject Excel":"Upload Hold Excel")+'</button>'+(key==="Hold"?'<button class="btn primary" id="hrUploadBtnRej">Upload Reject Excel</button>':'')+'<input type="file" id="hrUploadFile" accept=".csv,.xlsx,.xls,text/csv" hidden>';
@@ -2687,7 +2689,7 @@ var LDI={
  copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a1 1 0 011-1h9"/>',
  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
  chat:'<path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/>',
- file:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5"/>',upload:'<path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/>'};
+ file:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5"/>',upload:'<path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/>',download:'<path d="M12 4v12M7.5 11.5 12 16l4.5-4.5M5 20h14"/>'};
 function ldi(n){return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+LDI[n]+'</svg>';}
 function ldBtn(attr,label,icon){return '<button class="icon-btn" '+attr+' aria-label="'+label+'" title="'+label+'">'+ldi(icon)+'</button>';}
 function firmList(){var m={},src=(Array.isArray(MASTER)&&MASTER.length)?MASTER:leads;src.forEach(function(l){var v=ldx(l).caseBooked;if(v){v=String(v).trim();if(v)m[v]=1;}});leads.forEach(function(l){var v=ldx(l).caseBooked;if(v){v=String(v).trim();if(v)m[v]=1;}});return Object.keys(m).sort(function(a,b){return a.localeCompare(b);});}
