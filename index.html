@@ -1093,6 +1093,7 @@ function renderNav(){
   function flat(kids){var o=[];kids.forEach(function(k){if(k.group)o=o.concat(k.kids);else o.push(k);});return o;}
   function btn(k){return '<button data-route="'+k[0]+'" class="'+(cur===k[0]?"active":"")+'">'+k[1]+'</button>';}
   MENU.forEach(function(n){
+    if(!hierIsAdmin(cu)&&!hierMenuOk(n.id,cu))return; /* menu hidden for this user on the Hierarchy page */
     if(n.kids){
       var vis=[];
       n.kids.forEach(function(k){
@@ -4011,6 +4012,8 @@ function canChannel(i){return canDo("Dashboard",CH_ACT[channels[i][0]]);}
 function routeOk(r){
   var h=r.split("/")[0],k=r.split("/")[1],cu=userById(state.meUser);
   if(r==="backup")return hierIsAdmin(cu);
+  if(r==="hierarchy")return hierIsAdmin(cu); /* Hierarchy page: Admin only */
+  if(cu&&!hierIsAdmin(cu)){var _mid=hierMenuOfRoute(r);if(_mid&&!hierMenuOk(_mid,cu))return false;} /* menus Admin switched off for this user */
   if(cu&&cu.holdOnly&&!hierIsAdmin(cu)){
     if(r==="dashboard")return canMod("Dashboard");
     if(r==="leads/Hold")return canDo("Leads","Hold")||(!!hrUserKey(cu)&&canDo("Leads","Reject Business"));
@@ -5965,9 +5968,10 @@ function hierarchyScopeFor(u){
   return [first].concat(hierGet(first).see||[]);
 }
 function renderHierarchy(){
+  if(!hierIsAdmin(userById(state.meUser))){document.getElementById("view").innerHTML='<div class="stub"><h2>Admin only</h2>Only an Admin can open or change the Hierarchy.</div>';return;}
   var P=hierPeople();
-  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Choose whose leads and files each user can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><div class="tb"><button class="btn primary" id="hierAddUser">Add user</button><button class="btn" id="hierPerm">Roles &amp; permissions</button><button class="btn" id="hierTickAll">Tick all categories for everyone</button><button class="btn" id="hierReset">Reset to default</button></div></div>';
-  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>Role</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th><th>Also shift own copy when these people move a file</th></tr></thead><tbody>';
+  var h='<div class="page-head"><div class="ph-title"><button class="icon-btn" data-route="dashboard" aria-label="Back to dashboard">'+ic("back")+'</button><div><h1>Hierarchy</h1><p>Admin only. Choose which menus each user sees, whether they can edit leads or only view them, whose leads and files they can see, and which categories (Audience, Login Pending, Login, Approval Pending, Approved, Hold, Disbursement, Reject, PDD) they can open. Everyone always sees their own. In the last column, tick the people whose file moves should also take the copy of the same file held by this user out of its old category. Changes save instantly and apply the next time that user opens a page.</p></div></div><div class="tb"><button class="btn primary" id="hierAddUser">Add user</button><button class="btn" id="hierPerm">Roles &amp; permissions</button><button class="btn" id="hierTickAll">Tick all categories for everyone</button><button class="btn" id="hierReset">Reset to default</button></div></div>';
+  h+='<div class="table-wrap"><table class="hier"><thead><tr><th>User</th><th>Role</th><th>Can edit leads</th><th>Menus shown</th><th>See all leads</th><th>Can also see files of</th><th>Category access</th><th>Also shift own copy when these people move a file</th></tr></thead><tbody>';
   users.filter(function(u){return u.active;}).forEach(function(u){
     var k=hierarchyFirst(u.name),c=hierGet(k),r=roleById(u.roleId),adm=!!(r&&r.name==="Admin");
     var cell,cc=Array.isArray(c.cats)?c.cats:null,catCell;
@@ -5978,7 +5982,9 @@ function renderHierarchy(){
     else if(c.all)cell='<em>Everyone</em>';
     else cell=P.filter(function(p){return p.k!==k;}).map(function(p){return '<label class="hchip"><input type="checkbox" data-hu="'+k+'" data-hp="'+p.k+'"'+(c.see.indexOf(p.k)>-1?" checked":"")+'> '+esc(p.n)+'</label>';}).join("");
     var roleSel='<select data-hrole="'+u.id+'" aria-label="Role for '+esc(u.name)+'">'+roles.map(function(x){return '<option value="'+x.id+'"'+(x.id===u.roleId?' selected':'')+'>'+esc(x.name)+'</option>';}).join("")+'</select><br><button type="button" class="btn" style="margin-top:6px" data-hperm="'+u.roleId+'">Permissions</button>';
-     h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td>'+roleSel+'</td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
+    var edCell=adm?'<em>Admin &ndash; always</em>':'<label class="hchip"><input type="checkbox" data-hed="'+k+'"'+(c.canEdit!==false?" checked":"")+' aria-label="Can edit leads: '+esc(u.name)+'"> Can edit</label><div class="note" style="font-size:11px;margin-top:4px">Off = view only</div>';
+    var mn=Array.isArray(c.menus)?c.menus:null,mnCell=adm?'<em>Admin &ndash; all menus</em>':HMENUS.map(function(x){return '<label class="hchip"><input type="checkbox" data-hm="'+k+'" data-hmenu="'+x[0]+'"'+((!mn||mn.indexOf(x[0])>-1)?" checked":"")+'> '+esc(x[1])+'</label>';}).join("")+'<div class="hsel" style="width:100%;margin-top:6px;font-size:12px"><a href="#" data-hmsel="'+k+'" data-hmmode="all">Select all</a> &middot; <a href="#" data-hmsel="'+k+'" data-hmmode="none">Clear</a></div>';
+     h+='<tr><td><b>'+esc(u.name)+'</b><br><small>'+esc(r?r.name:"")+'</small></td><td>'+roleSel+'</td><td>'+edCell+'</td><td><div class="hwrap" style="max-width:300px">'+mnCell+'</div></td><td style="text-align:center"><input type="checkbox" data-hall="'+k+'"'+((c.all||adm)?" checked":"")+(adm?" disabled":"")+' aria-label="See all leads for '+esc(u.name)+'"></td><td><div class="hwrap">'+cell+'</div></td><td><div class="hwrap" style="max-width:360px">'+catCell+'</div></td><td><div class="hwrap" style="max-width:360px">'+fwCell+'</div></td></tr>';
   });
   h+='</tbody></table></div>';
   document.getElementById("view").innerHTML=h;
@@ -7238,6 +7244,71 @@ document.addEventListener("click",function(e){
 (function(){var r0=render;render=function(){var o=r0.apply(this,arguments);try{refreshNotif();}catch(x){}return o;};})();
 setInterval(function(){try{refreshNotif();}catch(x){}},30000);
 try{refreshNotif();}catch(x){}
+/* Hierarchy v2: per-user "Can edit" and "Menus shown", all changeable by Admin only */
+var HMENUS=[["dashboard","Dashboard"],["leads","Leads"],["forms","Forms"],["office","Office Use Only"],["reports","Reports"],["waba","WABA"],["payments","Payments"],["settings/category","Category"],["invoice","Invoice & Quotations"]];
+function hierMenuOfRoute(r){
+  r=String(r||"");var h=r.split("/")[0];
+  if(r==="dashboard")return "dashboard";
+  if(r==="leads/data")return "reports";
+  if(h==="leads"||h==="lead")return "leads";
+  if(r==="integration/forms")return "forms";
+  if(r==="integration/custom"||r==="dealer-details"||r==="channelwise"||r==="users"||r==="hierarchy"||r==="major/staff"||r==="major/dealers"||r==="chlist"||r==="dataup")return "office";
+  if(r==="data/report"||r==="data/analysis"||r==="data/download")return "reports";
+  if(r==="waba")return "waba";
+  if(h==="payments")return "payments";
+  if(r==="settings/category")return "settings/category";
+  if(r==="invoice")return "invoice";
+  return null;
+}
+function hierMenuOk(id,u){
+  if(!u||hierIsAdmin(u))return true;
+  var m=hierGet(hierarchyFirst(u.name)).menus;
+  return !Array.isArray(m)||m.indexOf(id)>-1;
+}
+function hierCanEditMe(){
+  var u=userById(state.meUser);
+  if(!u||hierIsAdmin(u))return true;
+  return hierGet(hierarchyFirst(u.name)).canEdit!==false;
+}
+function hierAdminMe(){return hierIsAdmin(userById(state.meUser));}
+(function(){
+  var st=document.createElement("style");
+  st.textContent="body.no-edit [data-ledit2],body.no-edit [data-ldbox],body.no-edit [data-lmove]{display:none!important}";
+  document.head.appendChild(st);
+  var DENY_EDIT="You have view-only access. Ask Admin to turn on Can edit for you";
+  /* view-only users: edit controls do nothing, and lead fields are locked */
+  var _ls=ldSave;ldSave=function(){if(!hierCanEditMe()){toast(DENY_EDIT);return false;}return _ls.apply(this,arguments);};
+  var _qf=ldQuickFu;ldQuickFu=function(){if(!hierCanEditMe()){toast(DENY_EDIT);return;}return _qf.apply(this,arguments);};
+  var _rl=renderLead;renderLead=function(){var r=_rl.apply(this,arguments);if(!hierCanEditMe()){var v=document.getElementById("view");if(v)v.querySelectorAll("input,textarea,select").forEach(function(e){e.disabled=true;});}return r;};
+  var _ac=applyChrome;applyChrome=function(){var r=_ac.apply(this,arguments);document.body.classList.toggle("no-edit",!hierCanEditMe());return r;};
+  var EDIT_SEL="[data-ledit2],[data-ldbox],[data-ldboxsave],[data-ledit],[data-edsave],[data-lmove],[data-save]";
+  var HIER_SEL="[data-hall],[data-hu],[data-hf],[data-hc],[data-hrole],[data-hsel],[data-hed],[data-hm],[data-hmsel],[data-hperm],#hierTickAll,#hierReset,#hierAddUser,#hierPerm";
+  function guard(e){
+    var t=e.target;if(!t||!t.closest)return;
+    if(t.closest(HIER_SEL)&&!hierAdminMe()){e.preventDefault();e.stopPropagation();toast("Only Admin can change the Hierarchy");return;}
+    if(e.type==="click"&&!hierCanEditMe()&&t.closest(EDIT_SEL)){e.preventDefault();e.stopPropagation();toast(DENY_EDIT);}
+  }
+  document.addEventListener("click",guard,true);
+  document.addEventListener("change",guard,true);
+  /* Admin changes */
+  document.addEventListener("change",function(e){
+    var t=e.target;if(!t||!t.getAttribute||!hierAdminMe())return;
+    var ed=t.getAttribute("data-hed");
+    if(ed){hierGet(ed).canEdit=!!t.checked;hierSave();toast(t.checked?"Can edit: on":"View only: on");return;}
+    var hm=t.getAttribute("data-hm");
+    if(hm){var c=hierGet(hm),id=t.getAttribute("data-hmenu");
+      if(!Array.isArray(c.menus))c.menus=HMENUS.map(function(x){return x[0];});
+      var i=c.menus.indexOf(id);if(t.checked&&i<0)c.menus.push(id);if(!t.checked&&i>-1)c.menus.splice(i,1);
+      hierSave();toast("Menu access saved");}
+  });
+  document.addEventListener("click",function(e){
+    var a=e.target&&e.target.closest?e.target.closest("[data-hmsel]"):null;
+    if(!a||!hierAdminMe())return;
+    e.preventDefault();
+    hierGet(a.getAttribute("data-hmsel")).menus=a.getAttribute("data-hmmode")==="all"?HMENUS.map(function(x){return x[0];}):[];
+    hierSave();toast("Menu access saved");render();
+  });
+})();
 })();
 </script>
 <script>
